@@ -2,6 +2,7 @@
 
 namespace App\Http\Webhooks\Handlers;
 
+use App\Http\Webhooks\Handlers\Traits\InlinePageTrait;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
@@ -17,7 +18,31 @@ use Illuminate\Support\Facades\Log;
 
 class User extends WebhookHandler
 {
-    use UserTrait;
+    use InlinePageTrait;
+
+    public function test(): void
+    {
+        $language_code = 'ru';
+        $buttons = [
+                'row' => [
+                    [
+                        'name' => 'Start',
+                        'type' => 'action',
+                        'method' => 'run_test',
+                        'param' => ['data', 'test'],
+                        'language' => ['ru' => 'Начать', 'en' => 'Start']
+                    ],
+
+                    [
+                        'name' => 'Start',
+                        'type' => 'url',
+                        'link' => 'https://t.me/+zZMk776R0oA0YWEy',
+                        'language' => ['ru' => 'Начать', 'en' => 'Start']
+                    ]
+                ]
+        ];
+        $this->send_inline_page($language_code, 'start', $buttons);
+    }
     public function start(): void
     {
         $chat_id = $this->message->from()->id();

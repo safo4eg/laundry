@@ -10,10 +10,6 @@ trait UserTrait
 {
     public function send_start(UserModel $user, int $message_id = null): void
     {
-        if(!is_null($message_id)) {
-
-        }
-
         $language_code = $user->language_code;
         $buttons = ['start' => null, 'reviews' => null];
 
