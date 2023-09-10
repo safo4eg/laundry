@@ -21,6 +21,9 @@ return new class extends Migration
             $table->string('phone_number', 12)->nullable();
             $table->string('whatsapp', 12)->nullable();
             $table->string('language_code', 2);
+            $table->string('page', 64); // start, select_language, menu, scenario
+            $table->tinyInteger('step_id')->unsigned()->index()->nullable();
+            $table->bigInteger('message_id')->unique()->nullable();
         });
     }
 

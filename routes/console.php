@@ -19,5 +19,25 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Artisan::command('test', function () {
-    Storage::put('steps', 'text');
+    $first_scenario = [
+        'first' => [
+            'template' => 'order.geo'
+        ],
+
+        'second' => [
+            'template' => 'order.address'
+        ],
+
+        'third' => [
+            'template' => 'order.contact'
+        ],
+
+        'fourth' => [
+            'template' => 'order.whatsapp'
+        ],
+
+        'steps_amount' => 4
+    ];
+
+    Storage::put('first_scenario', json_encode($first_scenario));
 });

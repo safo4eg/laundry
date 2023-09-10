@@ -23,10 +23,6 @@
 🤝 Let's wash at least one T-shirt,
 but <b>order minimum 240.000 rupees.</b>
 
-❗️ВНИМАНИЕ
-Мы НЕ ХИМЧИСТКА. Мы очень хорошая лаундри.
-Мы НЕ ПРИНИМАЕМ шубы, пуховики, костюмы, шлемы, бейсболки, замшевую и кожаную обувь.
-
 ❗️ATTENTION
 We are NOT a DRY CLEANER. We are a very good laundry.
 We DO NOT ACCEPT fur coats, down jackets, suits, helmets, baseball caps, suede or leather shoes.
