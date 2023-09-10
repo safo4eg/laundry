@@ -7,11 +7,31 @@ use DefStudio\Telegraph\Keyboard\Keyboard;
 
 trait InlinePageTrait
 {
+    public function send_select_language(): void
+    {
+        $this->chat->message(view('bot.select_language'))
+            ->keyboard(Keyboard::make()->buttons([
+                Button::make('English')->action('select_language')->param('choice', 'en'),
+                Button::make('Русский')->action('select_language')->param('choice', 'ru')
+            ]))->send();
+    }
     public function send_inline_page(string $language_code, string $template_name, array $buttons_info): void
     {
         $buttons = $this->get_buttons($language_code, $buttons_info);
         $keyboard = $this->create_keyboard($buttons);
-        $this->chat->message(view("bot.$language_code.$template_name"))->keyboard($keyboard)->send();
+        $this->chat->message(view("bot.$language_code.$template_name"))
+            ->keyboard($keyboard)
+            ->send();
+    }
+
+    public function next_inline_page(int $message_id, string $language_code, string $template_name, array $buttons_info):void
+    {
+        $buttons = $this->get_buttons($language_code, $buttons_info);
+        $keyboard = $this->create_keyboard($buttons);
+        $this->chat->edit($message_id)
+            ->message(view("bot.$language_code.$template_name"))
+            ->keyboard($keyboard)
+            ->send();
     }
 
     private function create_keyboard(array $buttons): Keyboard

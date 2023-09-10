@@ -4,11 +4,6 @@ namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\InlinePageTrait;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
-use DefStudio\Telegraph\Keyboard\Button;
-use DefStudio\Telegraph\Keyboard\Keyboard;
-use DefStudio\Telegraph\Keyboard\ReplyButton;
-use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
-use DefStudio\Telegraph\Models\TelegraphChat;
 
 use App\Models\User as UserModel;
 use App\Http\Webhooks\Handlers\Traits\UserTrait;
@@ -19,65 +14,61 @@ use Illuminate\Support\Facades\Log;
 class User extends WebhookHandler
 {
     use InlinePageTrait;
-
-    public function test(): void
-    {
-        $language_code = 'ru';
-        $buttons = [
-                'row' => [
-                    [
-                        'name' => 'Start',
-                        'type' => 'action',
-                        'method' => 'run_test',
-                        'param' => ['data', 'test'],
-                        'language' => ['ru' => 'Начать', 'en' => 'Start']
-                    ],
-
-                    [
-                        'name' => 'Start',
-                        'type' => 'url',
-                        'link' => 'https://t.me/+zZMk776R0oA0YWEy',
-                        'language' => ['ru' => 'Начать', 'en' => 'Start']
-                    ]
-                ]
-        ];
-        $this->send_inline_page($language_code, 'start', $buttons);
-    }
     public function start(): void
     {
-        $chat_id = $this->message->from()->id();
-        $user = UserModel::where('chat_id', $chat_id)->first();
+        $choice = $this->data->get('choice');
 
-        if($user) {
-            $this->send_start($user);
-            return;
+        if(empty($choice)) {
+            $chat_id = $this->message->from()->id();
+            $user = UserModel::where('chat_id', $chat_id)->first();
+
+            if($user) {
+                $language_code = $user->language_code;
+                $template_name = config('keyboards.start.template');
+                $buttons = config('keyboards.start.buttons');
+                $this->send_inline_page($language_code, $template_name, $buttons);
+                return;
+            } else {
+                $username = $this->message->from()->username();
+                $language_code = $this->message->from()->languageCode();
+
+                UserModel::create([
+                    'chat_id' => $chat_id,
+                    'username' => $username,
+                    'language_code' => $language_code
+                ]);
+
+                $this->send_select_language();
+            }
         }
 
-        $username = $this->message->from()->username();
-        $language_code = $this->message->from()->languageCode();
+        if(!empty($choice)) {
+            $chat_id = $this->callbackQuery->from()->id();
+            $message_id = $this->callbackQuery->message()->id();
+            $user = UserModel::where('chat_id', $chat_id)->first();
 
-        UserModel::create([
-            'chat_id' => $chat_id,
-            'username' => $username,
-            'language_code' => $language_code
-        ]);
+            // переход на сценарий
+        }
 
-        $this->send_select_language();
     }
 
     public function select_language(): void
     {
-        $language_code = $this->data->get('language_code');
-        $chat_id = $this->callbackQuery->from()->id();
-        $message_id = $this->callbackQuery->message()->id();
-        $this->chat->edit($message_id)->message('new text')->keyboard(
-            Keyboard::make()->buttons([
-                Button::make('text')->action('act')->param('par', 1)
-            ])
-        )->send();
-//        $user = UserModel::where('chat_id', $chat_id)->first();
-//        $user->updateFields(['language_code' => $language_code]);
-//        $this->send_start($user);
+        $language_code = $this->data->get('choice');
+        if(empty($language_code)) {
+            // этот блок для отправки выбора языка из комманд (нижний нужно будет немного переписать, чтобы была отправка не на начать)
+        }
+
+        if(!empty($language_code)) {
+            $chat_id = $this->callbackQuery->from()->id();
+            $message_id = $this->callbackQuery->message()->id();
+            $user = UserModel::where('chat_id', $chat_id)->first();
+            $user->updateFields(['language_code' => $language_code]);
+
+            $template_name = config('keyboards.start.template');
+            $buttons = config('keyboards.start.buttons');
+            $this->next_inline_page($message_id, $language_code, $template_name, $buttons);
+        }
     }
 
 
