@@ -21,22 +21,26 @@ Artisan::command('inspire', function () {
 Artisan::command('test', function () {
     $first_scenario = [
         'first' => [
-            'template' => 'order.geo'
+            'template' => 'order.geo',
+            'step_id' => 1
         ],
 
         'second' => [
-            'template' => 'order.address'
+            'template' => 'order.address',
+            'step_id' => 2
         ],
 
         'third' => [
-            'template' => 'order.contact'
+            'template' => 'order.contact',
+            'step_id' => 3
         ],
 
         'fourth' => [
-            'template' => 'order.whatsapp'
+            'template' => 'order.whatsapp',
+            'step_id' => 4
         ],
 
-        'steps_amount' => 4
+        'steps_amount' => 5
     ];
 
     Storage::put('first_scenario', json_encode($first_scenario));

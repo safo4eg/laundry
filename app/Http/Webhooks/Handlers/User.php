@@ -45,28 +45,27 @@ class User extends WebhookHandler
                     'page' => 'select_language'
                 ]);
 
-                $message_id = $this->send_select_language();
-                $user->updateFields(['message_id' => $message_id]);
+                $this->send_select_language();
             }
         }
 
         if(!empty($choice)) {
             $chat_id = $this->callbackQuery->from()->id();
-            $message_id = $this->callbackQuery->message()->id();
             $user = UserModel::where('chat_id', $chat_id)->first();
 
             if($user->phone_number) {
 
             } else {
                 $scenario = json_decode(Storage::get('first_scenario'));
-                $template_path = 'bot.'.($user->language_code === 'ru'? 'ru.': 'en.').$scenario->first->template;
+                $scenario_move = $scenario->first;
+                $template_path = 'bot.'.($user->language_code === 'ru'? 'ru.': 'en.').$scenario_move->template;
                 $button = $user->language_code === 'ru'? 'Отправить локацию': 'Send location';
 
                 $user->updateFields(['page' => 'first_scenario', 'step_id' => 1]);
 
-                $this->chat->deleteMessage($message_id)->send();
+                $this->chat->deleteMessage($this->messageId)->send();
                 $this->chat
-                    ->message(view($template_path, ['current_step' => 1, 'steps_amount' => $scenario->steps_amount]))
+                    ->message(view($template_path, ['current_step' => $scenario_move->step_id, 'steps_amount' => $scenario->steps_amount]))
                     ->replyKeyboard(ReplyKeyboard::make()->button($button)->requestLocation())
                     ->send();
             }
@@ -83,24 +82,46 @@ class User extends WebhookHandler
 
         if(!empty($language_code)) {
             $chat_id = $this->callbackQuery->from()->id();
-            $message_id = $this->callbackQuery->message()->id();
             $user = UserModel::where('chat_id', $chat_id)->first();
             $user->updateFields(['language_code' => $language_code, 'page' => 'start']);
 
             $template_name = config('keyboards.start.template');
             $buttons = config('keyboards.start.buttons');
-            $this->next_inline_page($message_id, $language_code, $template_name, $buttons);
+            $this->next_inline_page($this->messageId, $language_code, $template_name, $buttons);
         }
     }
 
 
-    public function first_scenario(): void
+    public function first_scenario(UserModel $user = null): void
     {
+        $scenario = json_decode(Storage::get('first_scenario'));
+        $step_id = $user->step_id;
+        $template_path_lang = 'bot.'.($user->language_code === 'ru'? 'ru.': 'en.');
 
+        if($step_id === 1) {
+            $user->updateFields(['step_id' => 2]);
+            $scenario_move = $scenario->second;
+            $this->chat
+                ->message(view(
+                    $template_path_lang.$scenario_move->template,
+                    ['step_id' => $scenario_move->step_id, 'steps_amount' => $scenario->steps_amount]))
+                ->removeReplyKeyboard()
+                ->send();
+        }
     }
 
     protected function handleChatMessage(Stringable $text): void
     {
+        $chat_id = $this->message->from()->id();
+        $user = UserModel::where('chat_id', $chat_id)->first();
 
+        if($user->page === 'first_scenario') {
+            switch ($user->step_id) {
+                case 1:
+                    // #order добавление локации
+                    $this->first_scenario($user);
+                    break;
+            }
+        }
     }
 }
