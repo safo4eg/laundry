@@ -30,7 +30,7 @@ class User extends WebhookHandler
                     $language_code = $user->language_code;
                     $template_name = config('keyboards.start.template');
                     $buttons = config('keyboards.start.buttons');
-                    $user->updateFields(['page' => 'start']);
+                    $user->update(['page' => 'start']);
                     $this->send_inline_page($language_code, $template_name, $buttons);
                     return;
                 } else return;
@@ -61,7 +61,7 @@ class User extends WebhookHandler
                 $template_path = 'bot.'.($user->language_code === 'ru'? 'ru.': 'en.').$scenario_move->template;
                 $button = $user->language_code === 'ru'? 'Отправить локацию': 'Send location';
 
-                $user->updateFields(['page' => 'first_scenario', 'step_id' => 1]);
+                $user->update(['page' => 'first_scenario', 'step_id' => 1]);
 
                 $this->chat->deleteMessage($this->messageId)->send();
                 $this->chat
@@ -83,7 +83,7 @@ class User extends WebhookHandler
         if(!empty($language_code)) {
             $chat_id = $this->callbackQuery->from()->id();
             $user = UserModel::where('chat_id', $chat_id)->first();
-            $user->updateFields(['language_code' => $language_code, 'page' => 'start']);
+            $user->update(['language_code' => $language_code, 'page' => 'start']);
 
             $template_name = config('keyboards.start.template');
             $buttons = config('keyboards.start.buttons');
@@ -99,7 +99,8 @@ class User extends WebhookHandler
         $template_path_lang = 'bot.'.($user->language_code === 'ru'? 'ru.': 'en.');
 
         if($step_id === 1) {
-            $user->updateFields(['step_id' => 2]);
+            // #order отправка локации (логика)
+            $user->update(['step_id' => 2]);
             $scenario_move = $scenario->second;
             $this->chat
                 ->message(view(
@@ -115,13 +116,10 @@ class User extends WebhookHandler
         $chat_id = $this->message->from()->id();
         $user = UserModel::where('chat_id', $chat_id)->first();
 
-        if($user->page === 'first_scenario') {
-            switch ($user->step_id) {
-                case 1:
-                    // #order добавление локации
-                    $this->first_scenario($user);
-                    break;
-            }
+        switch ($user->page) {
+            case 'first_scenario':
+                $this->first_scenario($user);
+                break;
         }
     }
 }
