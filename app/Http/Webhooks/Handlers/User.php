@@ -3,6 +3,7 @@
 namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\InlinePageTrait;
+use App\Services\Template;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 
 use App\Models\User as UserModel;
@@ -13,10 +14,13 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
 
+use App\Services\Whatsapp;
+
 
 class User extends WebhookHandler
 {
     use InlinePageTrait;
+
     public function start(): void
     {
         $choice = $this->data->get('choice');
@@ -114,13 +118,32 @@ class User extends WebhookHandler
             $scenario_step = $scenario->third;
             $user->update(['step_id' => 3]);
             $button = $user->language_code === 'ru'? 'Отправить номер': 'Send number';
-
             $this->chat
                 ->message(view(
                     $template_path_lang.$scenario_step->template,
                     ['step_id' => $scenario_step->step_id, 'steps_amount' => $scenario->steps_amount]))
                 ->replyKeyboard(ReplyKeyboard::make()->button($button)->requestContact())
                 ->send();
+        } else if($step_id === 3) {
+            // #order добавление контакта
+
+            $scenario_step = $scenario->fourth;
+            $user->update(['step_id' => 4]);
+            $this->chat
+                ->message(view(
+                    $template_path_lang.$scenario_step->template,
+                    ['step_id' => $scenario_step->step_id, 'steps_amount' => $scenario->steps_amount]))
+                ->removeReplyKeyboard()
+                ->send();
+        } else if($step_id === 4) {
+            $whatsapp_number = $this->message->text();
+            $is_valid_whatsapp_number = (new Whatsapp())->check_account($whatsapp_number);
+
+            if($is_valid_whatsapp_number) {
+                $this->chat->message('аккаунт действительный')->send();
+            } else {
+                $this->chat->message('несуществующий аккаунт')->send();
+            }
         }
     }
 

@@ -31,4 +31,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'whatsapp' => [
+        'id' => 1101856990, // idInstance from green api
+        'token' => '20127fa42d194b0ea6b85a57a1672f9c6ff5afc796084809a5'
+    ]
+
 ];
