@@ -65,7 +65,7 @@ class User extends WebhookHandler
 
                 $this->chat->deleteMessage($this->messageId)->send();
                 $this->chat
-                    ->message(view($template_path, ['current_step' => $scenario_move->step_id, 'steps_amount' => $scenario->steps_amount]))
+                    ->message(view($template_path, ['step_id' => $scenario_move->step_id, 'steps_amount' => $scenario->steps_amount]))
                     ->replyKeyboard(ReplyKeyboard::make()->button($button)->requestLocation())
                     ->send();
             }
@@ -101,12 +101,25 @@ class User extends WebhookHandler
         if($step_id === 1) {
             // #order отправка локации (логика)
             $user->update(['step_id' => 2]);
-            $scenario_move = $scenario->second;
+            $scenario_step = $scenario->second;
             $this->chat
                 ->message(view(
-                    $template_path_lang.$scenario_move->template,
-                    ['step_id' => $scenario_move->step_id, 'steps_amount' => $scenario->steps_amount]))
+                    $template_path_lang.$scenario_step->template,
+                    ['step_id' => $scenario_step->step_id, 'steps_amount' => $scenario->steps_amount]))
                 ->removeReplyKeyboard()
+                ->send();
+        } else if($step_id === 2) {
+            // #order добавление информации о месте
+
+            $scenario_step = $scenario->third;
+            $user->update(['step_id' => 3]);
+            $button = $user->language_code === 'ru'? 'Отправить номер': 'Send number';
+
+            $this->chat
+                ->message(view(
+                    $template_path_lang.$scenario_step->template,
+                    ['step_id' => $scenario_step->step_id, 'steps_amount' => $scenario->steps_amount]))
+                ->replyKeyboard(ReplyKeyboard::make()->button($button)->requestContact())
                 ->send();
         }
     }

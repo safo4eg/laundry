@@ -14,12 +14,4 @@ class User extends Authenticatable
     protected $guarded = [];
 
     public $timestamps = false;
-
-    public function updateFields(array $fields): void
-    {
-        foreach ($fields as $key => $field) {
-            $this->$key = $field;
-        }
-        $this->save();
-    }
 }
