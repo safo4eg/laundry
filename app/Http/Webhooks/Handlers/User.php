@@ -3,6 +3,7 @@
 namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\InlinePageTrait;
+use App\Models\Order;
 use App\Services\Template;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 
@@ -61,6 +62,8 @@ class User extends WebhookHandler
             if($user->phone_number) {
 
             } else {
+                Order::create(['user_id' => $user->id]);
+
                 $scenario = json_decode(Storage::get('first_scenario'));
                 $scenario_move = $scenario->first;
                 $template_path = 'bot.'.($user->language_code === 'ru'? 'ru.': 'en.').$scenario_move->template;
