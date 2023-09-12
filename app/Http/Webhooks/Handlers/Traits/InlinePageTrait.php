@@ -21,7 +21,7 @@ trait InlinePageTrait
         $buttons = $this->get_buttons($language_code, $buttons_info);
         $keyboard = $this->create_keyboard($buttons);
         $template_name = $template_info['template_name'];
-        $template_vars = isset($template_info['vars'])? $template_info['vars']: null;
+        $template_vars = isset($template_info['vars'])? $template_info['vars']: [];
         $telegraph_response = $this->chat->message(view("bot.$language_code.$template_name", $template_vars))
             ->keyboard($keyboard)
             ->send();

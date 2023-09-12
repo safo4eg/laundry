@@ -42,6 +42,11 @@ Artisan::command('test', function () {
             'step_id' => 4
         ],
 
+        'fifth' => [
+            'template' => 'order.accept',
+            'step_id' => 5
+        ],
+
         'steps_amount' => 5
     ];
 

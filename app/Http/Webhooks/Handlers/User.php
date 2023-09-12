@@ -33,10 +33,10 @@ class User extends WebhookHandler
             if($user) {
                 if($user->page === 'menu') {
                     $language_code = $user->language_code;
-                    $template_name = config('keyboards.start.template');
+                    $template_name = config('keyboards.start.template_name');
                     $buttons = config('keyboards.start.buttons');
                     $user->update(['page' => 'start']);
-                    $this->send_inline_page($language_code, ['template_name' => $template_name], $buttons);
+                    $this->next($language_code, ['template_name' => $template_name], $buttons);
                     return;
                 } else return;
             } else {
@@ -90,7 +90,7 @@ class User extends WebhookHandler
             $user = UserModel::where('chat_id', $chat_id)->first();
             $user->update(['language_code' => $language_code, 'page' => 'start']);
 
-            $template_name = config('keyboards.start.template');
+            $template_name = config('keyboards.start.template_name');
             $buttons = config('keyboards.start.buttons');
             $this->next_inline_page($this->messageId, $language_code, $template_name, $buttons);
         }
@@ -103,6 +103,7 @@ class User extends WebhookHandler
         $scenario = json_decode(Storage::get('first_scenario'));
         $step_id = $user->step_id;
         $template_path_lang = 'bot.'.($user->language_code === 'ru'? 'ru.': 'en.');
+        $language_code = $user->language_code;
 
         if($step_id === 1) {
             // #order отправка локации (логика)
@@ -139,20 +140,43 @@ class User extends WebhookHandler
                 ->send();
         } else if($step_id === 4) {
             $whatsapp_number = (int) $this->message->text();
-            $scenario_fourth = $scenario->fourth;
 
             if($whatsapp_number) {
                 $is_valid_whatsapp_number = (new Whatsapp())->check_account($whatsapp_number);
 
                 if($is_valid_whatsapp_number) {
-                    $this->chat->message('аккаунт действительный')->send();
-                    // #user добавлениие whatsapp
-
+                    // #user добавление номера whatsapp
 
                 }
             }
 
+            $scenario_step = $scenario->fifth;
+            $buttons = $keyboards['accept_order']['buttons'];
+            $user->update(['step_id' => $scenario_step->step_id]);
+            $this->send_inline_page(
+                $language_code,
+                [
+                    'template_name' => $scenario_step->template,
+                    'vars' => ['step_id' => $scenario_step->step_id, 'steps_amount' => $scenario->steps_amount]
+                ],
+                $buttons
+            );
         }
+    }
+
+    public function accept_order(): void
+    {
+        $chat_id = $this->callbackQuery->from()->id();
+        $user = UserModel::where('chat_id', $chat_id)->first();
+        $user->update(['page' => 'order_accepted', 'step_id' => null]);
+
+        $language_code = $user->language_code;
+        $keyboard = config('keyboards.order_accepted');
+        $template_name = $keyboard['template_name'];
+        $buttons = $keyboard['buttons'];
+
+        // отправка шаблона
+        $this->next_inline_page($this->messageId, $language_code, $template_name, $buttons);
     }
 
     protected function handleChatMessage(Stringable $text): void
