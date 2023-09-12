@@ -16,11 +16,13 @@ trait InlinePageTrait
             ]))->send();
         return $telegraph_response->telegraphMessageId();
     }
-    public function send_inline_page(string $language_code, string $template_name, array $buttons_info): int
+    public function send_inline_page(string $language_code, array $template_info, array $buttons_info): int
     {
         $buttons = $this->get_buttons($language_code, $buttons_info);
         $keyboard = $this->create_keyboard($buttons);
-        $telegraph_response = $this->chat->message(view("bot.$language_code.$template_name"))
+        $template_name = $template_info['template_name'];
+        $template_vars = isset($template_info['vars'])? $template_info['vars']: null;
+        $telegraph_response = $this->chat->message(view("bot.$language_code.$template_name", $template_vars))
             ->keyboard($keyboard)
             ->send();
         return $telegraph_response->telegraphMessageId();

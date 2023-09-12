@@ -20,6 +20,6 @@ class Whatsapp
     {
         $request_url = "https://api.green-api.com/waInstance{$this->id}/checkWhatsapp/{$this->token}";
         $response = Http::post($request_url, ['phoneNumber' => $phone_number]);
-        return $response->collect()->get('existsWhatsapp'); // если такого нет вернёт null, можно сделать обработку
+        return (bool) $response->collect()->get('existsWhatsapp'); // если такого нет вернёт null, можно сделать обработку
     }
 }

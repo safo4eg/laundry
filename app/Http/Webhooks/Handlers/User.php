@@ -8,6 +8,7 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
 
 use App\Models\User as UserModel;
 use App\Http\Webhooks\Handlers\Traits\UserTrait;
+use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\Keyboard\ReplyButton;
 use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
 use Illuminate\Support\Facades\Log;
@@ -35,7 +36,7 @@ class User extends WebhookHandler
                     $template_name = config('keyboards.start.template');
                     $buttons = config('keyboards.start.buttons');
                     $user->update(['page' => 'start']);
-                    $this->send_inline_page($language_code, $template_name, $buttons);
+                    $this->send_inline_page($language_code, ['template_name' => $template_name], $buttons);
                     return;
                 } else return;
             } else {
@@ -98,6 +99,7 @@ class User extends WebhookHandler
 
     public function first_scenario(UserModel $user = null): void
     {
+        $keyboards = config('keyboards');
         $scenario = json_decode(Storage::get('first_scenario'));
         $step_id = $user->step_id;
         $template_path_lang = 'bot.'.($user->language_code === 'ru'? 'ru.': 'en.');
@@ -136,14 +138,20 @@ class User extends WebhookHandler
                 ->removeReplyKeyboard()
                 ->send();
         } else if($step_id === 4) {
-            $whatsapp_number = $this->message->text();
-            $is_valid_whatsapp_number = (new Whatsapp())->check_account($whatsapp_number);
+            $whatsapp_number = (int) $this->message->text();
+            $scenario_fourth = $scenario->fourth;
 
-            if($is_valid_whatsapp_number) {
-                $this->chat->message('аккаунт действительный')->send();
-            } else {
-                $this->chat->message('несуществующий аккаунт')->send();
+            if($whatsapp_number) {
+                $is_valid_whatsapp_number = (new Whatsapp())->check_account($whatsapp_number);
+
+                if($is_valid_whatsapp_number) {
+                    $this->chat->message('аккаунт действительный')->send();
+                    // #user добавлениие whatsapp
+
+
+                }
             }
+
         }
     }
 
