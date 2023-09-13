@@ -34,6 +34,12 @@ return [
     'whatsapp' => [
         'id' => 1101856990, // idInstance from green api
         'token' => '20127fa42d194b0ea6b85a57a1672f9c6ff5afc796084809a5'
-    ]
+    ],
+
+    'geo' => [
+        'token' => '4969d204-20da-4236-8b00-25bb7e0be81b',
+        'lang' => 'en_US',
+        'format' => 'json'
+    ],
 
 ];

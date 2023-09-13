@@ -4,6 +4,7 @@ namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\InlinePageTrait;
 use App\Models\Order;
+use App\Services\Geo;
 use App\Services\Template;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 
@@ -109,7 +110,11 @@ class User extends WebhookHandler
         $language_code = $user->language_code;
 
         if($step_id === 1) {
-            // #order отправка локации (логика)
+            $location = $this->message->location();
+            $y = $location->latitude();
+            $x = $location->longitude();
+            $geo = new Geo($x, $y);
+
             $user->update(['step_id' => 2]);
             $scenario_step = $scenario->second;
             $this->chat
@@ -119,8 +124,6 @@ class User extends WebhookHandler
                 ->removeReplyKeyboard()
                 ->send();
         } else if($step_id === 2) {
-            // #order добавление информации о месте
-
             $scenario_step = $scenario->third;
             $user->update(['step_id' => 3]);
             $button = $user->language_code === 'ru'? 'Отправить номер': 'Send number';

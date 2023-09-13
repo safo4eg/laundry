@@ -15,10 +15,13 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->string('location', 19)->nullable();
-            $table->unsignedBigInteger('user_id');
+            $table->string('geo', 255)->nullable();
+            $table->string('address', 255)->nullable();
+            $table->string('address_desc')->nullable();
+            $table->integer('status_code')->nullable();
+            $table->timestamps();
 
-            $table->foreign('user_id')->references('id')->on('users');
+            $table->foreignId('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
     }
 
