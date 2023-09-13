@@ -4,7 +4,7 @@ namespace App\Observers;
 
 use App\Models\Order;
 use App\Models\OrderStatus;
-use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class OrderObserver
 {
@@ -16,7 +16,11 @@ class OrderObserver
      */
     public function created(Order $order)
     {
-        OrderStatus::create(['order_id' => $order->id, 'status_id' => $order->status_id]);
+        OrderStatus::create([
+            'order_id' => $order->id,
+            'status_id' => $order->status_id,
+            'created_at' => Carbon::now()
+        ]);
     }
 
     /**
@@ -30,7 +34,11 @@ class OrderObserver
         $attributes = $order->getDirty();
 
         if(isset($attributes['status_id'])) {
-            OrderStatus::create(['order_id' => $order->id, 'status_id' => $order->status_id]);
+            OrderStatus::create([
+                'order_id' => $order->id,
+                'status_id' => $order->status_id,
+                'created_at' => Carbon::now()
+            ]);
         }
     }
 
