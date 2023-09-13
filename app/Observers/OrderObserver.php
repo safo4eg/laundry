@@ -24,9 +24,11 @@ class OrderObserver
      * @param  \App\Models\Order  $order
      * @return void
      */
-    public function updated(Order $order)
+    public function updating(Order $order)
     {
-        OrderStatus::create(['order_id' => $order->id, 'status_id' => $order->status_id]);
+        if(isset($order->status_id)) {
+            OrderStatus::create(['order_id' => $order->id, 'status_id' => $order->status_id]);
+        }
     }
 
 }
