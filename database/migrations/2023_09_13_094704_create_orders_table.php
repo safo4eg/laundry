@@ -18,10 +18,10 @@ return new class extends Migration
             $table->string('geo', 255)->nullable();
             $table->string('address', 255)->nullable();
             $table->string('address_desc')->nullable();
-            $table->integer('status_code')->nullable();
-            $table->timestamps();
+            $table->tinyInteger('status_id')->unsigned();
 
-            $table->foreignId('user_id')->references('id')->on('users')->cascadeOnDelete();
+            $table->foreignId('user_id')->references('id')->on('users');
+            $table->foreign('status_id')->references('id')->on('statuses');
         });
     }
 

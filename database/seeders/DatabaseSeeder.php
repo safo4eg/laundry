@@ -23,7 +23,8 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             TelegraphBotSeeder::class,
-            TelegraphChatSeeder::class
+            TelegraphChatSeeder::class,
+            StatusSeeder::class
         ]);
     }
 }

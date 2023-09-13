@@ -4,12 +4,11 @@ namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\InlinePageTrait;
 use App\Models\Order;
+use App\Models\OrderStatus;
 use App\Services\Geo;
-use App\Services\Template;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 
 use App\Models\User as UserModel;
-use App\Http\Webhooks\Handlers\Traits\UserTrait;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\Keyboard\ReplyButton;
 use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
@@ -59,12 +58,11 @@ class User extends WebhookHandler
         if(!empty($choice)) {
             $chat_id = $this->callbackQuery->from()->id();
             $user = UserModel::where('chat_id', $chat_id)->first();
+            Order::create(['user_id' => $user->id, 'status_id' => 1]);
 
             if($user->phone_number) {
-
+                // если телефонный номер имеется значит на другой сценарий
             } else {
-                Order::create(['user_id' => $user->id]);
-
                 $scenario = json_decode(Storage::get('first_scenario'));
                 $scenario_move = $scenario->first;
                 $template_path = 'bot.'.($user->language_code === 'ru'? 'ru.': 'en.').$scenario_move->template;

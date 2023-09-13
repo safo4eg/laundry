@@ -5,20 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Order extends Model
+class Status extends Model
 {
     use HasFactory;
 
     public $timestamps = false;
 
+    protected $table = 'statuses';
     protected $guarded = [];
 
-    public function user()
+    public function orders()
     {
-        return $this->belongsTo(User::class);
-    }
-
-    public function statuses() {
-        $this->belongsToMany(Status::class, 'order_status', 'order_id', 'status_id');
+        $this->belongsToMany(Order::class, 'order_status', 'status_id', 'order_id');
     }
 }
