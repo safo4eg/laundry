@@ -106,6 +106,7 @@ class User extends WebhookHandler
         $step_id = $user->step_id;
         $template_path_lang = 'bot.'.($user->language_code === 'ru'? 'ru.': 'en.');
         $language_code = $user->language_code;
+        $order = $user->getCurrentOrder();
 
         if($step_id === 1) {
             $location = $this->message->location();
@@ -113,7 +114,10 @@ class User extends WebhookHandler
             $x = $location->longitude();
             $geo = new Geo($x, $y);
 
-            $order = $user->getCurrentOrder(); // текущая заявка
+            $order->update([
+                'geo' => "$x,$y",
+                'address' => $geo->address
+            ]);
 
             $user->update(['step_id' => 2]);
             $scenario_step = $scenario->second;
@@ -124,6 +128,9 @@ class User extends WebhookHandler
                 ->removeReplyKeyboard()
                 ->send();
         } else if($step_id === 2) {
+            $address_desc = $this->message->text();
+            $order->update(['address_desc' => $address_desc]);
+
             $scenario_step = $scenario->third;
             $user->update(['step_id' => 3]);
             $button = $user->language_code === 'ru'? 'Отправить номер': 'Send number';
@@ -134,7 +141,8 @@ class User extends WebhookHandler
                 ->replyKeyboard(ReplyKeyboard::make()->button($button)->requestContact())
                 ->send();
         } else if($step_id === 3) {
-            // #order добавление контакта
+            $phone_number = $this->message->contact()->phoneNumber();
+            $user->update(['phone_number' => $phone_number]);
 
             $scenario_step = $scenario->fourth;
             $user->update(['step_id' => 4]);
@@ -149,10 +157,9 @@ class User extends WebhookHandler
 
             if($whatsapp_number) {
                 $is_valid_whatsapp_number = (new Whatsapp())->check_account($whatsapp_number);
-
+                Log::debug($is_valid_whatsapp_number);
                 if($is_valid_whatsapp_number) {
-                    // #user добавление номера whatsapp
-
+                    $user->update(['whatsapp' => $whatsapp_number]);
                 }
             }
 
@@ -181,7 +188,6 @@ class User extends WebhookHandler
         $template_name = $keyboard['template_name'];
         $buttons = $keyboard['buttons'];
 
-        // отправка шаблона
         $this->next_inline_page($this->messageId, $language_code, $template_name, $buttons);
     }
 
