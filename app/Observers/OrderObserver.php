@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\Order;
 use App\Models\OrderStatus;
+use Illuminate\Support\Facades\Log;
 
 class OrderObserver
 {
@@ -26,7 +27,9 @@ class OrderObserver
      */
     public function updating(Order $order)
     {
-        if(isset($order->status_id)) {
+        $attributes = $order->getDirty();
+
+        if(isset($attributes['status_id'])) {
             OrderStatus::create(['order_id' => $order->id, 'status_id' => $order->status_id]);
         }
     }

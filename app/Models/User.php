@@ -15,8 +15,13 @@ class User extends Authenticatable
 
     public $timestamps = false;
 
-    public function order()
+    public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function getCurrentOrder(): Order
+    {
+        return $this->orders()->where('status_id', 1)->first();
     }
 }

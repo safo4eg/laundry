@@ -113,6 +113,8 @@ class User extends WebhookHandler
             $x = $location->longitude();
             $geo = new Geo($x, $y);
 
+            $order = $user->getCurrentOrder(); // текущая заявка
+
             $user->update(['step_id' => 2]);
             $scenario_step = $scenario->second;
             $this->chat
