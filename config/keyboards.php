@@ -25,7 +25,7 @@ return [
         'buttons' => [
             [
                 'type' => 'action',
-                'method' => 'accept_order',
+                'method' => 'first_scenario',
                 'param' => ['choice', '1'],
                 'language' => ['ru' => 'Заказать стирку', 'en' => 'Order Laundry']
             ]
