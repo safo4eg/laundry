@@ -28,12 +28,15 @@ trait InlinePageTrait
         return $telegraph_response->telegraphMessageId();
     }
 
-    public function next_inline_page(int $message_id, string $language_code, string $template_name, array $buttons_info):void
+    public function next_inline_page(int $message_id, string $language_code, array $template_info, array $buttons_info):void
     {
+        $template_name = $template_info['template_name'];
+        $params = isset($template_info['params'])? $template_info['params']: [];
+
         $buttons = $this->get_buttons($language_code, $buttons_info);
         $keyboard = $this->create_keyboard($buttons);
         $this->chat->edit($message_id)
-            ->message(view("bot.$language_code.$template_name"))
+            ->message(view("bot.$language_code.$template_name", $params))
             ->keyboard($keyboard)
             ->send();
     }

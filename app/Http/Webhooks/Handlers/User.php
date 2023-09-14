@@ -3,6 +3,7 @@
 namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\InlinePageTrait;
+use App\Http\Webhooks\Handlers\Traits\UserTrait;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Services\Geo;
@@ -21,7 +22,7 @@ use App\Services\Whatsapp;
 
 class User extends WebhookHandler
 {
-    use InlinePageTrait;
+    use InlinePageTrait, UserTrait;
 
     public function start(): void
     {
@@ -37,7 +38,7 @@ class User extends WebhookHandler
                     $template_name = config('keyboards.start.template_name');
                     $buttons = config('keyboards.start.buttons');
                     $user->update(['page' => 'start']);
-                    $this->next_inline_page($language_code, ['template_name' => $template_name], $buttons);
+                    $this->send_inline_page($language_code, ['template_name' => $template_name], $buttons);
                     return;
                 } else return;
             } else {
@@ -63,18 +64,7 @@ class User extends WebhookHandler
             if($user->phone_number) {
                 // если телефонный номер имеется значит на другой сценарий
             } else {
-                $scenario = json_decode(Storage::get('first_scenario'));
-                $scenario_move = $scenario->first;
-                $template_path = 'bot.'.($user->language_code === 'ru'? 'ru.': 'en.').$scenario_move->template;
-                $button = $user->language_code === 'ru'? 'Отправить локацию': 'Send location';
-
-                $user->update(['page' => 'first_scenario', 'step_id' => 1]);
-
-                $this->chat->deleteMessage($this->messageId)->send();
-                $this->chat
-                    ->message(view($template_path, ['step_id' => $scenario_move->step_id, 'steps_amount' => $scenario->steps_amount]))
-                    ->replyKeyboard(ReplyKeyboard::make()->button($button)->requestLocation())
-                    ->send();
+                $this->request_location($user, 'first_scenario', 'first');
             }
         }
 
@@ -84,7 +74,7 @@ class User extends WebhookHandler
     {
         $language_code = $this->data->get('choice');
         if(empty($language_code)) {
-
+            Log::debug('зашел сюда');
         }
 
         if(!empty($language_code)) {
@@ -94,25 +84,22 @@ class User extends WebhookHandler
 
             $template_name = config('keyboards.start.template_name');
             $buttons = config('keyboards.start.buttons');
-            $this->next_inline_page($this->messageId, $language_code, $template_name, $buttons);
+            $this->next_inline_page($this->messageId, $language_code, ['template_name' => $template_name], $buttons);
         }
     }
 
 
     public function first_scenario(UserModel $user = null): void
     {
-        $keyboards = config('keyboards');
         $scenario = json_decode(Storage::get('first_scenario'));
 
         if(!$user) { // если юзер есть значит данные от message прилетели => достаем их из колбэкаКвери
             $chat_id = $this->callbackQuery->from()->id();
-            $user = UserModel::where('chati_id', $chat_id)->first();
+            $user = UserModel::where('chat_id', $chat_id)->first();
         }
-
 
         $step_id = $user->step_id;
         $template_path_lang = 'bot.'.($user->language_code === 'ru'? 'ru.': 'en.');
-        $language_code = $user->language_code;
         $order = $user->getCurrentOrder();
 
         if($step_id === 1) {
@@ -126,14 +113,7 @@ class User extends WebhookHandler
                 'address' => $geo->address
             ]);
 
-            $user->update(['step_id' => 2]);
-            $scenario_step = $scenario->second;
-            $this->chat
-                ->message(view(
-                    $template_path_lang.$scenario_step->template,
-                    ['step_id' => $scenario_step->step_id, 'steps_amount' => $scenario->steps_amount]))
-                ->removeReplyKeyboard()
-                ->send();
+            $this->request_location_desc($user, 'first_scenario', 'second');
         } else if($step_id === 2) {
             $address_desc = $this->message->text();
             $order->update(['address_desc' => $address_desc]);
@@ -170,23 +150,9 @@ class User extends WebhookHandler
                 }
             }
 
-            $scenario_step = $scenario->fifth;
-            $buttons = $keyboards['accept_order']['buttons'];
-            $user->update(['step_id' => $scenario_step->step_id]);
-            $this->send_inline_page(
-                $language_code,
-                [
-                    'template_name' => $scenario_step->template,
-                    'vars' => ['step_id' => $scenario_step->step_id, 'steps_amount' => $scenario->steps_amount]
-                ],
-                $buttons
-            );
+            $this->request_accept_order($user, 'first_scenario', 'fifth');
         } else if($step_id === 5) {
-            $user->update(['page' => 'order_accepted', 'step_id' => null]);
-            $keyboards = $keyboards['order_accepted'];
-            $buttons = $keyboards['buttons'];
-            $template_name = $keyboards['template_name'];
-            $this->next_inline_page($this->messageId, $language_code, $template_name, $buttons);
+            $this->request_order_accepted($user);
         }
     }
 
