@@ -4,6 +4,7 @@ namespace App\Services;
 
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use Illuminate\Support\Facades\Log;
 
 
 class Template
@@ -12,10 +13,13 @@ class Template
     public mixed $keyboard;
     public string $template = '';
 
-    public function __construct(string $template, string $lang = null, array $dataArray = [])
+    public function __construct(string $template, mixed $lang = null, array $dataArray = [])
     {
-        $lang ? $this->newTemplate = view("bot.{$lang}.{$template}", $dataArray)
-            : $this->newTemplate = view("bot.{$template}", $dataArray);
+        if (view("bot.{$lang}.{$template}", $dataArray)) {
+            $this->template = view("bot.{$lang}.{$template}", $dataArray);
+        } else {
+            $this->newTemplate = view("bot.{$template}", $dataArray);
+        }
 
         $this->setTemplate();
     }
@@ -40,6 +44,8 @@ class Template
         $regexp = '/<row>(?<buttons>[^"]*)<\/row>/s';
         while (preg_match($regexp, $this->newTemplate, $matches)) {
             $keyboard = Keyboard::make();
+
+            Log::debug($matches['buttons']);
             $keyboard->row($this->collectButtons($matches['buttons']));
             $this->keyboard[] = $keyboard;
         }

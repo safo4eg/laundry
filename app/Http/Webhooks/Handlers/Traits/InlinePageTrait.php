@@ -46,7 +46,11 @@ trait InlinePageTrait
 
     private function createTemplate(string $template, array $templateData): Template
     {
-        $user = UserModel::where('chat_id', $this->message->from()->id())->first();
+        if ($this->callbackQuery){
+            $user = UserModel::where('chat_id', $this->callbackQuery->from()->id())->first();
+        } elseif ($this->message){
+            $user = UserModel::where('chat_id', $this->message->from()->id())->first();
+        }
         return new Template($template, $user->language_code, $templateData);
     }
 }

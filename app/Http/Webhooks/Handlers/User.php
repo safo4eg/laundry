@@ -10,8 +10,6 @@ use App\Services\Geo;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 
 use App\Models\User as UserModel;
-use DefStudio\Telegraph\Keyboard\Keyboard;
-use DefStudio\Telegraph\Keyboard\ReplyButton;
 use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -34,11 +32,7 @@ class User extends WebhookHandler
 
             if($user) {
                 if($user->page === 'menu') {
-                    $language_code = $user->language_code;
-                    $template_name = config('keyboards.start.template_name');
-                    $buttons = config('keyboards.start.buttons');
-                    $user->update(['page' => 'start']);
-                    $this->send_inline_page($language_code, ['template_name' => $template_name], $buttons);
+                    $this->sendMessage('start');
                     return;
                 } else return;
             } else {
@@ -48,7 +42,6 @@ class User extends WebhookHandler
                 $user = UserModel::create([
                     'chat_id' => $chat_id,
                     'username' => $username,
-                    'language_code' => $language_code,
                     'page' => 'select_language'
                 ]);
 
@@ -82,9 +75,7 @@ class User extends WebhookHandler
             $user = UserModel::where('chat_id', $chat_id)->first();
             $user->update(['language_code' => $language_code, 'page' => 'start']);
 
-            $template_name = config('keyboards.start.template_name');
-            $buttons = config('keyboards.start.buttons');
-            $this->next_inline_page($this->messageId, $language_code, ['template_name' => $template_name], $buttons);
+            $this->sendMessage('start');
         }
     }
 
@@ -144,12 +135,11 @@ class User extends WebhookHandler
 
             if($whatsapp_number) {
                 $is_valid_whatsapp_number = (new Whatsapp())->check_account($whatsapp_number);
-                Log::debug($is_valid_whatsapp_number);
+
                 if($is_valid_whatsapp_number) {
                     $user->update(['whatsapp' => $whatsapp_number]);
                 }
             }
-
             $this->request_accept_order($user, 'first_scenario', 'fifth');
         } else if($step_id === 5) {
             $this->request_order_accepted($user);

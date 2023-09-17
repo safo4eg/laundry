@@ -13,13 +13,9 @@ return new class () extends Migration {
             $table->string('name')->nullable();
 
             $table->foreignId('telegraph_bot_id')->constrained('telegraph_bots')->cascadeOnDelete();
+            $table->timestamps();
 
             $table->unique(['chat_id', 'telegraph_bot_id']);
         });
-    }
-
-    public function down()
-    {
-        Schema::dropIfExists('telegraph_chats');
     }
 };

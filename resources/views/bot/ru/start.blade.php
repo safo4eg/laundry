@@ -27,3 +27,8 @@
 Мы НЕ ПРИНИМАЕМ шубы, пуховики, костюмы, шлемы, бейсболки, замшевую и кожаную обувь.
 
 <b>100% гарантия качества или вернём деньги.</b>
+
+
+<buttons type="action" action="start">Начать</buttons>
+<buttons type="url" url="https://t.me/+zZMk776R0oA0YWEy">Отзывы</buttons>
+
