@@ -16,7 +16,7 @@ class Template
     public function __construct(string $template, mixed $lang = null, array $dataArray = [])
     {
         if (view("bot.{$lang}.{$template}", $dataArray)) {
-            $this->template = view("bot.{$lang}.{$template}", $dataArray);
+            $this->newTemplate = view("bot.{$lang}.{$template}", $dataArray);
         } else {
             $this->newTemplate = view("bot.{$template}", $dataArray);
         }

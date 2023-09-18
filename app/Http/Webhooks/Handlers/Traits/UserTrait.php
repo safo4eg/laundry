@@ -15,7 +15,10 @@ trait UserTrait
         $template_path = 'bot.' . ($user->language_code === 'ru' ? 'ru.' : 'en.') . $scenario_step->template;
         $button = $user->language_code === 'ru' ? 'Отправить локацию' : 'Send location';
 
-        $user->update(['page' => $scenario_name, 'step_id' => 1]);
+        $user->update([
+            'page' => $scenario_name,
+            'step_id' => 1
+        ]);
 
         if ($scenario_name === 'first_scenario') {
             $this->chat->deleteMessage($this->messageId)->send();
