@@ -2,13 +2,12 @@
 
 namespace App\Http\Webhooks\Handlers;
 
-use App\Http\Webhooks\Handlers\Traits\InlinePageTrait;
-use App\Http\Webhooks\Handlers\Traits\UserTrait;
 use App\Models\Order;
 use App\Models\User as UserModel;
 use App\Services\Geo;
-use App\Services\Whatsapp;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
+use DefStudio\Telegraph\Keyboard\Button;
+use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -17,45 +16,94 @@ use Illuminate\Support\Stringable;
 
 class User extends WebhookHandler
 {
-    use InlinePageTrait, UserTrait;
+
+    private UserModel|null $user = null;
+    private array $config;
+    private string $template_prefix;
+    public function __construct(UserModel|null $user)
+    {
+        $this->config = config('buttons.user');
+        $this->user = $user;
+        $this->template_prefix = 'bot.user.';
+        parent::__construct();
+    }
 
     public function start(): void
     {
         $choice = $this->data->get('choice');
 
         if (empty($choice)) {
-            $chat_id = $this->message->from()->id();
-            $user = UserModel::where('chat_id', $chat_id)->first();
 
-            if ($user) {
-                if ($user->page === 'menu') {
-                    $this->sendMessage('start');
+            if ($this->user) {
+                if ($this->user->page === 'menu') {
+                    $buttons = [
+                        'start' => $this->config['start']['start'][$this->user->language_code],
+                        'reviews' => $this->config['start']['reviews'][$this->user->language_code],
+                    ];
+                    $template = $this->template_prefix.$this->user->language_code.'.start';
+
+                    $this->chat->message((string) view($template))
+                        ->keyboard(Keyboard::make()->buttons([
+                            Button::make($buttons['start'])->action('start')->param('choice', 1),
+                            Button::make($buttons['reviews'])->url('https://t.me/laundrybot_feedback')
+                        ]))->send();
                     return;
                 } else return;
             } else {
+                $chat_id = $this->message->from()->id();
                 $username = $this->message->from()->username();
-                $language_code = $this->message->from()->languageCode();
 
-                $user = UserModel::create([
+                $this->user = UserModel::create([
                     'chat_id' => $chat_id,
                     'username' => $username,
                     'page' => 'select_language'
                 ]);
 
-                $this->send_select_language();
+                $buttons = [
+                    'russia' => $this->config['select_language']['russia'],
+                    'english' => $this->config['select_language']['english']
+                ];
+                $template = $this->template_prefix.'select_language';
+                $this->chat->message((string) view($template))
+                    ->keyboard(Keyboard::make()->buttons([
+                        Button::make($buttons['english'])->action('select_language')->param('choice', 'en'),
+                        Button::make($buttons['russia'])->action('select_language')->param('choice', 'ru')
+                    ]))->send();
             }
         }
 
         if (!empty($choice)) {
-            $chat_id = $this->callbackQuery->from()->id();
-            $user = UserModel::where('chat_id', $chat_id)->first();
-            Order::create(['user_id' => $user->id, 'status_id' => 1]);
+            Order::create(['user_id' => $this->user->id, 'status_id' => 1]);
 
-            if ($user->phone_number) {
+            $scenarios = json_decode(Storage::get('scenarios'), true);
+            $scenario_num = null;
+
+            if ($this->user->phone_number) {
+                $scenario_num = 'second';
+                $scenario = $scenarios[$scenario_num][1];
                 // если телефонный номер имеется значит на другой сценарий
             } else {
-                $this->request_location($user, 'first_scenario', 'first');
+                $scenario_num = 'first';
+                $scenario = $scenarios[$scenario_num];
+
+                $button = $this->config['send_location'][$this->user->language_code];
+                $template = $this->template_prefix.$this->user->language_code.$scenario[1]['template'];
+                $this->chat->deleteMessage($this->messageId)->send();
+                $this->chat->message((string) view(
+                    $template,
+                    [
+                        'step_id' => $scenario[1]['step_id'],
+                        'steps_amount' => count($scenario)
+                    ]))
+                    ->replyKeyboard(ReplyKeyboard::make()
+                    ->button($button)->requestLocation())
+                    ->send();
             }
+
+            $this->user->update([
+                'page' => "{$scenario_num}_scenario",
+                'step_id' => 1
+            ]);
         }
 
     }
@@ -63,36 +111,36 @@ class User extends WebhookHandler
     public function select_language(): void
     {
         $language_code = $this->data->get('choice');
-        if (empty($language_code)) {
-            Log::debug('зашел сюда');
-        }
 
         if (!empty($language_code)) {
-            $chat_id = $this->callbackQuery->from()->id();
-            $user = UserModel::where('chat_id', $chat_id)->first();
-            $user->update(['language_code' => $language_code, 'page' => 'start']);
+            $this->user->update(['language_code' => $language_code, 'page' => 'start']);
 
-            $this->sendMessage('start');
+            $buttons = [
+                'start' => $this->config['start']['start'][$this->user->language_code],
+                'reviews' => $this->config['start']['reviews'][$this->user->language_code],
+            ];
+            $template = $this->template_prefix.$this->user->language_code.'.start';
+            $this->chat->edit($this->messageId)
+                ->message((string) view($template))
+                ->keyboard(Keyboard::make()->buttons([
+                    Button::make($buttons['start'])->action('start')->param('choice', 1),
+                    Button::make($buttons['reviews'])->url('https://t.me/laundrybot_feedback')
+                ]))->send();
         }
     }
 
 
-    public function first_scenario(UserModel $user = null): void
+    public function first_scenario(): void
     {
-        $scenario = json_decode(Storage::get('first_scenario'));
+        $scenario = json_decode(Storage::get('scenarios'), true)['first'];
+        $step_id = $this->user->step_id;
 
-        if (!$user) { // если юзер есть значит данные от message прилетели => достаем их из колбэкаКвери
-            $chat_id = $this->callbackQuery->from()->id();
-            $user = UserModel::where('chat_id', $chat_id)->first();
-        }
-
-        $step_id = $user->step_id;
-        $template_path_lang = 'bot.' . ($user->language_code === 'ru' ? 'ru.' : 'en.');
-        $order = $user->getCurrentOrder();
+        $template_prefix_lang = $this->template_prefix.$this->user->language_code;
+        $order = $this->user->getCurrentOrder();
 
         if ($step_id === 1) {
-            if ($this->message->location()) {
-                $location = $this->message->location();
+            $location = $this->message->location();
+            if ($location) {
                 $y = $location->latitude();
                 $x = $location->longitude();
                 $geo = new Geo($x, $y);
@@ -102,68 +150,79 @@ class User extends WebhookHandler
                     'address' => $geo->address
                 ]);
 
-                $this->request_location_desc($user, 'first_scenario', 'second');
-            } else {
-                $this->chat->message('Неверные данные')->send();
-            }
+                $this->user->update([
+                    'step_id' => ++$step_id
+                ]);
 
+                $this->chat->message((string) view(
+                    $template_prefix_lang.$scenario[$step_id]['template'],
+                    [
+                        'step_id' => $scenario[$step_id]['step_id'],
+                        'steps_amount' => count($scenario)
+                    ]
+                ))->removeReplyKeyboard()->send();
+            }
         } else if ($step_id === 2) {
             $address_desc = $this->message->text();
+
             $order->update([
                 'address_desc' => $address_desc
             ]);
 
-            $scenario_step = $scenario->third;
-            $user->update([
-                'step_id' => 3
+            $this->user->update([
+                'step_id' => ++$step_id
             ]);
-            $button = $user->language_code === 'ru' ? 'Отправить номер' : 'Send number';
-            $this->chat
-                ->message(view(
-                    $template_path_lang . $scenario_step->template,
-                    ['step_id' => $scenario_step->step_id, 'steps_amount' => $scenario->steps_amount]))
-                ->replyKeyboard(ReplyKeyboard::make()->button($button)->requestContact())
+
+            $button = $this->config['send_contact'][$this->user->language_code];
+            $template = $template_prefix_lang.$scenario[$step_id]['template'];
+            $this->chat->message((string) view(
+                $template,
+                ['step_id' => $step_id, 'steps_amount' => count($scenario)]
+            ))
+                ->replyKeyboard(ReplyKeyboard::make()
+                    ->button($button)->requestContact())
                 ->send();
         } else if ($step_id === 3) {
             $phone_number = $this->message->contact()->phoneNumber();
-            $user->update([
-                'phone_number' => $phone_number
-            ]);
+            if($phone_number) {
+                $this->user->update([
+                    'phone_number' => $phone_number,
+                    'step_id' => ++$step_id
+                ]);
 
-            $scenario_step = $scenario->fourth;
-            $user->update([
-                'step_id' => 4
-            ]);
-            $this->chat
-                ->message(view(
-                    $template_path_lang . $scenario_step->template,
-                    ['step_id' => $scenario_step->step_id, 'steps_amount' => $scenario->steps_amount]))
-                ->removeReplyKeyboard()
-                ->send();
-        } else if ($step_id === 4) {
-            $whatsapp_number = (int)$this->message->text();
-
-            if ($whatsapp_number) {
-                $is_valid_whatsapp_number = (new Whatsapp())->check_account($whatsapp_number);
-
-                if ($is_valid_whatsapp_number) {
-                    $user->update(['whatsapp' => $whatsapp_number]);
-                }
+                $this->chat->message((string) view(
+                    $template_prefix_lang.$scenario[$step_id]['template'],
+                    [
+                        'step_id' => $step_id,
+                        'steps_amount' => count($scenario)
+                    ]))
+                    ->removeReplyKeyboard()
+                    ->send();
             }
-            $this->request_accept_order($user, 'first_scenario', 'fifth');
+        } else if ($step_id === 4) {
+            $whatsapp_number = $this->message->text();
+
+            if(mb_strlen($whatsapp_number) >= 32) {
+                $whatsapp_number = null;
+            } else {
+                $whatsapp_number = ((int) $whatsapp_number)? $whatsapp_number: null;
+            }
+
+            $this->user->update([
+               'whatsapp' => $whatsapp_number
+            ]);
+
+            // отправка подтверждения заказа
         } else if ($step_id === 5) {
-            $this->request_order_accepted($user);
+            // отправка того что заказ подтвержден
         }
     }
 
     protected function handleChatMessage(Stringable $text): void
     {
-        $chat_id = $this->message->from()->id();
-        $user = UserModel::where('chat_id', $chat_id)->first();
-
-        switch ($user->page) {
+        switch ($this->user->page) {
             case 'first_scenario':
-                $this->first_scenario($user);
+                $this->first_scenario();
                 break;
         }
     }

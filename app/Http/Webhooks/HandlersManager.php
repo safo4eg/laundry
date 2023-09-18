@@ -10,6 +10,7 @@ use DefStudio\Telegraph\Models\TelegraphBot;
 use DefStudio\Telegraph\Models\TelegraphChat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Models\User as UserModel;
 
 class HandlersManager
 {
@@ -41,7 +42,8 @@ class HandlersManager
         }
 
         if($this->chat->type() === 'private') {
-            (new User())->handle($request, $bot);
+            $user = UserModel::where('chat_id', $this->chat->id())->first();
+            (new User($user))->handle($request, $bot);
         }
 
     }

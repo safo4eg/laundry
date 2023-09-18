@@ -20,35 +20,16 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Artisan::command('test', function () {
-    $first_scenario = [
+Artisan::command('scenarios', function () {
+    $scenarios = [
         'first' => [
-            'template' => 'order.geo',
-            'step_id' => 1
-        ],
-
-        'second' => [
-            'template' => 'order.address',
-            'step_id' => 2
-        ],
-
-        'third' => [
-            'template' => 'order.contact',
-            'step_id' => 3
-        ],
-
-        'fourth' => [
-            'template' => 'order.whatsapp',
-            'step_id' => 4
-        ],
-
-        'fifth' => [
-            'template' => 'order.accept',
-            'step_id' => 5
-        ],
-
-        'steps_amount' => 5
+            1 => ['template' => '.order.geo', 'step_id' => 1],
+            2 => ['template' => '.order.address', 'step_id' => 2],
+            3 => ['template' => '.order.contact', 'step_id' => 3],
+            4 => ['template' => '.order.whatsapp', 'step_id' => 4],
+            5 => ['template' => '.order.accept', 'step_id' => 5],
+        ]
     ];
 
-    Storage::put('first_scenario', json_encode($first_scenario));
+    Storage::put('scenarios', json_encode($scenarios));
 });

@@ -28,6 +28,3 @@ We are NOT a DRY CLEANER. We are a very good laundry.
 We DO NOT ACCEPT fur coats, down jackets, suits, helmets, baseball caps, suede or leather shoes.
 
 <b>100% quality guarantee or money back.</b>
-
-<buttons type="action" action="start" param="choice, 1">Start</buttons>
-<buttons type="url" url="https://t.me/+zZMk776R0oA0YWEy">Reviews</buttons>

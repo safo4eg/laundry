@@ -28,7 +28,3 @@
 
 <b>100% гарантия качества или вернём деньги.</b>
 
-
-<buttons type="action" action="start" param="choice, 1">Начать</buttons>
-<buttons type="url" url="https://t.me/+zZMk776R0oA0YWEy">Отзывы</buttons>
-

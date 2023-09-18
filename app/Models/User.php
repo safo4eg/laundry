@@ -22,6 +22,6 @@ class User extends Authenticatable
 
     public function getCurrentOrder(): Order
     {
-        return $this->orders()->where('status_id', 1)->first();
+        return $this->orders()->where('status_id', '<',6)->first();
     }
 }
