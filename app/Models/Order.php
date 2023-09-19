@@ -12,6 +12,7 @@ class Order extends Model
     public $timestamps = false;
 
     protected $guarded = [];
+    protected $with = ['user'];
 
     public function user()
     {
@@ -19,6 +20,11 @@ class Order extends Model
     }
 
     public function statuses() {
-        $this->belongsToMany(Status::class, 'order_status', 'order_id', 'status_id');
+        return $this->belongsToMany(
+            Status::class,
+            'order_status',
+            'order_id',
+            'status_id'
+        );
     }
 }

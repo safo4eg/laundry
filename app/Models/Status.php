@@ -16,6 +16,11 @@ class Status extends Model
 
     public function orders()
     {
-        $this->belongsToMany(Order::class, 'order_status', 'status_id', 'order_id');
+        return $this->belongsToMany(
+            Order::class,
+            'order_status',
+            'status_id',
+            'order_id'
+        );
     }
 }

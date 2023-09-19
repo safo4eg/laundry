@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use App\Models\OrderStatus;
+use App\Models\Order;
 /*
 |--------------------------------------------------------------------------
 | Console Routes
@@ -32,4 +34,9 @@ Artisan::command('scenarios', function () {
     ];
 
     Storage::put('scenarios', json_encode($scenarios));
+});
+
+Artisan::command('test', function () {
+    $order_status = OrderStatus::where('status_id', 1)->first();
+    Log::debug($order_status);
 });

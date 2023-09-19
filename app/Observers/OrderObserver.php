@@ -29,7 +29,7 @@ class OrderObserver
      * @param  \App\Models\Order  $order
      * @return void
      */
-    public function updating(Order $order)
+    public function updated(Order $order)
     {
         $attributes = $order->getDirty();
 
