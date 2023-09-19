@@ -16,7 +16,7 @@ class OrderStatusObserver
         if($order->status_id === 2) {
             // этап когда заявка полностью заполнена пользователем
             // отправка в ADMIN CHAT на распределение
-            $chat = Chat::where('chat_id', -4070334477)->first();
+            $chat = Chat::where('name', 'Admin')->first();
             $message_id = ($chat
                 ->message((string) view('bot.admin.order_distribution', ['order' => $order]))
                 ->send())
