@@ -209,12 +209,47 @@ class User extends WebhookHandler
             }
 
             $this->user->update([
-               'whatsapp' => $whatsapp_number
+               'whatsapp' => $whatsapp_number,
+                'step_id' => ++$step_id
             ]);
 
-            // отправка подтверждения заказа
+            $button = $this->config['accept_order'][$this->user->language_code];
+            $template = $template_prefix_lang.$scenario[$step_id]['template'];
+            $this->chat
+                ->message((string) view($template, [
+                'step_id' => $step_id,
+                'steps_amount' => count($scenario)]))
+                ->keyboard(Keyboard::make()
+                    ->button($button)->action('first_scenario')->param('choice', 1))
+                ->send();
         } else if ($step_id === 5) {
-            // отправка того что заказ подтвержден
+            $choice = $this->data->get('choice');
+
+            if($choice) {
+                $order->update([
+                    'status_id' => 2
+                ]);
+
+                $buttons = [
+                    'wishes' => $this->config['order_accepted']['wishes'][$this->user->language_code],
+                    'cancel' => $this->config['order_accepted']['cancel'][$this->user->language_code],
+                    'recommend' => $this->config['order_accepted']['recommend'][$this->user->language_code],
+                ];
+                $template = $template_prefix_lang.'.order.accepted';
+                $this->chat->edit($this->messageId)
+                    ->message((string) view($template, [
+                        'order_id' => $order->id
+                    ]))
+                    ->keyboard(Keyboard::make()
+                        ->buttons([
+                            Button::make($buttons['wishes'])->action('write_order_wishes')->param('order_id', $order->id),
+                            Button::make($buttons['cancel'])->action('cancel_order')->param('order_id', $order->id),
+                            Button::make($buttons['recommend'])->action('ref')
+                        ]))
+                    ->send();
+
+                // в этот момент улетает заказ в ADMIN CHAT
+            }
         }
     }
 

@@ -17,16 +17,21 @@ class TelegraphChatSeeder extends Seeder
     public function run()
     {
         DB::table('telegraph_chats')->insert([
-           [
-               'chat_id' => -908359373,
-               'name' => 'Courier',
-               'telegraph_bot_id' => 1
-           ],
-            [
-               'chat_id' => -940706634,
-               'name' => 'Washer',
-               'telegraph_bot_id' => 1
-           ]
+//           [
+//               'chat_id' => -908359373,
+//               'name' => 'Courier',
+//               'telegraph_bot_id' => 1
+//           ],
+//            [
+//               'chat_id' => -940706634,
+//               'name' => 'Washer',
+//               'telegraph_bot_id' => 1
+//           ]
+        [
+            'chat_id' => -4070334477,
+            'name' => 'Admin',
+            'telegraph_bot_id' => 1
+        ]
         ]);
     }
 }
