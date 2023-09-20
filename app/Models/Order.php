@@ -34,6 +34,6 @@ class Order extends Model
             'chat_order',
             'order_id',
             'telegraph_chat_id'
-        )->withPivot('message_id');
+        )->withPivot('message_id', 'message_type_id');
     }
 }

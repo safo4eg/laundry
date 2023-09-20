@@ -272,7 +272,6 @@ class User extends WebhookHandler
         $order = $this->user->active_order;
 
         if($callback_data) {
-            Log::debug($this->messageId);
             $button = $this->config['order_wishes'][$this->user->language_code];
             $template = $this->template_prefix.$this->user->language_code.'.order.wishes';
             $response = $this->chat->edit($this->messageId)
