@@ -51,7 +51,8 @@ class OrderStatusObserver
             ChatOrder::create([
                 'telegraph_chat_id' => $chat->id,
                 'order_id' => $order->id,
-                'message_id' => $message_id
+                'message_id' => $message_id,
+                'message_type_id' => 1
             ]);
         }
 
