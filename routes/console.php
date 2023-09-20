@@ -5,8 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
-use App\Models\OrderStatus;
-use App\Models\Order;
+use App\Models\Chat;
 /*
 |--------------------------------------------------------------------------
 | Console Routes
@@ -37,6 +36,6 @@ Artisan::command('scenarios', function () {
 });
 
 Artisan::command('test', function () {
-    $order_status = OrderStatus::where('status_id', 1)->first();
-    Log::debug($order_status);
+    $chat = Chat::where('id', 2)->first();
+    Log::debug($chat);
 });

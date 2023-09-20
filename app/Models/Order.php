@@ -12,7 +12,7 @@ class Order extends Model
     public $timestamps = false;
 
     protected $guarded = [];
-    protected $with = ['user'];
+    protected $with = ['user', 'chats'];
 
     public function user()
     {
@@ -26,5 +26,14 @@ class Order extends Model
             'order_id',
             'status_id'
         );
+    }
+
+    public function chats() {
+        return $this->belongsToMany(
+            Chat::class,
+            'chat_order',
+            'order_id',
+            'telegraph_chat_id'
+        )->withPivot('message_id');
     }
 }

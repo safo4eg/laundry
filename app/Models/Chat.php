@@ -9,4 +9,13 @@ class Chat extends TelegraphChat
 {
     public $timestamps = false;
     protected $table = 'telegraph_chats';
+
+    public function orders()
+    {
+        return $this->belongsToMany(
+            Order::class,
+            'chat_order',
+            'telegraph_chat_id',
+            'order_id');
+    }
 }
