@@ -24,6 +24,11 @@ class StatusSeeder extends Seeder
             [
                 'name' => 'confirmed',
                 'title' => 'User confirmed an order'
+            ],
+
+            [
+                'name' => 'sent_to_courier',
+                'title' => 'Admin identified couriers'
             ]
         ]);
     }

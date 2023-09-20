@@ -19,6 +19,9 @@ return new class extends Migration
             $table->string('address', 255)->nullable();
             $table->string('address_desc')->nullable();
             $table->tinyInteger('status_id')->unsigned();
+            $table->tinyInteger('laundry_id')->unsigned()->nullable();
+            $table->text('wishes')->nullable();
+            $table->boolean('active')->default(false);
 
             $table->foreignId('user_id')->references('id')->on('users');
             $table->foreign('status_id')->references('id')->on('statuses');

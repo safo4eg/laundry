@@ -27,11 +27,17 @@ class TelegraphChatSeeder extends Seeder
 //               'name' => 'Washer',
 //               'telegraph_bot_id' => 1
 //           ]
-        [
-            'chat_id' => -4070334477,
-            'name' => 'Admin',
-            'telegraph_bot_id' => 1
-        ]
+            [
+                'chat_id' => -4070334477,
+                'name' => 'Admin',
+                'telegraph_bot_id' => 1
+            ],
+
+            [
+                'chat_id' => -4017773146,
+                'name' => 'Manager',
+                'telegraph_bot_id' => 1
+            ]
         ]);
     }
 }

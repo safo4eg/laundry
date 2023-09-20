@@ -11,9 +11,9 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
-    protected $guarded = [];
-
     public $timestamps = false;
+
+    protected $guarded = [];
 
     public function orders()
     {
@@ -23,5 +23,10 @@ class User extends Authenticatable
     public function getCurrentOrder(): Order
     {
         return $this->orders()->where('status_id', '<',6)->first();
+    }
+
+    public function getActiveOrderAttribute(): Order
+    {
+        return $this->orders->where('active', 1)->first();
     }
 }
