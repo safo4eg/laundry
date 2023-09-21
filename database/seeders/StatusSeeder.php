@@ -18,7 +18,7 @@ class StatusSeeder extends Seeder
         DB::table('statuses')->insert([
             [
                 'name' => 'created',
-                'title' => 'User created an order'
+                'title' => 'User created the order'
             ],
 
             [
@@ -29,6 +29,11 @@ class StatusSeeder extends Seeder
             [
                 'name' => 'sent_to_courier',
                 'title' => 'Admin identified couriers'
+            ],
+
+            [
+                'name' => 'canceled',
+                'title' => 'User canceled an order'
             ]
         ]);
     }

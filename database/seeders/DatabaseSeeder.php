@@ -25,7 +25,8 @@ class DatabaseSeeder extends Seeder
             TelegraphBotSeeder::class,
             TelegraphChatSeeder::class,
             StatusSeeder::class,
-            MessageTypeSeeder::class
+            MessageTypeSeeder::class,
+            ReasonSeeder::class
         ]);
     }
 }

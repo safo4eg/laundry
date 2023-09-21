@@ -249,10 +249,10 @@ class User extends WebhookHandler
                         ->buttons([
                             Button::make($buttons['wishes'])
                                 ->action('write_order_wishes')
-                                ->param('callback_data', 1),
+                                ->param('choice', 1),
                             Button::make($buttons['cancel'])
                                 ->action('cancel_order')
-                                ->param('callback_data', 1),
+                                ->param('choice', 1),
                             Button::make($buttons['recommend'])->action('ref')
                         ]))
                     ->send();
@@ -266,12 +266,72 @@ class User extends WebhookHandler
         }
     }
 
+    public function cancel_order(): void
+    {
+        $language_code = $this->user->language_code;
+        $choice = $this->data->get('choice');
+        $template_prefix_lang = $this->template_prefix.$language_code;
+
+        if($choice) {
+            if($this->user->page === 'order_accepted') { // значит нажали пеервый раз
+                $buttons = [
+                    'check_bot' => $this->config['cancel_order']['check_bot'][$language_code],
+                    'changed_my_mind' => $this->config['cancel_order']['changed_my_mind'][$language_code],
+                    'quality' => $this->config['cancel_order']['quality'][$language_code],
+                    'expensive' => $this->config['cancel_order']['expensive'][$language_code],
+                    'back' => $this->config['cancel_order']['back'][$language_code]
+                ];
+                $template = $template_prefix_lang.'.order.cancel';
+
+                $this->chat
+                    ->edit($this->messageId)
+                    ->message((string) view($template))
+                    ->keyboard(Keyboard::make()
+                        ->buttons([
+                            Button::make($buttons['check_bot'])->action('cancel_order')->param('choice', 1),
+                            Button::make($buttons['changed_my_mind'])->action('cancel_order')->param('choice', 2),
+                            Button::make($buttons['quality'])->action('cancel_order')->param('choice', 3),
+                            Button::make($buttons['expensive'])->action('cancel_order')->param('choice', 4),
+                            Button::make($buttons['back'])->action('open_to_previous_page')
+                        ])->chunk(2))
+                    ->send();
+
+                $this->user->update([
+                    'page' => 'cancel_order'
+                ]);
+            } else if($this->user->page === 'cancel_order') {
+               // $choice = выбор причины отмены
+                $order = $this->user->active_order;
+
+                $buttons = [
+                    'start' => $this->config['order_canceled']['start'][$language_code],
+                    'recommend' => $this->config['order_canceled']['recommend'][$language_code]
+                ];
+                $template = $template_prefix_lang.'.order.canceled';
+                $this->chat
+                    ->edit($this->messageId)
+                    ->message((string) view($template))
+                    ->keyboard(Keyboard::make()
+                        ->button($buttons['start'])->action('new_order')->param('choice', 1)
+                        ->button($buttons['recommend'])->action('ref')->param('choice', 2)
+                    )
+                    ->send();
+
+                $order->update([
+                    'reason_id' => $choice,
+                    'status_id' => 4,
+                    'active' => false
+                ]);
+            }
+        }
+    }
+
     public function write_order_wishes(): void
     {
-        $callback_data = $this->data->get('callback_data');
+        $choice = $this->data->get('choice');
         $order = $this->user->active_order;
 
-        if($callback_data) {
+        if($choice) {
             $button = $this->config['order_wishes'][$this->user->language_code];
             $template = $this->template_prefix.$this->user->language_code.'.order.wishes';
             $response = $this->chat->edit($this->messageId)
@@ -289,7 +349,7 @@ class User extends WebhookHandler
             ]);
         }
 
-        if(!$callback_data) {
+        if(!$choice) {
             $wishes = $this->message->text();
 
             $order->update([
@@ -307,7 +367,7 @@ class User extends WebhookHandler
         $page = $this->user->page;
         $template_prefix_lang = $this->template_prefix.$this->user->language_code;
 
-        if($page === 'order_wishes') {
+        if($page === 'order_wishes' OR $page === 'cancel_order') {
             $buttons = [
                 'wishes' => $this->config['order_accepted']['wishes'][$this->user->language_code],
                 'cancel' => $this->config['order_accepted']['cancel'][$this->user->language_code],
@@ -317,10 +377,10 @@ class User extends WebhookHandler
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons['wishes'])
                     ->action('write_order_wishes')
-                    ->param('callback_data', 1),
+                    ->param('choice', 1),
                 Button::make($buttons['cancel'])
                     ->action('cancel_order')
-                    ->param('callback_data', 1),
+                    ->param('choice', 1),
                 Button::make($buttons['recommend'])->action('ref')
             ]);
 
