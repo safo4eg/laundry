@@ -1,4 +1,4 @@
-<b>Step {{$step_id}} of {{$steps_amount}}.</b>
+<b>Step {{$step}} of {{$steps_amount}}.</b>
 
 ❗️Orders placed <b>before 2pm</b> will be picked up within 2 hours and returned back tomorrow afternoon.
 ❗️Orders placed <b>after 2pm</b> will be picked up tonight and returned back tomorrow evening.

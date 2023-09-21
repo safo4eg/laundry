@@ -29,6 +29,12 @@ Artisan::command('scenarios', function () {
             3 => ['template' => '.order.contact', 'step_id' => 3],
             4 => ['template' => '.order.whatsapp', 'step_id' => 4],
             5 => ['template' => '.order.accept', 'step_id' => 5],
+        ],
+
+        'second' => [
+            1 => ['template' => '.order.geo', 'step_id' => 1],
+            2 => ['template' => '.order.address', 'step_id' => 2],
+            3 => ['template' => '.order.accept', 'step_id' => 3]
         ]
     ];
 

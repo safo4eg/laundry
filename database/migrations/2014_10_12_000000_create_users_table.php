@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('whatsapp', 32)->nullable();
             $table->string('language_code', 2)->nullable();
             $table->string('page', 64); // start, select_language, menu, scenario, accepted_order, order_wishes
-            $table->tinyInteger('step_id')->unsigned()->index()->nullable();
+            $table->tinyInteger('step')->unsigned()->index()->nullable();
             $table->unsignedBigInteger('message_id')->nullable();
         });
     }
