@@ -349,10 +349,10 @@ class User extends WebhookHandler
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons['wishes'])
                     ->action('write_order_wishes')
-                    ->param('choice', 1),
+                    ->param('write_order_wishes', 1),
                 Button::make($buttons['cancel'])
                     ->action('cancel_order')
-                    ->param('choice', 1),
+                    ->param('cancel_order', 1),
                 Button::make($buttons['recommend'])->action('ref')
             ]);
 
