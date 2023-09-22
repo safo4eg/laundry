@@ -56,12 +56,22 @@ class User extends WebhookHandler
                     if(isset($this->user->message_id)) {
                         // если активное окно есть - редактируем ,
                         // если нет то отправляем просто новое сообщение
-                        $this->chat
-                            ->edit($this->user->message_id)
-                            ->message((string) view($template))
-                            ->keyboard($keyboard)
-                            ->send();
-                        return;
+
+                        if(isset($this->message)) { // проверяем проинициализирована ли переменная, т.к сюда можно попасть и с кнопки
+                            $command = $this->message->text(); // получаем текст команды (как минимум /start)
+                            if($command === '/start') {
+                                $this->chat
+                                    ->deleteMessage($this->user->message_id)
+                                    ->send(); // удаляем активное окно
+                            }
+                        } else { // если не с команды попало, тогда редактируем, т.к ничего не писали
+                            $this->chat
+                                ->edit($this->user->message_id)
+                                ->message((string) view($template))
+                                ->keyboard($keyboard)
+                                ->send();
+                            return;
+                        }
                     }
 
                     $this->chat
@@ -98,9 +108,8 @@ class User extends WebhookHandler
                     'message_id' => $response->telegraphMessageId()
                 ]);
             }
-        }
+        } else if(!empty($flag)) { // когда отправка с кнопки с флагом start
 
-        if (!empty($flag)) { // когда отправка с кнопки с флагом start
             Order::create([
                 'user_id' => $this->user->id,
                 'status_id' => 1,

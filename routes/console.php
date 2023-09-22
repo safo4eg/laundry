@@ -4,8 +4,8 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Http;
 use App\Models\Chat;
+use DefStudio\Telegraph\Models\TelegraphBot;
 /*
 |--------------------------------------------------------------------------
 | Console Routes
@@ -41,7 +41,11 @@ Artisan::command('scenarios', function () {
     Storage::put('scenarios', json_encode($scenarios));
 });
 
-Artisan::command('test', function () {
-    $chat = Chat::where('id', 2)->first();
-    Log::debug($chat);
+Artisan::command('register-commands', function () {
+    $bot = TelegraphBot::where('id', 1)->first();
+
+    $bot->registerCommands([
+        '/start' => 'start description'
+    ])
+        ->send();
 });
