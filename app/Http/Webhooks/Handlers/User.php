@@ -143,6 +143,19 @@ class User extends WebhookHandler
                     $this->request_accepted_order($step, $steps_amount);
                     break;
             }
+        } else if($page === 'second_scenario') {
+            $steps_amount = 3;
+            switch ($step) {
+                case 1:
+                    $this->request_geo($step, $steps_amount);
+                    break;
+                case 2:
+                    $this->request_address_desc($step, $steps_amount);
+                    break;
+                case 3:
+                    $this->request_accepted_order($step, $steps_amount);
+                    break;
+            }
         }
     }
 
@@ -165,6 +178,15 @@ class User extends WebhookHandler
                 case 4:
                     $this->whatsapp_handler();
                     break; // обработчик пятого шага указан в кнопке
+            }
+        } else if($page === 'second_scenario') {
+            switch ($step) {
+                case 1:
+                    $this->geo_handler();
+                    break;
+                case 2:
+                    $this->address_desc_handler();
+                    break;
             }
         }
     }
@@ -326,10 +348,11 @@ class User extends WebhookHandler
 
             switch ($page) {
                 case 'first_scenario':
+                case 'second_scenario':
                     $this->handle_scenario_response();
                     break;
-                case 'second_scenario':
-                    $this->handle_scenario_request();
+                case 'order_wishes':
+                    $this->write_order_wishes();
                     break;
             }
 
