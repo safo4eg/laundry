@@ -143,15 +143,17 @@ trait UserTrait
                 'step' => $step,
                 'steps_amount' => $steps_amount]))
             ->keyboard(Keyboard::make()
-                ->button($button)->action('order_accepted_handler')->param('choice', 1))
+                ->button($button)
+                ->action('order_accepted_handler')
+                ->param('order_accepted_handler', 1))
             ->send();
     }
 
     public function order_accepted_handler(): void
     {
-        $choice = $this->data->get('choice');
+        $flag = $this->data->get('order_accepted_handler');
 
-        if($choice) {
+        if($flag) {
             $order = $this->user->active_order;
             $order->update([ // в этот момент заказ улетает в ADMIN CHAT
                 'status_id' => 2
@@ -171,10 +173,10 @@ trait UserTrait
                     ->buttons([
                         Button::make($buttons['wishes'])
                             ->action('write_order_wishes')
-                            ->param('choice', 1),
+                            ->param('write_order_wishes', 1),
                         Button::make($buttons['cancel'])
                             ->action('cancel_order')
-                            ->param('choice', 1),
+                            ->param('cancel_order', 1),
                         Button::make($buttons['recommend'])->action('ref')
                     ]))
                 ->send();

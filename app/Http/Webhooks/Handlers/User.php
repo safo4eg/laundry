@@ -31,49 +31,76 @@ class User extends WebhookHandler
 
     public function start(): void
     {
-        $choice = $this->data->get('choice');
+        $flag = $this->data->get('start');
 
-        if (empty($choice)) {
-
+        if (empty($flag)) {
+            // заходит сюда с кнопки "заказать стирку" тк там не указан param()
             if ($this->user) {
-                if ($this->user->page === 'menu') {
+                $page = $this->user->page;
+                if ($page === 'menu' OR $page === 'order_canceled') {
+
                     $buttons = [
                         'start' => $this->config['start']['start'][$this->user->language_code],
                         'reviews' => $this->config['start']['reviews'][$this->user->language_code],
                     ];
                     $template = $this->template_prefix.$this->user->language_code.'.start';
+                    $keyboard = Keyboard::make()->buttons([
+                        Button::make($buttons['start'])
+                            ->action('start')
+                            ->param('start', 1)
+                            ->param('choice', 1),
+                        Button::make($buttons['reviews'])->url('https://t.me/laundrybot_feedback')
 
-                    $this->chat->message((string) view($template))
-                        ->keyboard(Keyboard::make()->buttons([
-                            Button::make($buttons['start'])->action('start')->param('choice', 1),
-                            Button::make($buttons['reviews'])->url('https://t.me/laundrybot_feedback')
-                        ]))->send();
+                    ]);
+
+                    if(isset($this->user->message_id)) {
+                        // если активное окно есть - редактируем ,
+                        // если нет то отправляем просто новое сообщение
+                        $this->chat
+                            ->edit($this->user->message_id)
+                            ->message((string) view($template))
+                            ->keyboard($keyboard)
+                            ->send();
+                        return;
+                    }
+
+                    $this->chat
+                        ->message((string) view($template))
+                        ->keyboard($keyboard)
+                        ->send();
                     return;
                 } else return;
             } else {
                 $chat_id = $this->message->from()->id();
                 $username = $this->message->from()->username();
 
-                $this->user = UserModel::create([
-                    'chat_id' => $chat_id,
-                    'username' => $username,
-                    'page' => 'select_language'
-                ]);
-
                 $buttons = [
                     'russia' => $this->config['select_language']['russia'],
                     'english' => $this->config['select_language']['english']
                 ];
                 $template = $this->template_prefix.'select_language';
-                $this->chat->message((string) view($template))
+                $response = $this->chat->message((string) view($template))
                     ->keyboard(Keyboard::make()->buttons([
-                        Button::make($buttons['english'])->action('select_language')->param('choice', 'en'),
-                        Button::make($buttons['russia'])->action('select_language')->param('choice', 'ru')
+                        Button::make($buttons['english'])
+                            ->action('select_language')
+                            ->param('select_language', 1)
+                            ->param('language_code', 'en'),
+                        Button::make($buttons['russia'])
+                            ->action('select_language')
+                            ->param('select_language', 1)
+                            ->param('language_code', 'ru')
                     ]))->send();
+
+                $this->user = UserModel::create([
+                    'chat_id' => $chat_id,
+                    'username' => $username,
+                    'page' => 'select_language',
+                    'message_id' => $response->telegraphMessageId()
+                ]);
             }
         }
 
-        if (!empty($choice)) {
+        if (!empty($flag)) { // когда отправка с кнопки с флагом start
             Order::create([
                 'user_id' => $this->user->id,
                 'status_id' => 1,
@@ -100,22 +127,18 @@ class User extends WebhookHandler
 
     public function select_language(): void
     {
-        $language_code = $this->data->get('choice');
+        $flag = $this->data->get('select_language');
 
-        if (!empty($language_code)) {
-            $this->user->update(['language_code' => $language_code, 'page' => 'start']);
+        if($flag) { // если прилетели данные именно при выборе языка (нажатие на кнопку выбора языка)
+            $language_code = $this->data->get('language_code');
 
-            $buttons = [
-                'start' => $this->config['start']['start'][$this->user->language_code],
-                'reviews' => $this->config['start']['reviews'][$this->user->language_code],
-            ];
-            $template = $this->template_prefix.$this->user->language_code.'.start';
-            $this->chat->edit($this->messageId)
-                ->message((string) view($template))
-                ->keyboard(Keyboard::make()->buttons([
-                    Button::make($buttons['start'])->action('start')->param('choice', 1),
-                    Button::make($buttons['reviews'])->url('https://t.me/laundrybot_feedback')
-                ]))->send();
+            if (!empty($language_code)) {
+                $this->user->update([
+                    'language_code' => $language_code,
+                    'page' => 'menu'
+                ]);
+                $this->start();
+            }
         }
     }
 
@@ -193,11 +216,11 @@ class User extends WebhookHandler
 
     public function cancel_order(): void
     {
+        $flag = $this->data->get('cancel_order');
         $language_code = $this->user->language_code;
-        $choice = $this->data->get('choice');
         $template_prefix_lang = $this->template_prefix.$language_code;
 
-        if($choice) {
+        if($flag) {
             if($this->user->page === 'order_accepted') { // значит нажали пеервый раз
                 $buttons = [
                     'check_bot' => $this->config['cancel_order']['check_bot'][$language_code],
@@ -213,10 +236,20 @@ class User extends WebhookHandler
                     ->message((string) view($template))
                     ->keyboard(Keyboard::make()
                         ->buttons([
-                            Button::make($buttons['check_bot'])->action('cancel_order')->param('choice', 1),
-                            Button::make($buttons['changed_my_mind'])->action('cancel_order')->param('choice', 2),
-                            Button::make($buttons['quality'])->action('cancel_order')->param('choice', 3),
-                            Button::make($buttons['expensive'])->action('cancel_order')->param('choice', 4),
+                            Button::make($buttons['check_bot'])
+                                ->action('cancel_order')
+                                ->param('cancel_order', 1)
+                                ->param('choice', 1),
+                            Button::make($buttons['changed_my_mind'])
+                                ->action('cancel_order')
+                                ->param('cancel_order', 1)
+                                ->param('choice', 2),
+                            Button::make($buttons['quality'])->action('cancel_order')
+                                ->param('cancel_order', 1)
+                                ->param('choice', 3),
+                            Button::make($buttons['expensive'])->action('cancel_order')
+                                ->param('cancel_order', 1)
+                                ->param('choice', 4),
                             Button::make($buttons['back'])->action('open_to_previous_page')
                         ])->chunk(2))
                     ->send();
@@ -226,6 +259,7 @@ class User extends WebhookHandler
                 ]);
             } else if($this->user->page === 'cancel_order') {
                // $choice = выбор причины отмены
+                $choice = $this->data->get('choice');
                 $order = $this->user->active_order;
 
                 $buttons = [
@@ -237,7 +271,7 @@ class User extends WebhookHandler
                     ->edit($this->messageId)
                     ->message((string) view($template))
                     ->keyboard(Keyboard::make()
-                        ->button($buttons['start'])->action('start')->param('choice', 1)
+                        ->button($buttons['start'])->action('start')
                         ->button($buttons['recommend'])->action('ref')->param('choice', 2)
                     )
                     ->send();
@@ -257,10 +291,10 @@ class User extends WebhookHandler
 
     public function write_order_wishes(): void
     {
-        $choice = $this->data->get('choice');
+        $flag = $this->data->get('write_order_wishes');
         $order = $this->user->active_order;
 
-        if($choice) {
+        if($flag) {
             $button = $this->config['order_wishes'][$this->user->language_code];
             $template = $this->template_prefix.$this->user->language_code.'.order.wishes';
             $response = $this->chat->edit($this->messageId)
@@ -278,7 +312,7 @@ class User extends WebhookHandler
             ]);
         }
 
-        if(!$choice) {
+        if(!$flag) {
             $wishes = $this->message->text();
 
             $order->update([
@@ -354,8 +388,8 @@ class User extends WebhookHandler
                 case 'order_wishes':
                     $this->write_order_wishes();
                     break;
-            }
+            } //end switch
 
-        }
+        } // end if
     }
 }
