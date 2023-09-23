@@ -37,7 +37,7 @@ class User extends WebhookHandler
             // заходит сюда с кнопки "заказать стирку" тк там не указан param()
             if ($this->user) {
                 $page = $this->user->page;
-                if ($page === 'menu' OR $page === 'order_canceled') {
+                if ($page === 'start' OR $page === 'order_canceled') {
 
                     $buttons = [
                         'start' => $this->config['start']['start'][$this->user->language_code],
@@ -70,15 +70,24 @@ class User extends WebhookHandler
                                 ->message((string) view($template))
                                 ->keyboard($keyboard)
                                 ->send();
+
+                            $this->user->update([
+                                'page' => 'start'
+                            ]);
+
                             return;
                         }
                     }
 
-                    $this->chat
+                    $response = $this->chat
                         ->message((string) view($template))
                         ->keyboard($keyboard)
                         ->send();
-                    return;
+
+                    $this->user->update([
+                        'message_id' => $response->telegraphMessageId(),
+                        'page' => 'start'
+                    ]);
                 } else return;
             } else {
                 $chat_id = $this->message->from()->id();
@@ -144,7 +153,7 @@ class User extends WebhookHandler
             if (!empty($language_code)) {
                 $this->user->update([
                     'language_code' => $language_code,
-                    'page' => 'menu'
+                    'page' => 'start'
                 ]);
                 $this->start();
             }
