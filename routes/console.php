@@ -41,11 +41,13 @@ Artisan::command('scenarios', function () {
     Storage::put('scenarios', json_encode($scenarios));
 });
 
-Artisan::command('register-commands', function () {
+Artisan::command('commands:register:bot=1', function () {
     $bot = TelegraphBot::where('id', 1)->first();
 
     $bot->registerCommands([
-        '/start' => 'start description'
+        '/menu' => 'Show menu',
+        '/start' => 'Order laundry',
+        '/about' => 'About as'
     ])
         ->send();
 });

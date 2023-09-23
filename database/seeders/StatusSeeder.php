@@ -34,7 +34,7 @@ class StatusSeeder extends Seeder
             [
                 'name' => 'canceled',
                 'title' => 'User canceled an order'
-            ]
+            ],
         ]);
     }
 }

@@ -23,6 +23,7 @@ return new class extends Migration
             $table->tinyInteger('laundry_id')->unsigned()->nullable();
             $table->unsignedTinyInteger('reason_id')->nullable();
             $table->boolean('active')->default(false);
+            $table->unsignedTinyInteger('last_step')->nullable();
 
             $table->foreignId('user_id')->references('id')->on('users');
             $table->foreign('status_id')->references('id')->on('statuses');

@@ -13,7 +13,6 @@ trait UserTrait
     {
         $button = $this->config['send_location'][$this->user->language_code];
         $template = $this->template_prefix.$this->user->language_code.".order.geo";
-        $this->chat->deleteMessage($this->messageId)->send(); // здесь возможно нужно будет условие page
         $this->chat->message((string) view(
             $template,
             [
@@ -138,7 +137,7 @@ trait UserTrait
     {
         $button = $this->config['accept_order'][$this->user->language_code];
         $template = $this->template_prefix.$this->user->language_code.".order.accept";
-        $this->chat
+        $response = $this->chat
             ->message((string) view($template, [
                 'step' => $step,
                 'steps_amount' => $steps_amount]))
@@ -147,6 +146,10 @@ trait UserTrait
                 ->action('order_accepted_handler')
                 ->param('order_accepted_handler', 1))
             ->send();
+
+        $this->user->update([
+            'message_id' => $response->telegraphMessageId()
+        ]);
     }
 
     public function order_accepted_handler(): void

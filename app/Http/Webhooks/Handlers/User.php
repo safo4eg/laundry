@@ -4,10 +4,12 @@ namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\UserTrait;
 use App\Models\Order;
+use App\Models\OrderStatus;
 use App\Models\User as UserModel;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use DefStudio\Telegraph\Keyboard\ReplyButton;
 use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -33,109 +35,136 @@ class User extends WebhookHandler
     {
         $flag = $this->data->get('start');
 
-        if (empty($flag)) {
-            // заходит сюда с кнопки "заказать стирку" тк там не указан param()
-            if ($this->user) {
-                $page = $this->user->page;
-                if ($page === 'start' OR $page === 'order_canceled') {
+        if (!isset($flag)) {
+            if (isset($this->user)) {
+                $template_prefix_lang = $this->template_prefix.$this->user->language_code;
+                $template_start = $template_prefix_lang.'.start';
 
-                    $buttons = [
-                        'start' => $this->config['start']['start'][$this->user->language_code],
-                        'reviews' => $this->config['start']['reviews'][$this->user->language_code],
-                    ];
-                    $template = $this->template_prefix.$this->user->language_code.'.start';
-                    $keyboard = Keyboard::make()->buttons([
-                        Button::make($buttons['start'])
-                            ->action('start')
-                            ->param('start', 1)
-                            ->param('choice', 1),
-                        Button::make($buttons['reviews'])->url('https://t.me/laundrybot_feedback')
+                $buttons = [
+                    'start' => $this->config['start']['start'][$this->user->language_code],
+                    'reviews' => $this->config['start']['reviews'][$this->user->language_code],
+                ];
+                $template = $template_prefix_lang.'.start';
+                $keyboard = Keyboard::make()->buttons([
+                    Button::make($buttons['start'])
+                        ->action('start')
+                        ->param('start', 1)
+                        ->param('choice', 1),
+                    Button::make($buttons['reviews'])->url('https://t.me/laundrybot_feedback')
+                ]);
 
-                    ]);
+                if (isset($this->user->message_id)) {
+                    // если активное окно есть - редактируем ,
+                    // если нет то отправляем просто новое сообщение
 
-                    if(isset($this->user->message_id)) {
-                        // если активное окно есть - редактируем ,
-                        // если нет то отправляем просто новое сообщение
-
-                        if(isset($this->message)) { // проверяем проинициализирована ли переменная, т.к сюда можно попасть и с кнопки
-                            $command = $this->message->text(); // получаем текст команды (как минимум /start)
-                            if($command === '/start') {
-                                $this->chat
-                                    ->deleteMessage($this->user->message_id)
-                                    ->send(); // удаляем активное окно
-                            }
-                        } else { // если не с команды попало, тогда редактируем, т.к ничего не писали
+                    if (isset($this->message)) { // проверяем проинициализирована ли переменная, т.к сюда можно попасть и с кнопки
+                        $command = $this->message->text(); // получаем текст команды (как минимум /start)
+                        if ($command === '/start') {
                             $this->chat
-                                ->edit($this->user->message_id)
-                                ->message((string) view($template))
-                                ->keyboard($keyboard)
-                                ->send();
-
-                            $this->user->update([
-                                'page' => 'start'
-                            ]);
-
-                            return;
+                                ->deleteMessage($this->user->message_id)
+                                ->send(); // удаляем активное окно
                         }
+                    } else { // если не с команды попало, тогда редактируем, т.к ничего не писали
+                        $this->chat
+                            ->edit($this->user->message_id)
+                            ->message((string)view($template_start))
+                            ->keyboard($keyboard)
+                            ->send();
+
+                        $this->user->update([
+                            'page' => 'start'
+                        ]);
+                        return;
                     }
+                }
 
-                    $response = $this->chat
-                        ->message((string) view($template))
-                        ->keyboard($keyboard)
-                        ->send();
+                $page = $this->user->page;
+                $order = $this->user->active_order;
 
-                    $this->user->update([
-                        'message_id' => $response->telegraphMessageId(),
-                        'page' => 'start'
+                if($page === 'first_scenario' OR $page === 'second_scenario') {
+                    $order->update([
+                        'status_id' => 4,
+                        'reason_id' => 5,
+                        'last_step' => $this->user->step,
+                        'active' => false
                     ]);
-                } else return;
+
+                    $this->user->update(['step' => null]);
+
+                    $template_pause = $template_prefix_lang.'.order.pause';
+                    $this->chat
+                        ->message((string) view($template_pause))
+                        ->send();
+                }
+
+                $response = $this->chat
+                    ->message((string)view($template_start))
+                    ->keyboard($keyboard)
+                    ->send();
+
+                $order->update([
+                    'active' => false
+                ]);
+
+                $this->user->update([
+                    'message_id' => $response->telegraphMessageId(),
+                    'page' => 'start'
+                ]);
+
             } else {
                 $chat_id = $this->message->from()->id();
                 $username = $this->message->from()->username();
 
-                $buttons = [
-                    'russia' => $this->config['select_language']['russia'],
-                    'english' => $this->config['select_language']['english']
-                ];
-                $template = $this->template_prefix.'select_language';
-                $response = $this->chat->message((string) view($template))
-                    ->keyboard(Keyboard::make()->buttons([
-                        Button::make($buttons['english'])
-                            ->action('select_language')
-                            ->param('select_language', 1)
-                            ->param('language_code', 'en'),
-                        Button::make($buttons['russia'])
-                            ->action('select_language')
-                            ->param('select_language', 1)
-                            ->param('language_code', 'ru')
-                    ]))->send();
-
                 $this->user = UserModel::create([
                     'chat_id' => $chat_id,
                     'username' => $username,
-                    'page' => 'select_language',
-                    'message_id' => $response->telegraphMessageId()
                 ]);
-            }
-        } else if(!empty($flag)) { // когда отправка с кнопки с флагом start
 
-            Order::create([
-                'user_id' => $this->user->id,
-                'status_id' => 1,
-                'active' => true
-            ]);
+                $this->select_language();
+            }
+        }
+
+        if(isset($flag)) { // когда отправка с кнопки с флагом start
+            $order = Order::where('user_id', $this->user->id)
+                ->where('reason_id', 5)
+                ->first();
+            $step = 1;
+
+            if(!isset($order)) {
+                $order = Order::create([
+                    'user_id' => $this->user->id,
+                    'status_id' => 1,
+                    'active' => true
+                ]);
+            } else {
+                $step = $order->last_step;
+                $order = Order::withoutEvents(function () use ($order) {
+                    OrderStatus::where('order_id', $order->id)
+                        ->where('status_id', 4)
+                        ->delete();
+
+                    $order->update([
+                        'status_id' => 1,
+                        'reason_id' => null,
+                        'active' => true,
+                        'last_step' => null
+                    ]);
+                });
+            }
 
             $scenario_num = null;
 
-            if ($this->user->phone_number) {
-                $scenario_num = 'second';
-            } else {
+            $orders_amount = Order::where('user_id', $this->user->id)->count();
+
+            if($orders_amount === 0 OR $orders_amount === 1) {
                 $scenario_num = 'first';
+            } else {
+                $scenario_num = 'second';
             }
 
             $this->user->update([
                 'page' => "{$scenario_num}_scenario",
-                'step' => 1
+                'step' => $step
             ]);
 
             $this->handle_scenario_request();
@@ -147,16 +176,38 @@ class User extends WebhookHandler
     {
         $flag = $this->data->get('select_language');
 
-        if($flag) { // если прилетели данные именно при выборе языка (нажатие на кнопку выбора языка)
+        if(isset($flag)) { // если прилетели данные именно при выборе языка (нажатие на кнопку выбора языка)
             $language_code = $this->data->get('language_code');
 
-            if (!empty($language_code)) {
-                $this->user->update([
-                    'language_code' => $language_code,
-                    'page' => 'start'
-                ]);
-                $this->start();
-            }
+            $this->user->update([
+                'language_code' => $language_code,
+            ]);
+
+            $this->start();
+        }
+
+        if(!isset($flag)) {
+            $buttons = [
+                'russia' => $this->config['select_language']['russia'],
+                'english' => $this->config['select_language']['english']
+            ];
+            $template = $this->template_prefix.'select_language';
+            $response = $this->chat->message((string) view($template))
+                ->keyboard(Keyboard::make()->buttons([
+                    Button::make($buttons['english'])
+                        ->action('select_language')
+                        ->param('select_language', 1)
+                        ->param('language_code', 'en'),
+                    Button::make($buttons['russia'])
+                        ->action('select_language')
+                        ->param('select_language', 1)
+                        ->param('language_code', 'ru')
+                ]))->send();
+
+            $this->user->update([
+                'page' => 'select_language',
+                'message_id' => $response->telegraphMessageId()
+            ]);
         }
     }
 
@@ -164,6 +215,10 @@ class User extends WebhookHandler
     {
         $page = $this->user->page; // получаем имя сценария
         $step = $this->user->step; // получаем шаг (может быть null)
+
+        if($this->user->message_id) {
+            $this->chat->deleteMessage($this->user->message_id)->send();
+        }
 
         if($page === 'first_scenario') {
             $steps_amount = 5;
@@ -395,9 +450,7 @@ class User extends WebhookHandler
     protected function handleChatMessage(Stringable $text): void
     {
         $page = $this->user->page;
-
         if(isset($page)) {
-
             switch ($page) {
                 case 'first_scenario':
                 case 'second_scenario':
@@ -406,8 +459,8 @@ class User extends WebhookHandler
                 case 'order_wishes':
                     $this->write_order_wishes();
                     break;
-            } //end switch
+            }
 
-        } // end if
+        } // end if(isset($page))
     }
 }

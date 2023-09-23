@@ -25,7 +25,7 @@ class User extends Authenticatable
         return $this->orders()->where('status_id', '<',6)->first();
     }
 
-    public function getActiveOrderAttribute(): Order
+    public function getActiveOrderAttribute(): Order|null
     {
         return $this->orders->where('active', 1)->first();
     }

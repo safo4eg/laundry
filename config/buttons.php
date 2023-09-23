@@ -34,6 +34,11 @@
             'order_canceled' => [
                 'start' => ['ru' => 'Заказать стирку', 'en' => 'Order Laundry'],
                 'recommend' => ['ru' => 'Рекомендовать друзьям', 'en' => 'Recommend to friends']
+            ],
+
+            'menu' => [
+                'start' => ['ru' => 'Начать', 'en' => 'Start'],
+                'about' => ['ru' => 'О нас', 'en' => 'About us'],
             ]
         ],
     ];

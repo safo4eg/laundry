@@ -38,6 +38,12 @@ class ReasonSeeder extends Seeder
                 'title' => 'expensive',
                 'en_desc' => 'Expensive',
                 'ru_desc' => 'Дорого'
+            ],
+
+            [
+            'title' => 'pause',
+            'en_desc' => 'Automatic termination filling order',
+            'ru_desc' => 'Автоматическое прекращение заполнения заявки',
             ]
         ]);
     }
