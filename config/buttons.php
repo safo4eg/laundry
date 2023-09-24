@@ -17,7 +17,7 @@
 
             'order_accepted' => [
                 'wishes' => ['ru' => 'Особые пожелания по стирке', 'en' => 'Laundry Special Requests'],
-                'cancel' => ['ru' => 'Отменить заказ', 'Cancel order'],
+                'cancel' => ['ru' => 'Отменить заказ', 'en' => 'Cancel order'],
                 'recommend' => ['ru' => 'Рекомендовать друзьям', 'en' => 'Recommend to friends']
             ],
 

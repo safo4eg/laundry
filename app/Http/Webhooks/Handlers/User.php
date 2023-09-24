@@ -102,9 +102,11 @@ class User extends WebhookHandler
                     ->keyboard($keyboard)
                     ->send();
 
-                $order->update([
-                    'active' => false
-                ]);
+                if(isset($order)) { // если активная есть, допустим после отмены заказа окно на котором нет активной заявки
+                    $order->update([
+                        'active' => false
+                    ]);
+                }
 
                 $this->user->update([
                     'message_id' => $response->telegraphMessageId(),
