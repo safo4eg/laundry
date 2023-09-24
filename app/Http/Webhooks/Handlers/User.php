@@ -94,6 +94,7 @@ class User extends WebhookHandler
                     $template_pause = $template_prefix_lang.'.order.pause';
                     $this->chat
                         ->message((string) view($template_pause))
+                        ->removeReplyKeyboard()
                         ->send();
                 }
 
