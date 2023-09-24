@@ -2,7 +2,7 @@
 
 namespace App\Http\Webhooks\Handlers;
 
-use App\Http\Webhooks\Handlers\Traits\UserTrait;
+use App\Http\Webhooks\Handlers\Traits\FirstAndSecondScenarioTrait;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Models\User as UserModel;
@@ -18,7 +18,7 @@ use Illuminate\Support\Stringable;
 
 class User extends WebhookHandler
 {
-    use UserTrait;
+    use FirstAndSecondScenarioTrait;
 
     private UserModel|null $user = null;
     private array $config;
@@ -29,6 +29,56 @@ class User extends WebhookHandler
         $this->user = $user;
         $this->template_prefix = 'bot.user.';
         parent::__construct();
+    }
+
+    public function about(): void // можно попасть только с команды /about
+    {
+        $template_prefix_lang = $this->template_prefix.$this->user->language_code;
+        $page = $this->user->page;
+        $order = $this->user->active_order;
+
+        if($page === 'first_scenario' OR $page === 'second_scenario') {
+            $order->update([
+                'status_id' => 4,
+                'reason_id' => 5,
+                'last_step' => $this->user->step,
+                'active' => false
+            ]);
+
+            $this->user->update(['step' => null]);
+
+            $template_pause = $template_prefix_lang.'.order.pause';
+            $this->chat
+                ->message((string) view($template_pause))
+                ->removeReplyKeyboard()
+                ->send();
+        }
+
+        if(isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
+        {
+            $this->chat->deleteMessage($this->user->message_id)->send();
+            $this->user->update([
+                'message_id' => null
+            ]);
+        }
+
+        $button = $this->config['about_us'][$this->user->language_code];
+        $template_about = $template_prefix_lang.'.about_us';
+        $response = $this->chat
+            ->message((string) view($template_about))
+            ->keyboard(Keyboard::make()->button($button)->action('start')->param('start', 1))
+            ->send();
+
+        if(isset($order)) {
+            $order->update([
+                'active' => false
+            ]);
+        }
+
+        $this->user->update([
+            'page' => 'about_us',
+            'message_id' => $response->telegraphMessageId()
+        ]);
     }
 
     public function start(): void
@@ -44,7 +94,6 @@ class User extends WebhookHandler
                     'start' => $this->config['start']['start'][$this->user->language_code],
                     'reviews' => $this->config['start']['reviews'][$this->user->language_code],
                 ];
-                $template = $template_prefix_lang.'.start';
                 $keyboard = Keyboard::make()->buttons([
                     Button::make($buttons['start'])
                         ->action('start')

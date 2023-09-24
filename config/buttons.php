@@ -36,9 +36,6 @@
                 'recommend' => ['ru' => 'Рекомендовать друзьям', 'en' => 'Recommend to friends']
             ],
 
-            'menu' => [
-                'start' => ['ru' => 'Начать', 'en' => 'Start'],
-                'about' => ['ru' => 'О нас', 'en' => 'About us'],
-            ]
+            'about_us' => ['ru' => 'Начать', 'en' => 'Start'],
         ],
     ];

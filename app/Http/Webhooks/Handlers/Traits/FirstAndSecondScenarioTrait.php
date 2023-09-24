@@ -7,7 +7,7 @@ use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
 
-trait UserTrait
+trait FirstAndSecondScenarioTrait
 {
     public function request_geo(int $step, int $steps_amount): void
     {

@@ -45,7 +45,6 @@ Artisan::command('commands:register:bot=1', function () {
     $bot = TelegraphBot::where('id', 1)->first();
 
     $bot->registerCommands([
-        '/menu' => 'Show menu',
         '/start' => 'Order laundry',
         '/about' => 'About as'
     ])
