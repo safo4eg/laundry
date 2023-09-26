@@ -38,4 +38,8 @@ class Order extends Model
             'telegraph_chat_id'
         )->withPivot('message_id', 'message_type_id');
     }
+
+    public function reason() {
+        return $this->belongsTo(Reason::class);
+    }
 }

@@ -37,22 +37,29 @@ class User extends WebhookHandler
     public function show_order_info(): void
     {
         $flag = $this->data->get('show_order_info');
-        $template_prefix_lang = $this->template_prefix . $this->user->language_code;
+        $template = $this->template_prefix.$this->user->language_code.'.order.info';
 
         if(isset($flag)) {
             $order_id = $this->data->get('id');
             $order = Order::where('id', $order_id)->first();
             $status_id = $order->status_id;
             $status_1 = $order->statuses->where('id', 1)->first();
+
+            $buttons = [
+                'recommend' => $this->config['order_info']['recommend'][$this->user->language_code],
+                'back' => $this->config['order_info']['back'][$this->user->language_code]
+            ];
+            $recommend_button = Button::make($buttons['recommend'])->action('ref');
+            $back_button = Button::make($buttons['back'])
+                ->action('orders')
+                ->param('orders', 1); // нужно еще добавить choice чтобы знать с какого типа назад
             if($status_id === 2 OR $status_id === 3) {
                 $buttons = [
                     'wishes' => $this->config['order_info']['wishes'][$this->user->language_code],
                     'cancel' => $this->config['order_info']['cancel'][$this->user->language_code],
-                    'recommend' => $this->config['order_info']['recommend'][$this->user->language_code],
-                    'back' => $this->config['order_info']['back'][$this->user->language_code],
                 ];
+                $back_button = $back_button->param('choice', 1);
 
-                $template = $template_prefix_lang.'.order.info';
                 $this->chat->edit($this->user->message_id)
                     ->message(view($template, [
                         'order' => $order,
@@ -66,19 +73,29 @@ class User extends WebhookHandler
                             Button::make($buttons['cancel'])
                                 ->action('cancel_order')
                                 ->param('cancel_order', 1),
-                            Button::make($buttons['recommend'])
-                                ->action('ref'),
-                            Button::make($buttons['back'])
-                                ->action('orders')
-                                ->param('orders', 1)
-                                ->param('choice', 1)
+                            $recommend_button,
+                            $back_button
                         ])
                     )->send();
 
                 $order->update([
                     'active' => true
                 ]);
-            }
+            } else if($status_id === 4 AND $order->reason_id !== 5) {
+                $back_button = $back_button->param('choice', 2);
+
+                $this->chat->edit($this->user->message_id)
+                    ->message(view($template, [
+                        'order' => $order,
+                        'status_1' => $status_1
+                    ]))
+                    ->keyboard(Keyboard::make()
+                        ->buttons([
+                            $recommend_button,
+                            $back_button
+                        ])
+                    )->send();
+            } // else остальные статусы
         }
     }
 
@@ -210,14 +227,23 @@ class User extends WebhookHandler
                     $no_active_orders_template = $template_prefix_lang . '.orders.no_active_orders';
                     $this->chat->edit($this->user->message_id)
                         ->message(view($no_active_orders_template))
-                        ->keyboard($keyboard)->send();
+                        ->keyboard(Keyboard::make()->row([$start_button, $back_button]))->send();
                 } else {
                     $orders_buttons_line = [];
                     foreach ($orders as $order) {
-                        $orders_buttons_line[] = Button::make("#{$order->id}")
-                            ->action('show_order_info')
-                            ->param('show_order_info', 1)
-                            ->param('id', $order->id);
+                        $button = Button::make("#{$order->id}");
+
+                        if($order->status_id === 4 AND $order->reason_id === 5) {
+                            $button
+                                ->action('start')
+                                ->param('start', 1);
+                        } else {
+                            $button
+                                ->action('show_order_info')
+                                ->param('show_order_info', 1)
+                                ->param('id', $order->id);
+                        }
+                        $orders_buttons_line[] = $button;
                     }
                     $orders_buttons_slices = collect($orders_buttons_line)->chunk(2)->toArray();
                     $keyboard = Keyboard::make();
@@ -234,20 +260,6 @@ class User extends WebhookHandler
                         ->send();
                 }
             } else if($choice == 2) {
-                $keyboard = $keyboard
-                    ->button($buttons_text['active'])
-                        ->action('orders')
-                        ->param('orders', 1)
-                        ->param('choice', 1)
-                        ->width(0.5)
-                    ->button($buttons_text['completed'])
-                        ->action('orders')
-                        ->param('orders', 1)
-                        ->param('choice', 3)
-                        ->width(0.5)
-                    ->button($buttons_text['all'])
-                        ->action('orders');
-
                 $orders = Order::where('user_id', $this->user->id)
                     ->where('status_id', 4)
                     ->whereNot('reason_id', 5)
@@ -262,9 +274,23 @@ class User extends WebhookHandler
                     $no_canceled_orders_template = $template_prefix_lang . '.orders.no_canceled_orders';
                     $this->chat->edit($this->user->message_id)
                         ->message(view($no_canceled_orders_template))
-                        ->keyboard($keyboard)
+                        ->keyboard(Keyboard::make()->row([$start_button, $back_button]))
                         ->send();
                 } else {
+                    $orders_buttons_line = [];
+                    foreach ($orders as $order) {
+                        $orders_buttons_line[] = Button::make("#{$order->id}")
+                            ->action('show_order_info')
+                            ->param('show_order_info', 1)
+                            ->param('id', $order->id);
+                    }
+                    $orders_buttons_slices = collect($orders_buttons_line)->chunk(2)->toArray();
+                    $keyboard = Keyboard::make();
+                    foreach ($orders_buttons_slices as $orders_buttons) {
+                        $keyboard = $keyboard->row($orders_buttons);
+                    }
+                    $keyboard->row([$start_button, $back_button]);
+
                     $orders_template = $template_prefix_lang . '.orders.canceled';
                     $view = (string)view($orders_template, ['orders' => $orders]);
                     $this->chat->edit($this->user->message_id)
