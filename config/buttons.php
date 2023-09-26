@@ -37,5 +37,19 @@
             ],
 
             'about_us' => ['ru' => 'Начать', 'en' => 'Start'],
+            'orders' => [
+                'order_laundry' => ['ru' => 'Заказать стирку', 'en' => 'Order laundry'],
+                'active' => ['ru' => 'Активные', 'en' => 'Active'],
+                'canceled' => ['ru' => 'Отменённые', 'en' => 'Canceled'],
+                'completed' => ['ru' => 'Завершенные', 'en' => 'Completed'],
+                'back' => ['ru' => 'Вернуться назад', 'en' => 'Go to back'],
+            ],
+
+            'order_info' => [
+                'wishes' => ['ru' => 'Особые пожелания по стирке', 'en' => 'Laundry Special Requests'],
+                'cancel' => ['ru' => 'Отменить заказ', 'en' => 'Cancel order'],
+                'recommend' => ['ru' => 'Рекомендовать друзьям', 'en' => 'Recommend to friends'],
+                'back' => ['ru' => 'Вернуться назад', 'en' => 'Go to back'],
+            ]
         ],
     ];

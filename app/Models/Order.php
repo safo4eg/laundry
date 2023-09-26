@@ -25,7 +25,9 @@ class Order extends Model
             'order_status',
             'order_id',
             'status_id'
-        );
+        )
+            ->using(OrderStatus::class)
+            ->withPivot('created_at');
     }
 
     public function chats() {

@@ -16,7 +16,8 @@ return new class extends Migration
         Schema::create('statuses', function (Blueprint $table) {
             $table->tinyInteger('id')->unsigned()->autoIncrement();
             $table->string('name', 64);
-            $table->string('title', 64);
+            $table->string('en_desc', 64);
+            $table->string('ru_desc', 64);
         });
     }
 

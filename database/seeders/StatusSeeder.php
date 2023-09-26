@@ -18,22 +18,26 @@ class StatusSeeder extends Seeder
         DB::table('statuses')->insert([
             [
                 'name' => 'created',
-                'title' => 'User created the order'
+                'en_desc' => 'User created the order',
+                'ru_desc' => 'Пользователь создал заказ'
             ],
 
             [
                 'name' => 'confirmed',
-                'title' => 'User confirmed an order'
+                'en_desc' => 'User confirmed an order',
+                'ru_desc' => 'Пользователь подтвердил заказ'
             ],
 
             [
                 'name' => 'sent_to_courier',
-                'title' => 'Admin identified couriers'
+                'en_desc' => 'Waiting for a suitable courier',
+                'ru_desc' => 'Ждем подходящего курьера'
             ],
 
             [
                 'name' => 'canceled',
-                'title' => 'User canceled an order'
+                'en_desc' => 'User canceled an order',
+                'ru_desc' => 'Пользователь отменил заказ'
             ],
         ]);
     }

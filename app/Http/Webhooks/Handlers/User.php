@@ -2,9 +2,11 @@
 
 namespace App\Http\Webhooks\Handlers;
 
+use App\Http\Webhooks\Handlers\Traits\CommandsFuncsTrait;
 use App\Http\Webhooks\Handlers\Traits\FirstAndSecondScenarioTrait;
 use App\Models\Order;
 use App\Models\OrderStatus;
+use App\Models\Status;
 use App\Models\User as UserModel;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
@@ -14,11 +16,12 @@ use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
+use Illuminate\Database\Eloquent\Builder;
 
 
 class User extends WebhookHandler
 {
-    use FirstAndSecondScenarioTrait;
+    use FirstAndSecondScenarioTrait, CommandsFuncsTrait;
 
     private UserModel|null $user = null;
     private array $config;
@@ -31,6 +34,252 @@ class User extends WebhookHandler
         parent::__construct();
     }
 
+    public function show_order_info(): void
+    {
+        $flag = $this->data->get('show_order_info');
+        $template_prefix_lang = $this->template_prefix . $this->user->language_code;
+
+        if(isset($flag)) {
+            $order_id = $this->data->get('id');
+            $order = Order::where('id', $order_id)->first();
+            $status_id = $order->status_id;
+            $status_1 = $order->statuses->where('id', 1)->first();
+            if($status_id === 2 OR $status_id === 3) {
+                $buttons = [
+                    'wishes' => $this->config['order_info']['wishes'][$this->user->language_code],
+                    'cancel' => $this->config['order_info']['cancel'][$this->user->language_code],
+                    'recommend' => $this->config['order_info']['recommend'][$this->user->language_code],
+                    'back' => $this->config['order_info']['back'][$this->user->language_code],
+                ];
+
+                $template = $template_prefix_lang.'.order.info';
+                $this->chat->edit($this->user->message_id)
+                    ->message(view($template, [
+                        'order' => $order,
+                        'status_1' => $status_1
+                    ]))
+                    ->keyboard(Keyboard::make()
+                        ->buttons([
+                            Button::make($buttons['wishes'])
+                                ->action('write_order_wishes')
+                                ->param('write_order_wishes', 1),
+                            Button::make($buttons['cancel'])
+                                ->action('cancel_order')
+                                ->param('cancel_order', 1),
+                            Button::make($buttons['recommend'])
+                                ->action('ref'),
+                            Button::make($buttons['back'])
+                                ->action('orders')
+                                ->param('orders', 1)
+                                ->param('choice', 1)
+                        ])
+                    )->send();
+
+                $order->update([
+                    'active' => true
+                ]);
+            }
+        }
+    }
+
+    public function orders(): void
+    {
+        $flag = $this->data->get('orders');
+        $template_prefix_lang = $this->template_prefix . $this->user->language_code;
+
+        $buttons_text = [
+            'order_laundry' => $this->config['orders']['order_laundry'][$this->user->language_code],
+            'active' => $this->config['orders']['active'][$this->user->language_code],
+            'canceled' => $this->config['orders']['canceled'][$this->user->language_code],
+            'completed' => $this->config['orders']['completed'][$this->user->language_code],
+            'back' => $this->config['orders']['back'][$this->user->language_code]
+        ];
+
+        $start_button = Button::make($buttons_text['order_laundry'])
+            ->action('start')
+            ->param('start', 1);
+
+        if(!isset($flag)) {
+            $keyboard = Keyboard::make()->buttons([$start_button]);
+
+            if(isset($this->message)) {
+                $page = $this->user->page;
+                $order = $this->user->active_order;
+
+                if ($page === 'first_scenario' or $page === 'second_scenario') {
+                    $this->terminate_filling_order($order);
+                }
+
+                if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
+                {
+                    $this->delete_active_page();
+                }
+            }
+
+            $orders = Order::where('user_id', $this->user->id)
+                ->orderBy(OrderStatus::select('created_at')
+                ->whereColumn('order_id', 'orders.id')
+                ->where('status_id', 1)
+                ->limit(1)
+                , 'desc')->get();
+
+
+            $response = null;
+
+            if($orders->isEmpty()) {
+                $no_orders_template = $template_prefix_lang . '.orders.no_orders';
+                $response = $this->chat
+                    ->message(view($no_orders_template))
+                    ->keyboard($keyboard)
+                    ->send();
+            } else {
+                $keyboard = $keyboard
+                    ->button($buttons_text['active'])
+                        ->action('orders')
+                        ->param('orders', 1)
+                        ->param('choice', 1)
+                    ->button($buttons_text['canceled'])
+                        ->action('orders')
+                        ->param('orders', 1)
+                        ->param('choice', 2)
+                        ->width(0.5)
+                    ->button($buttons_text['completed'])
+                        ->action('orders')
+                        ->param('orders', 1)
+                        ->param('choice', 3)
+                        ->width(0.5);
+
+
+                $orders_template = $template_prefix_lang . '.orders.all';
+                $view = (string)view($orders_template, ['orders' => $orders]);
+
+                if(isset($this->message)) {
+                    $response = $this->chat
+                        ->message(preg_replace('#^[^\n]\s+#m', '', $view))
+                        ->keyboard($keyboard)
+                        ->send();
+                } else if(isset($this->callbackQuery)) {
+                    $this->chat
+                        ->edit($this->user->message_id)
+                        ->message(preg_replace('#^[^\n]\s+#m', '', $view))
+                        ->keyboard($keyboard)
+                        ->send();
+                    return;
+                }
+            }
+
+            if (isset($order)) {
+                $order->update([
+                    'active' => false
+                ]);
+            }
+
+            $this->user->update([
+                'page' => 'orders',
+                'message_id' => $response->telegraphMessageId()
+            ]);
+        }
+
+        if(isset($flag)) {
+            $choice = $this->data->get('choice');
+            $back_button = Button::make($buttons_text['back'])->action('orders');
+
+            if($choice == 1) { // нажатие на активные
+
+                if(isset($this->user->active_order)) { // если возвращаемся назад с order_info
+                    $this->user->active_order->update([
+                        'active' => false
+                    ]);
+                }
+
+                $orders = Order::where('user_id', $this->user->id)
+                    ->whereBetween('status_id', [1, 3])
+                    ->orWhere(function (Builder $query) {
+                        $query
+                            ->where('status_id', 4)
+                            ->where('reason_id', 5);
+                    })
+                    ->orderBy(OrderStatus::select('created_at')
+                        ->whereColumn('order_id', 'orders.id')
+                        ->where('status_id', 1)
+                        ->limit(1)
+                        , 'desc')
+                    ->get();
+
+                if($orders->isEmpty()) {
+                    $no_active_orders_template = $template_prefix_lang . '.orders.no_active_orders';
+                    $this->chat->edit($this->user->message_id)
+                        ->message(view($no_active_orders_template))
+                        ->keyboard($keyboard)->send();
+                } else {
+                    $orders_buttons_line = [];
+                    foreach ($orders as $order) {
+                        $orders_buttons_line[] = Button::make("#{$order->id}")
+                            ->action('show_order_info')
+                            ->param('show_order_info', 1)
+                            ->param('id', $order->id);
+                    }
+                    $orders_buttons_slices = collect($orders_buttons_line)->chunk(2)->toArray();
+                    $keyboard = Keyboard::make();
+                    foreach ($orders_buttons_slices as $orders_buttons) {
+                        $keyboard = $keyboard->row($orders_buttons);
+                    }
+                    $keyboard->row([$start_button, $back_button]);
+
+                    $orders_template = $template_prefix_lang . '.orders.active';
+                    $view = (string)view($orders_template, ['orders' => $orders]);
+                    $this->chat->edit($this->user->message_id)
+                        ->message(preg_replace('#^[^\n]\s+#m', '', $view))
+                        ->keyboard($keyboard)
+                        ->send();
+                }
+            } else if($choice == 2) {
+                $keyboard = $keyboard
+                    ->button($buttons_text['active'])
+                        ->action('orders')
+                        ->param('orders', 1)
+                        ->param('choice', 1)
+                        ->width(0.5)
+                    ->button($buttons_text['completed'])
+                        ->action('orders')
+                        ->param('orders', 1)
+                        ->param('choice', 3)
+                        ->width(0.5)
+                    ->button($buttons_text['all'])
+                        ->action('orders');
+
+                $orders = Order::where('user_id', $this->user->id)
+                    ->where('status_id', 4)
+                    ->whereNot('reason_id', 5)
+                    ->orderBy(OrderStatus::select('created_at')
+                        ->whereColumn('order_id', 'orders.id')
+                        ->where('status_id', 1)
+                        ->limit(1)
+                        , 'desc')
+                    ->get();
+
+                if($orders->isEmpty()) {
+                    $no_canceled_orders_template = $template_prefix_lang . '.orders.no_canceled_orders';
+                    $this->chat->edit($this->user->message_id)
+                        ->message(view($no_canceled_orders_template))
+                        ->keyboard($keyboard)
+                        ->send();
+                } else {
+                    $orders_template = $template_prefix_lang . '.orders.canceled';
+                    $view = (string)view($orders_template, ['orders' => $orders]);
+                    $this->chat->edit($this->user->message_id)
+                        ->message(preg_replace('#^[^\n]\s+#m', '', $view))
+                        ->keyboard($keyboard)->send();
+                }
+            } else if($choice == 3) { // показ завершенных заказов
+                $this->chat->message('пока неизвестно какой статус будет у завершенного заказа')->send();
+                return ;
+            }
+
+        }
+
+    }
+
     public function about(): void // можно попасть только с команды /about
     {
         $template_prefix_lang = $this->template_prefix.$this->user->language_code;
@@ -38,28 +287,12 @@ class User extends WebhookHandler
         $order = $this->user->active_order;
 
         if($page === 'first_scenario' OR $page === 'second_scenario') {
-            $order->update([
-                'status_id' => 4,
-                'reason_id' => 5,
-                'last_step' => $this->user->step,
-                'active' => false
-            ]);
-
-            $this->user->update(['step' => null]);
-
-            $template_pause = $template_prefix_lang.'.order.pause';
-            $this->chat
-                ->message((string) view($template_pause))
-                ->removeReplyKeyboard()
-                ->send();
+            $this->terminate_filling_order($order);
         }
 
         if(isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
         {
-            $this->chat->deleteMessage($this->user->message_id)->send();
-            $this->user->update([
-                'message_id' => null
-            ]);
+            $this->delete_active_page();
         }
 
         $button = $this->config['about_us'][$this->user->language_code];
@@ -107,12 +340,7 @@ class User extends WebhookHandler
                     // если нет то отправляем просто новое сообщение
 
                     if (isset($this->message)) { // проверяем проинициализирована ли переменная, т.к сюда можно попасть и с кнопки
-                        $command = $this->message->text(); // получаем текст команды (как минимум /start)
-                        if ($command === '/start') {
-                            $this->chat
-                                ->deleteMessage($this->user->message_id)
-                                ->send(); // удаляем активное окно
-                        }
+                        $this->delete_active_page();
                     } else { // если не с команды попало, тогда редактируем, т.к ничего не писали
                         $this->chat
                             ->edit($this->user->message_id)
@@ -131,20 +359,7 @@ class User extends WebhookHandler
                 $order = $this->user->active_order;
 
                 if($page === 'first_scenario' OR $page === 'second_scenario') {
-                    $order->update([
-                        'status_id' => 4,
-                        'reason_id' => 5,
-                        'last_step' => $this->user->step,
-                        'active' => false
-                    ]);
-
-                    $this->user->update(['step' => null]);
-
-                    $template_pause = $template_prefix_lang.'.order.pause';
-                    $this->chat
-                        ->message((string) view($template_pause))
-                        ->removeReplyKeyboard()
-                        ->send();
+                    $this->terminate_filling_order($order);
                 }
 
                 $response = $this->chat
@@ -346,7 +561,7 @@ class User extends WebhookHandler
         $template_prefix_lang = $this->template_prefix.$language_code;
 
         if($flag) {
-            if($this->user->page === 'order_accepted') { // значит нажали пеервый раз
+            if($this->user->page !== 'cancel_order') {
                 $buttons = [
                     'check_bot' => $this->config['cancel_order']['check_bot'][$language_code],
                     'changed_my_mind' => $this->config['cancel_order']['changed_my_mind'][$language_code],
@@ -356,34 +571,53 @@ class User extends WebhookHandler
                 ];
                 $template = $template_prefix_lang.'.order.cancel';
 
+                $keyboard = Keyboard::make()
+                    ->button($buttons['check_bot'])
+                        ->action('cancel_order')
+                        ->param('cancel_order', 1)
+                        ->param('choice', 1)
+                        ->width(0.5)
+                    ->button($buttons['changed_my_mind'])
+                        ->action('cancel_order')
+                        ->param('cancel_order', 1)
+                        ->param('choice', 2)
+                        ->width(0.5)
+                    ->button($buttons['quality'])
+                        ->action('cancel_order')
+                        ->param('cancel_order', 1)
+                        ->param('choice', 3)
+                        ->width(0.5)
+                    ->button($buttons['expensive'])
+                        ->action('cancel_order')
+                        ->param('cancel_order', 1)
+                        ->param('choice', 4)
+                        ->width(0.5);
+
+                if($this->user->page === 'order_accepted') {
+                    $keyboard = $keyboard
+                        ->button($buttons['back'])
+                        ->action('order_accepted_handler')
+                        ->param('order_accepted_handler', 1);
+                }
+
+                if($this->user->page === 'orders') {
+                    $keyboard = $keyboard
+                        ->button($buttons['back'])
+                            ->action('orders')
+                            ->param('orders', 1)
+                            ->param('choice', 1);
+                }
+
                 $this->chat
-                    ->edit($this->messageId)
-                    ->message((string) view($template))
-                    ->keyboard(Keyboard::make()
-                        ->buttons([
-                            Button::make($buttons['check_bot'])
-                                ->action('cancel_order')
-                                ->param('cancel_order', 1)
-                                ->param('choice', 1),
-                            Button::make($buttons['changed_my_mind'])
-                                ->action('cancel_order')
-                                ->param('cancel_order', 1)
-                                ->param('choice', 2),
-                            Button::make($buttons['quality'])->action('cancel_order')
-                                ->param('cancel_order', 1)
-                                ->param('choice', 3),
-                            Button::make($buttons['expensive'])->action('cancel_order')
-                                ->param('cancel_order', 1)
-                                ->param('choice', 4),
-                            Button::make($buttons['back'])->action('open_to_previous_page')
-                        ])->chunk(2))
+                    ->edit($this->user->message_id)
+                    ->message(view($template))
+                    ->keyboard($keyboard)
                     ->send();
 
                 $this->user->update([
                     'page' => 'cancel_order'
                 ]);
-            } else if($this->user->page === 'cancel_order') {
-               // $choice = выбор причины отмены
+            } else {
                 $choice = $this->data->get('choice');
                 $order = $this->user->active_order;
 
@@ -411,6 +645,7 @@ class User extends WebhookHandler
                     'page' => 'order_canceled'
                 ]);
             }
+
         }
     }
 
@@ -422,12 +657,24 @@ class User extends WebhookHandler
         if($flag) {
             $button = $this->config['order_wishes'][$this->user->language_code];
             $template = $this->template_prefix.$this->user->language_code.'.order.wishes';
-            $response = $this->chat->edit($this->messageId)
-                ->message((string) view($template, ['order_id' => $order->id]))
-                ->keyboard(Keyboard::make()
-                    ->button($button)
-                    ->action('open_to_previous_page')
-                    ->param('order_id', $order->id))
+
+            $keyboard = Keyboard::make();
+            if($this->user->page === 'orders') {
+                $keyboard = $keyboard->button($button)
+                    ->action('show_order_info')
+                    ->param('show_order_info', 1)
+                    ->param('id', $order->id);
+            }
+
+            if($this->user->page === 'order_accepted') {
+                $keyboard = $keyboard->button($button)
+                    ->action('order_accepted_handler')
+                    ->param('order_accepted_handler', 1);
+            }
+
+            $response = $this->chat->edit($this->user->message_id)
+                ->message(view($template, ['order_id' => $order->id]))
+                ->keyboard($keyboard)
                 ->send();
 
             $this->user->update([
@@ -437,66 +684,15 @@ class User extends WebhookHandler
             ]);
         }
 
-        if(!$flag) {
-            $wishes = $this->message->text();
+            if(!$flag) {
+                $wishes = $this->message->text();
 
-            $order->update([
-                'wishes' => $wishes
-            ]);
+                $order->update([
+                    'wishes' => $wishes
+                ]);
 
-            $this->open_to_previous_page();
-        }
-    }
-
-    public function open_to_previous_page(): void
-    {
-        $order = $this->user->active_order;
-        $message_id = $this->user->message_id;
-        $page = $this->user->page;
-        $template_prefix_lang = $this->template_prefix.$this->user->language_code;
-
-        if($page === 'order_wishes' OR $page === 'cancel_order') {
-            $buttons = [
-                'wishes' => $this->config['order_accepted']['wishes'][$this->user->language_code],
-                'cancel' => $this->config['order_accepted']['cancel'][$this->user->language_code],
-                'recommend' => $this->config['order_accepted']['recommend'][$this->user->language_code],
-            ];
-            $template = $template_prefix_lang.'.order.accepted';
-            $keyboard = Keyboard::make()->buttons([
-                Button::make($buttons['wishes'])
-                    ->action('write_order_wishes')
-                    ->param('write_order_wishes', 1),
-                Button::make($buttons['cancel'])
-                    ->action('cancel_order')
-                    ->param('cancel_order', 1),
-                Button::make($buttons['recommend'])->action('ref')
-            ]);
-
-            $response = null;
-            if($this->message) {
-                $this->chat
-                    ->deleteMessage($message_id)
-                    ->send();
-                $response = $this->chat
-                    ->message((string) view($template, ['order_id' => $order->id]))
-                    ->keyboard($keyboard)
-                    ->send();
+                $this->orders();
             }
-
-            if($this->callbackQuery) {
-                $response = $this->chat->edit($message_id)
-                    ->message((string) view($template, ['order_id' => $order->id]))
-                    ->keyboard($keyboard)
-                    ->send();
-            }
-
-            $this->user->update([
-                'page' => 'order_accepted',
-                'step' => null,
-                'message_id' => $response->telegraphMessageId()
-            ]);
-        }
-
     }
 
     protected function handleChatMessage(Stringable $text): void
