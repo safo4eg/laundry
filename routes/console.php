@@ -47,7 +47,8 @@ Artisan::command('commands:register:bot=1', function () {
     $bot->registerCommands([
         '/start' => 'Order laundry',
         '/about' => 'About as',
-        '/orders' => 'Show orders'
+        '/orders' => 'Show orders',
+        '/profile' => 'Show profile'
     ])
         ->send();
 });

@@ -14,7 +14,6 @@ use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\Keyboard\ReplyButton;
 use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -32,6 +31,128 @@ class User extends WebhookHandler
         $this->user = $user;
         $this->template_prefix = 'bot.user.';
         parent::__construct();
+    }
+
+    public function profile_change_handler(): void
+    {
+        $page = $this->user->page;
+        Log::debug('зашел в метод');
+        if($page === 'profile_change_phone_number') {
+            $phone_number = $this->message->text();
+
+            if(mb_strlen($phone_number) >= 32) {
+                $phone_number = null;
+            } else {
+                $phone_number = ((int) $phone_number)? $phone_number: null;
+            }
+
+            $this->user->update([
+                'phone_number' => $phone_number,
+            ]);
+
+        } else if($page === 'profile_change_whatsapp') {
+            $whatsapp_number = $this->message->text();
+
+            if(mb_strlen($whatsapp_number) >= 32) {
+                $whatsapp_number = null;
+            } else {
+                $whatsapp_number = ((int) $whatsapp_number)? $whatsapp_number: null;
+            }
+
+            $this->user->update([
+                'whatsapp' => $whatsapp_number,
+            ]);
+        }
+
+        $this->profile();
+    }
+
+    public function profile(): void
+    {
+        $flag = $this->data->get('profile');
+        $template_prefix_lang = $this->template_prefix . $this->user->language_code;
+
+        if(!isset($flag)) {
+            $buttons_texts = [
+                'phone_number' => $this->config['profile']['phone_number'][$this->user->language_code],
+                'whatsapp' => $this->config['profile']['whatsapp'][$this->user->language_code],
+                'language' => $this->config['profile']['language'][$this->user->language_code],
+            ];
+            $template = $template_prefix_lang.'.profile.main';
+            $keyboard = Keyboard::make()
+                ->button($buttons_texts['phone_number'])
+                    ->action('profile')
+                    ->param('profile', 1)
+                    ->param('choice', 1)
+                ->button($buttons_texts['whatsapp'])
+                    ->action('profile')
+                    ->param('profile', 1)
+                    ->param('choice', 2)
+                ->button($buttons_texts['language'])
+                    ->action('profile')
+                    ->param('profile', 1)
+                    ->param('choice', 3);
+
+            $response = null;
+            if(isset($this->message)) {
+                $page = $this->user->page;
+                $order = $this->user->active_order;
+
+                if ($page === 'first_scenario' or $page === 'second_scenario') {
+                    $this->terminate_filling_order($order);
+                }
+
+                if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
+                {
+                    $this->delete_active_page();
+                }
+
+                $response = $this->chat
+                    ->message(view($template, ['user' => $this->user]))
+                    ->keyboard($keyboard)
+                    ->send();
+            } else {
+                $response = $this->chat
+                    ->edit($this->user->message_id)
+                    ->message(view($template, ['user' => $this->user]))
+                    ->keyboard($keyboard)
+                    ->send();
+            }
+
+            $this->user->update([
+                'page' => 'profile',
+                'message_id' => $response->telegraphMessageId()
+            ]);
+        }
+
+        if(isset($flag)) {
+            $choice = $this->data->get('choice');
+            $back_button_text = $this->config['profile']['back'][$this->user->language_code];
+            $keyboard = Keyboard::make()->button($back_button_text)->action('profile');
+
+            if($choice == 1 or $choice == 2) {
+                $template = null;
+                if($choice == 1) {
+                    $template = $template_prefix_lang.'.profile.write_phone_number';
+                    $page = 'profile_change_phone_number';
+                } else if($choice == 2) {
+                    $template = $template_prefix_lang.'.profile.write_whatsapp';
+                    $page = 'profile_change_whatsapp';
+                }
+
+                $this->chat
+                    ->edit($this->user->message_id)
+                    ->message(view($template))
+                    ->keyboard($keyboard)
+                    ->send();
+
+                $this->user->update([
+                    'page' => $page,
+                ]);
+            } else if($choice == 3) {
+                $this->select_language();
+            }
+        }
     }
 
     public function show_order_info(): void
@@ -447,10 +568,14 @@ class User extends WebhookHandler
 
             $scenario_num = null;
 
+
             $orders_amount = Order::where('user_id', $this->user->id)->count();
 
-            if($orders_amount === 0 OR $orders_amount === 1) {
+            if($orders_amount === 1) {
                 $scenario_num = 'first';
+                if(isset($this->user->phone_number) and isset($this->user->whatsapp)) {
+                    $scenario_num = 'second';
+                }
             } else {
                 $scenario_num = 'second';
             }
@@ -476,30 +601,78 @@ class User extends WebhookHandler
                 'language_code' => $language_code,
             ]);
 
-            $this->start();
+            $page = $this->data->get('page');
+
+            if(isset($page)) {
+                switch ($page) {
+                    case 1:
+                        $this->start();
+                        break;
+                    case 2:
+                        $this->profile();
+                        break;
+                }
+            }
+
         }
 
         if(!isset($flag)) {
             $buttons = [
                 'russia' => $this->config['select_language']['russia'],
-                'english' => $this->config['select_language']['english']
+                'english' => $this->config['select_language']['english'],
             ];
             $template = $this->template_prefix.'select_language';
-            $response = $this->chat->message((string) view($template))
-                ->keyboard(Keyboard::make()->buttons([
-                    Button::make($buttons['english'])
-                        ->action('select_language')
-                        ->param('select_language', 1)
-                        ->param('language_code', 'en'),
-                    Button::make($buttons['russia'])
-                        ->action('select_language')
-                        ->param('select_language', 1)
-                        ->param('language_code', 'ru')
-                ]))->send();
+            $button_select_en = Button::make($buttons['english'])
+                ->action('select_language')
+                ->param('select_language', 1)
+                ->param('language_code', 'en');
+
+            $button_select_ru = Button::make($buttons['russia'])
+                ->action('select_language')
+                ->param('select_language', 1)
+                ->param('language_code', 'ru');
+            $page = $this->user->page;
+
+            if(isset($page)) {
+                $back_button_text = $this->config['select_language']['back'][$this->user->language_code];
+                $back_button = Button::make($back_button_text);
+
+                if($page === 'profile') {
+                    $button_select_ru = $button_select_ru->param('page', 2);
+                    $button_select_en = $button_select_en->param('page', 2);
+                    $back_button = $back_button->action('profile');
+                }
+
+                $keyboard = Keyboard::make()->buttons([
+                    $button_select_en,
+                    $button_select_ru,
+                    $back_button
+                ]);
+
+                $this->chat
+                    ->edit($this->user->message_id)
+                    ->message((string) view($template))
+                    ->keyboard($keyboard)
+                    ->send();
+
+            } else {
+                $keyboard = Keyboard::make()->buttons([
+                    $button_select_en->param('page', 1),
+                    $button_select_ru->param('page', 1),
+                ]);
+
+                $response = $this->chat
+                    ->message((string) view($template))
+                    ->keyboard($keyboard)
+                    ->send();
+
+                $this->user->update([
+                    'message_id' => $response->telegraphMessageId()
+                ]);
+            }
 
             $this->user->update([
                 'page' => 'select_language',
-                'message_id' => $response->telegraphMessageId()
             ]);
         }
     }
@@ -514,7 +687,11 @@ class User extends WebhookHandler
         }
 
         if($page === 'first_scenario') {
-            $steps_amount = 5;
+            $phone_number = $this->user->phone_number;
+            $whatsapp = $this->user->whatsapp;
+
+            $steps_amount = (isset($phone_number) or isset($whatsapp)) ? 4 : 5;
+
             switch ($step) {
                 case 1:
                     $this->request_geo($step, $steps_amount);
@@ -523,10 +700,12 @@ class User extends WebhookHandler
                     $this->request_address_desc($step, $steps_amount);
                     break;
                 case 3:
-                    $this->request_contact($step, $steps_amount);
+                    if(isset($phone_number)) $this->request_whatsapp();
+                    else $this->request_contact($step, $steps_amount);
                     break;
                 case 4:
-                    $this->request_whatsapp($step, $steps_amount);
+                    if($steps_amount === 4) $this->request_accepted_order();
+                    else if($steps_amount === 5) $this->request_whatsapp($step, $steps_amount);
                     break;
                 case 5:
                     $this->request_accepted_order($step, $steps_amount);
@@ -576,6 +755,18 @@ class User extends WebhookHandler
                 case 2:
                     $this->address_desc_handler();
                     break;
+            }
+        } else if($page === 'third_scenario' OR $page === 'fourth_scenario') {
+            switch ($step) {
+                case 1:
+                    $this->geo_handler();
+                    break;
+                case 2:
+                    $this->address_desc_handler();
+                    break;
+                case 3:
+                    if($page === 'third_scenario') $this->whatsapp_handler();
+                    if($page === 'fourth_scenario') $this->contact_handler();
             }
         }
     }
@@ -732,6 +923,9 @@ class User extends WebhookHandler
                     break;
                 case 'order_wishes':
                     $this->write_order_wishes();
+                    break;
+                case 'profile_change_phone_number' or 'profile_change_whatsapp':
+                    $this->profile_change_handler();
                     break;
             }
 

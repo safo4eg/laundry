@@ -8,7 +8,8 @@
 
             'select_language' => [
                 'russia' => 'Русский',
-                'english' => 'English'
+                'english' => 'English',
+                'back' => ['ru' => 'Вернуться назад', 'en' => 'Go to back']
             ],
 
             'send_location' => ['ru' => 'Отправить локацию', 'en' => 'Send location'],
@@ -50,6 +51,13 @@
                 'cancel' => ['ru' => 'Отменить заказ', 'en' => 'Cancel order'],
                 'recommend' => ['ru' => 'Рекомендовать друзьям', 'en' => 'Recommend to friends'],
                 'back' => ['ru' => 'Вернуться назад', 'en' => 'Go to back'],
+            ],
+
+            'profile' => [
+                'phone_number' => ['ru' => 'Изменить номер телефона', 'en' => 'Change phone number'],
+                'whatsapp' => ['ru' => 'Изменить whatsapp', 'en' => 'Change whatsapp'],
+                'language' => ['ru' => 'Сменить язык', 'en' => 'Change language'],
+                'back' => ['ru' => 'Вернуться назад', 'en' => 'Go to back']
             ]
         ],
     ];
