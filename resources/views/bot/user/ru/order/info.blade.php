@@ -1,7 +1,7 @@
 <b>Заказ #{{$order->id}} </b>
 
 <b>Дата создания:</b> {{$status_1->pivot->created_at}}
-@if($order->status_id === 1 OR $order->status_id === 2)
+@if($order->status_id === 2 OR $order->status_id === 3)
     @if($order->status_id === 2)
         <b>Статус:</b> Ожидает назначения курьера
     @elseif($order->status_id === 3)
