@@ -58,6 +58,20 @@
                 'whatsapp' => ['ru' => 'Изменить whatsapp', 'en' => 'Change whatsapp'],
                 'language' => ['ru' => 'Сменить язык', 'en' => 'Change language'],
                 'back' => ['ru' => 'Вернуться назад', 'en' => 'Go to back']
+            ],
+
+
+            'support' => ['ru' => 'Написать', 'en' => 'Write'],
+            'select_ticket' => [
+                'lost' => ['ru' => 'Пропали вещи', 'en' => 'Lost things'],
+                'return' => ['ru' => 'Отмена заказа', 'en' => 'Cancellations'],
+                'other' => ['ru' => 'Другое', 'en' => 'Other']
+            ],
+            'confirm' => [
+                'yes' => ['ru' => 'Да', 'en' => 'Yes'],
+                'no' => ['ru' => 'Нет', 'en' => 'No']
             ]
+
+
         ],
     ];
