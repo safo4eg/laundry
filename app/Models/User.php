@@ -20,6 +20,11 @@ class User extends Authenticatable
         return $this->hasMany(Order::class);
     }
 
+    public function referrals()
+    {
+        return $this->hasMany(Referral::class, 'inviter_id', 'id');
+    }
+
     public function getCurrentOrder(): Order
     {
         return $this->orders()->where('status_id', '<',6)->first();

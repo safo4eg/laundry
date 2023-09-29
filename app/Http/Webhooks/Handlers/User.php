@@ -6,13 +6,13 @@ use App\Http\Webhooks\Handlers\Traits\CommandsFuncsTrait;
 use App\Http\Webhooks\Handlers\Traits\FirstAndSecondScenarioTrait;
 use App\Models\Order;
 use App\Models\OrderStatus;
+use App\Models\Referral;
 use App\Models\Status;
 use App\Models\User as UserModel;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use DefStudio\Telegraph\Keyboard\ReplyButton;
-use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
+use DefStudio\Telegraph\DTO\InlineQuery;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Stringable;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,10 +33,95 @@ class User extends WebhookHandler
         parent::__construct();
     }
 
+    public function referrals(): void
+    {
+        $flag = $this->data->get('referrals');
+        $template_prefix_lang = $this->template_prefix . $this->user->language_code;
+
+        if(!isset($flag)) {
+            $buttons_texts = [
+                'recommend' => $this->config['referrals']['recommend'][$this->user->language_code],
+                'start' => $this->config['referrals']['start'][$this->user->language_code],
+                'info' => $this->config['referrals']['info'][$this->user->language_code]
+            ];
+            $template = $template_prefix_lang.'.referrals.main';
+            $keyboard = Keyboard::make()->buttons([
+                Button::make($buttons_texts['recommend'])
+                    ->url("https://t.me/share/url?url=https://t.me/rastan_telegraph_bot?start=ref{$this->user->id}"),
+                Button::make($buttons_texts['info'])
+                    ->action('referrals')
+                    ->param('referrals', 1)
+                    ->param('info', 1),
+                Button::make($buttons_texts['start'])
+                    ->action('start')
+                    ->param('start', 1)
+            ]);
+
+            $response = null;
+            if(isset($this->message)) {
+                $page = $this->user->page;
+                $order = $this->user->active_order;
+
+                if (
+                    $page === 'first_scenario' or
+                    $page === 'second_scenario' or
+                    $page === 'first_scenario_phone' or
+                    $page === 'first_scenario_whatsapp'
+
+                ) {
+                    $this->terminate_filling_order($order);
+                }
+
+                if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
+                {
+                    $this->delete_active_page();
+                }
+
+                $response = $this->chat
+                    ->message(view($template, ['user' => $this->user]))
+                    ->keyboard($keyboard)
+                    ->send();
+            } else {
+                $response = $this->chat
+                    ->edit($this->user->message_id)
+                    ->message(view($template, ['user' => $this->user]))
+                    ->keyboard($keyboard)
+                    ->send();
+            }
+
+            $this->user->update([
+                'page' => 'referrals',
+                'message_id' => $response->telegraphMessageId()
+            ]);
+        }
+
+        if(isset($flag)) {
+            $info = $this->data->get('info');
+            $back_button_text = $this->config['referrals']['back'][$this->user->language_code];
+            $back_button = Button::make($back_button_text)->action('referrals');
+
+            $template = $template_prefix_lang.'.referrals.info';
+            if(isset($info)) {
+                $referrals_amount = $this->user->referrals()->count();
+                $bonuses = $this->user->referrals()->sum('bonuses');
+
+                $this->chat
+                    ->edit($this->user->message_id)
+                    ->message(view($template,
+                        [
+                            'referrals_amount' => $referrals_amount,
+                            'bonuses' => $bonuses
+                        ]
+                    ))
+                    ->keyboard(Keyboard::make()->buttons([$back_button]))
+                    ->send();
+            }
+        }
+    }
+
     public function profile_change_handler(): void
     {
         $page = $this->user->page;
-        Log::debug('зашел в метод');
         if($page === 'profile_change_phone_number') {
             $phone_number = $this->message->text();
 
@@ -98,7 +183,12 @@ class User extends WebhookHandler
                 $page = $this->user->page;
                 $order = $this->user->active_order;
 
-                if ($page === 'first_scenario' or $page === 'second_scenario') {
+                if (
+                    $page === 'first_scenario' or
+                    $page === 'second_scenario' or
+                    $page === 'first_scenario_phone' or
+                    $page === 'first_scenario_whatsapp'
+                ) {
                     $this->terminate_filling_order($order);
                 }
 
@@ -170,7 +260,7 @@ class User extends WebhookHandler
                 'recommend' => $this->config['order_info']['recommend'][$this->user->language_code],
                 'back' => $this->config['order_info']['back'][$this->user->language_code]
             ];
-            $recommend_button = Button::make($buttons['recommend'])->action('ref');
+            $recommend_button = Button::make($buttons['recommend'])->action('referrals');
             $back_button = Button::make($buttons['back'])
                 ->action('orders')
                 ->param('orders', 1); // нужно еще добавить choice чтобы знать с какого типа назад
@@ -244,7 +334,12 @@ class User extends WebhookHandler
                 $page = $this->user->page;
                 $order = $this->user->active_order;
 
-                if ($page === 'first_scenario' or $page === 'second_scenario') {
+                if (
+                    $page === 'first_scenario' or
+                    $page === 'second_scenario' or
+                    $page === 'first_scenario_phone' or
+                    $page === 'first_scenario_whatsapp'
+                ) {
                     $this->terminate_filling_order($order);
                 }
 
@@ -433,7 +528,12 @@ class User extends WebhookHandler
         $page = $this->user->page;
         $order = $this->user->active_order;
 
-        if($page === 'first_scenario' OR $page === 'second_scenario') {
+        if(
+            $page === 'first_scenario' or
+            $page === 'second_scenario' or
+            $page === 'first_scenario_phone' or
+            $page === 'first_scenario_whatsapp'
+        ) {
             $this->terminate_filling_order($order);
         }
 
@@ -461,9 +561,11 @@ class User extends WebhookHandler
         ]);
     }
 
-    public function start(): void
+    public function start(string $ref = null): void
     {
         $flag = $this->data->get('start');
+        $ref_flag = false;
+        if(isset($ref) and $ref !== '/start') $ref_flag = true;
 
         if (!isset($flag)) {
             if (isset($this->user)) {
@@ -505,7 +607,12 @@ class User extends WebhookHandler
                 $page = $this->user->page;
                 $order = $this->user->active_order;
 
-                if($page === 'first_scenario' OR $page === 'second_scenario') {
+                if(
+                    $page === 'first_scenario' or
+                    $page === 'second_scenario' or
+                    $page === 'first_scenario_phone' or
+                    $page === 'first_scenario_whatsapp'
+                ) {
                     $this->terminate_filling_order($order);
                 }
 
@@ -533,6 +640,16 @@ class User extends WebhookHandler
                     'chat_id' => $chat_id,
                     'username' => $username,
                 ]);
+
+                if($ref_flag) {
+                    $inviter_id = trim(str_replace('ref', '', $ref));
+                    $invited_id = $this->user->id;
+
+                    Referral::create([
+                        'inviter_id' => $inviter_id,
+                        'invited_id' => $invited_id
+                    ]);
+                }
 
                 $this->select_language();
             }
@@ -566,22 +683,58 @@ class User extends WebhookHandler
                 });
             }
 
-            $scenario_num = null;
-
-
+            $scenario = null;
             $orders_amount = Order::where('user_id', $this->user->id)->count();
-
+            $phone_number = isset($this->user->phone_number);
+            $whatsapp = isset($this->user->whatsapp);
             if($orders_amount === 1) {
-                $scenario_num = 'first';
-                if(isset($this->user->phone_number) and isset($this->user->whatsapp)) {
-                    $scenario_num = 'second';
+                switch ($step) {
+                    case 1:
+                    case 2:
+                        if($phone_number and $whatsapp) $scenario = 'second_scenario';
+                        else if ($phone_number and !$whatsapp) $scenario = 'first_scenario_whatsapp';
+                        else if(!$phone_number and $whatsapp) $scenario = 'first_scenario_phone';
+                        else if(!$phone_number and !$whatsapp) $scenario = 'first_scenario';
+                        break;
+                    case 3:
+                    case 4:
+                    case 5:
+                        if($phone_number and $whatsapp) {
+                            $scenario = 'first_scenario';
+                            $step = 5;
+                            break;
+                        }
+                        else if($phone_number and !$whatsapp) {
+                            $scenario = 'first_scenario_whatsapp';
+                        }
+                        else if(!$phone_number and $whatsapp) {
+                            $scenario = 'first_scenario_phone';
+                        }
+                        else if(!$phone_number and !$whatsapp) {
+                            $scenario = 'first_scenario';
+                        }
+                        $step = 3;
+                        break;
                 }
             } else {
-                $scenario_num = 'second';
+                switch ($step) {
+                    case 1:
+                    case 2:
+                    case 3:
+                        if($phone_number) $scenario = 'second_scenario';
+                        else if(!$phone_number) $scenario = 'first_scenario_phone';
+                        break;
+                    case 4:
+                        if($phone_number) $scenario = 'first_scenario_phone';
+                        else if(!$phone_number) {
+                            $scenario = 'first_scenario_phone';
+                            $step = 3;
+                        }
+                }
             }
 
             $this->user->update([
-                'page' => "{$scenario_num}_scenario",
+                'page' => $scenario,
                 'step' => $step
             ]);
 
@@ -687,11 +840,7 @@ class User extends WebhookHandler
         }
 
         if($page === 'first_scenario') {
-            $phone_number = $this->user->phone_number;
-            $whatsapp = $this->user->whatsapp;
-
-            $steps_amount = (isset($phone_number) or isset($whatsapp)) ? 4 : 5;
-
+            $steps_amount = 5;
             switch ($step) {
                 case 1:
                     $this->request_geo($step, $steps_amount);
@@ -700,12 +849,10 @@ class User extends WebhookHandler
                     $this->request_address_desc($step, $steps_amount);
                     break;
                 case 3:
-                    if(isset($phone_number)) $this->request_whatsapp();
-                    else $this->request_contact($step, $steps_amount);
+                    $this->request_contact($step, $steps_amount);
                     break;
                 case 4:
-                    if($steps_amount === 4) $this->request_accepted_order();
-                    else if($steps_amount === 5) $this->request_whatsapp($step, $steps_amount);
+                    $this->request_whatsapp($step, $steps_amount);
                     break;
                 case 5:
                     $this->request_accepted_order($step, $steps_amount);
@@ -723,6 +870,24 @@ class User extends WebhookHandler
                 case 3:
                     $this->request_accepted_order($step, $steps_amount);
                     break;
+            }
+        } else if($page === 'first_scenario_phone' or $page === 'first_scenario_whatsapp') {
+            $steps_amount = 4;
+            switch ($step) {
+                case 1:
+                    $this->request_geo($step, $steps_amount);
+                    break;
+                case 2:
+                    $this->request_address_desc($step, $steps_amount);
+                    break;
+                case 3:
+                    if($page === 'first_scenario_phone') $this->request_contact($step, $steps_amount);
+                    else if($page === 'first_scenario_whatsapp') $this->request_whatsapp($step, $steps_amount);
+                    break;
+                case 4:
+                    $this->request_accepted_order($step, $steps_amount);
+                    break;
+
             }
         }
     }
@@ -756,7 +921,8 @@ class User extends WebhookHandler
                     $this->address_desc_handler();
                     break;
             }
-        } else if($page === 'third_scenario' OR $page === 'fourth_scenario') {
+        } else if($page === 'first_scenario_phone' or $page === 'first_scenario_whatsapp') {
+            $steps_amount = 4;
             switch ($step) {
                 case 1:
                     $this->geo_handler();
@@ -765,8 +931,9 @@ class User extends WebhookHandler
                     $this->address_desc_handler();
                     break;
                 case 3:
-                    if($page === 'third_scenario') $this->whatsapp_handler();
-                    if($page === 'fourth_scenario') $this->contact_handler();
+                    if($page === 'first_scenario_phone') $this->contact_handler();
+                    else if($page === 'first_scenario_whatsapp') $this->whatsapp_handler();
+                    break;
             }
         }
     }
@@ -848,7 +1015,7 @@ class User extends WebhookHandler
                     ->message((string) view($template))
                     ->keyboard(Keyboard::make()
                         ->button($buttons['start'])->action('start')
-                        ->button($buttons['recommend'])->action('ref')->param('choice', 2)
+                        ->button($buttons['recommend'])->action('referrals')->param('choice', 2)
                     )
                     ->send();
 
@@ -919,12 +1086,15 @@ class User extends WebhookHandler
             switch ($page) {
                 case 'first_scenario':
                 case 'second_scenario':
+                case 'first_scenario_whatsapp':
+                case 'first_scenario_phone':
                     $this->handle_scenario_response();
                     break;
                 case 'order_wishes':
                     $this->write_order_wishes();
                     break;
-                case 'profile_change_phone_number' or 'profile_change_whatsapp':
+                case 'profile_change_phone_number':
+                case 'profile_change_whatsapp':
                     $this->profile_change_handler();
                     break;
             }

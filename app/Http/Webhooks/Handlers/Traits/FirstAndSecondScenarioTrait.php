@@ -84,7 +84,7 @@ trait FirstAndSecondScenarioTrait
             ['step' => $step, 'steps_amount' => $steps_amount]
         ))
             ->replyKeyboard(ReplyKeyboard::make()
-                ->button($button)->requestContact())
+                ->button($button)->requestContact()->oneTime())
             ->send();
     }
 
@@ -180,7 +180,7 @@ trait FirstAndSecondScenarioTrait
                         Button::make($buttons['cancel'])
                             ->action('cancel_order')
                             ->param('cancel_order', 1),
-                        Button::make($buttons['recommend'])->action('ref')
+                        Button::make($buttons['recommend'])->action('referrals')
                     ]))
                 ->send();
 

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Models\Chat;
+use App\Models\User;
 use DefStudio\Telegraph\Models\TelegraphBot;
 /*
 |--------------------------------------------------------------------------
@@ -21,24 +22,11 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Artisan::command('scenarios', function () {
-    $scenarios = [
-        'first' => [
-            1 => ['template' => '.order.geo', 'step_id' => 1],
-            2 => ['template' => '.order.address', 'step_id' => 2],
-            3 => ['template' => '.order.contact', 'step_id' => 3],
-            4 => ['template' => '.order.whatsapp', 'step_id' => 4],
-            5 => ['template' => '.order.accept', 'step_id' => 5],
-        ],
-
-        'second' => [
-            1 => ['template' => '.order.geo', 'step_id' => 1],
-            2 => ['template' => '.order.address', 'step_id' => 2],
-            3 => ['template' => '.order.accept', 'step_id' => 3]
-        ]
-    ];
-
-    Storage::put('scenarios', json_encode($scenarios));
+Artisan::command('fake:user', function () {
+    User::create([
+        'username' => 'fake_user',
+        'chat_id' => 123321
+    ]);
 });
 
 Artisan::command('commands:register:bot=1', function () {
@@ -48,7 +36,10 @@ Artisan::command('commands:register:bot=1', function () {
         '/start' => 'Order laundry',
         '/about' => 'About as',
         '/orders' => 'Show orders',
-        '/profile' => 'Show profile'
+        '/profile' => 'Show profile',
+        '/referrals' => 'Show referrals information'
     ])
         ->send();
 });
+
+

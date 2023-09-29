@@ -58,6 +58,13 @@
                 'whatsapp' => ['ru' => 'Изменить whatsapp', 'en' => 'Change whatsapp'],
                 'language' => ['ru' => 'Сменить язык', 'en' => 'Change language'],
                 'back' => ['ru' => 'Вернуться назад', 'en' => 'Go to back']
+            ],
+
+            'referrals' => [
+                'recommend' => ['ru' => 'Рекомендовать другу', 'en' => 'Recommend to friends'],
+                'start' => ['ru' => 'Заказать стирку', 'en' => 'Order Laundry'],
+                'info' => ['ru' => 'Мои рефералы', 'en' => 'My referrals'],
+                'back' => ['ru' => 'Вернуться назад', 'en' => 'Go to back']
             ]
         ],
     ];
