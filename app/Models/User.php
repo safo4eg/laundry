@@ -20,6 +20,10 @@ class User extends Authenticatable
         return $this->hasMany(Order::class);
     }
 
+    public function ticket(){
+        return $this->hasMany(Ticket::class);
+    }
+
     public function getCurrentOrder(): Order
     {
         return $this->orders()->where('status_id', '<',6)->first();

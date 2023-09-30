@@ -62,16 +62,14 @@
 
 
             'support' => ['ru' => 'Написать', 'en' => 'Write'],
-            'select_ticket' => [
-                'lost' => ['ru' => 'Пропали вещи', 'en' => 'Lost things'],
-                'return' => ['ru' => 'Отмена заказа', 'en' => 'Cancellations'],
-                'other' => ['ru' => 'Другое', 'en' => 'Other']
-            ],
             'confirm' => [
                 'yes' => ['ru' => 'Да', 'en' => 'Yes'],
                 'no' => ['ru' => 'Нет', 'en' => 'No']
-            ]
-
-
+            ],
+            'lc' => [
+                'active' => ['ru' => 'Активные', 'en' => 'Active'],
+                'archive' => ['ru' => 'Архивные', 'en' => 'Archive']
+            ],
+            'back' => ['ru' => 'Назад', 'en' => 'Back']
         ],
     ];

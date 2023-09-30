@@ -12,4 +12,8 @@ class Ticket extends Model
     public $timestamps = false;
 
     protected $guarded = [];
+
+    public function ticketItems(){
+        return $this->hasMany(TicketItem::class);
+    }
 }

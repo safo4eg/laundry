@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('ticket_items', function (Blueprint $table) {
             $table->id();
             $table->string('text');
-            $table->integer('chat_id');
+            $table->string('chat_id');
             $table->timestamp('time');
 
             $table->foreignId('ticket_id')->references('id')->on('tickets');

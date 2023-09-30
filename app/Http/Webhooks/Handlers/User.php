@@ -916,11 +916,11 @@ class User extends WebhookHandler
     public function support()
     {
         $step = $this->user->step;
-        $support = $this->data->get("support");
+        $flag = $this->data->get("support");
 
-        if (empty($support) && $this->message->text() == '/support') {
-            $this->support_start();
-        } else {
+
+
+        if(isset($flag) or $step === 2) {
             switch ($step) {
                 case 1:
                     $this->create_ticket();
@@ -928,6 +928,23 @@ class User extends WebhookHandler
                 case 2:
                     $this->ticket_created();
             }
+        } else if(!isset($flag)) {
+
+            if(isset($this->message)) {
+                $page = $this->user->page;
+                $order = $this->user->active_order;
+
+                if ($page === 'first_scenario' or $page === 'second_scenario') {
+                    $this->terminate_filling_order($order);
+                }
+
+                if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
+                {
+                    $this->delete_active_page();
+                }
+            }
+
+            $this->support_start();
         }
     }
 
@@ -951,7 +968,6 @@ class User extends WebhookHandler
                     $this->support();
                     break;
             }
-
         } // end if(isset($page))
     }
 }
