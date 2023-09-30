@@ -65,6 +65,18 @@
                 'start' => ['ru' => 'Заказать стирку', 'en' => 'Order Laundry'],
                 'info' => ['ru' => 'Мои рефералы', 'en' => 'My referrals'],
                 'back' => ['ru' => 'Вернуться назад', 'en' => 'Go to back']
-            ]
+            ],
+            // обернуть begin
+            'support' => ['ru' => 'Написать', 'en' => 'Write'],
+            'confirm' => [
+                'yes' => ['ru' => 'Да', 'en' => 'Yes'],
+                'no' => ['ru' => 'Нет', 'en' => 'No']
+            ],
+            'lc' => [
+                'active' => ['ru' => 'Активные', 'en' => 'Active'],
+                'archive' => ['ru' => 'Архивные', 'en' => 'Archive']
+            ],
+            'back' => ['ru' => 'Назад', 'en' => 'Back']
+            // end
         ],
     ];

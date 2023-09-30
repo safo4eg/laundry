@@ -26,7 +26,8 @@ class DatabaseSeeder extends Seeder
             TelegraphChatSeeder::class,
             OrderStatuses::class,
             MessageTypeSeeder::class,
-            ReasonSeeder::class
+            ReasonSeeder::class,
+            TicketStatusesSeeder::class
         ]);
     }
 }

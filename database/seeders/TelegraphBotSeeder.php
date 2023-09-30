@@ -17,7 +17,7 @@ class TelegraphBotSeeder extends Seeder
     {
         DB::table('telegraph_bots')->insert([
             [
-                'token' => '5999454872:AAG-APM61vU2oIFqQ1D1VKYrXTXmvz4glFM', // safo4eg
+                'token' => '5999454872:AAG-APM61vU2oIFqQ1D1VKYrXTXmvz4glFM',
                 'name' => 'telegraph'
             ],
         ]);

@@ -24,6 +24,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(Referral::class, 'inviter_id', 'id');
     }
+    public function ticket()
+    {
+        return $this->hasMany(Ticket::class);
+    }
 
     public function getCurrentOrder(): Order
     {
