@@ -5,7 +5,7 @@ namespace App\Observers;
 use App\Models\Chat;
 use App\Models\ChatOrder;
 use App\Models\Order;
-use App\Models\OrderStatus;
+use App\Models\OrderStatusPivot;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -19,7 +19,7 @@ class OrderObserver
      */
     public function created(Order $order)
     {
-        OrderStatus::create([
+        OrderStatusPivot::create([
             'order_id' => $order->id,
             'status_id' => $order->status_id,
             'created_at' => Carbon::now()
@@ -37,7 +37,7 @@ class OrderObserver
         $attributes = $order->getDirty();
 
         if(isset($attributes['status_id'])) {
-            OrderStatus::create([
+            OrderStatusPivot::create([
                 'order_id' => $order->id,
                 'status_id' => $order->status_id,
                 'created_at' => Carbon::now()

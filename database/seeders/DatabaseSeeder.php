@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             TelegraphBotSeeder::class,
             TelegraphChatSeeder::class,
-            StatusSeeder::class,
+            OrderStatuses::class,
             MessageTypeSeeder::class,
             ReasonSeeder::class
         ]);

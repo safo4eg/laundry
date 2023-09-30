@@ -4,6 +4,13 @@ namespace App\Http\Webhooks\Handlers;
 
 use App\Models\Order;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
+use Illuminate\Support\Stringable;
+
 
 class Manager extends WebhookHandler
 {
@@ -25,5 +32,10 @@ class Manager extends WebhookHandler
                 $this->chat->message('отправка курьерам 2')->send();
                 break;
         }
+    }
+
+    public function qr(): void
+    {
+        $this->chat->photo(Storage::path("user/qr_code_1.png"))->send();
     }
 }

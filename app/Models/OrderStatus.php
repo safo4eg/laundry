@@ -2,22 +2,25 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class OrderStatus extends Pivot
+class OrderStatus extends Model
 {
+    use HasFactory;
+
     public $timestamps = false;
+
+    protected $table = 'statuses';
     protected $guarded = [];
 
-    protected $with = ['order', 'status'];
-
-    public function order()
+    public function orders()
     {
-        return $this->belongsTo(Order::class);
-    }
-
-    public function status()
-    {
-        return $this->belongsTo(Status::class);
+        return $this->belongsToMany(
+            Order::class,
+            'order_status',
+            'status_id',
+            'order_id'
+        );
     }
 }

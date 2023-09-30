@@ -3,7 +3,7 @@
 namespace App\Observers;
 
 use App\Models\Chat;
-use App\Models\OrderStatus;
+use App\Models\OrderStatusPivot;
 use App\Models\ChatOrder;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 class OrderStatusObserver
 {
-    public function created(OrderStatus $orderStatus)
+    public function created(OrderStatusPivot $orderStatus)
     {
         $order = $orderStatus->order;
         $chat = null;

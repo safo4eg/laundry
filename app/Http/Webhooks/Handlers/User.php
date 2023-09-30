@@ -5,17 +5,19 @@ namespace App\Http\Webhooks\Handlers;
 use App\Http\Webhooks\Handlers\Traits\CommandsFuncsTrait;
 use App\Http\Webhooks\Handlers\Traits\FirstAndSecondScenarioTrait;
 use App\Models\Order;
-use App\Models\OrderStatus;
+use App\Models\OrderStatusPivot;
 use App\Models\Referral;
-use App\Models\Status;
+use App\Models\OrderStatus;
 use App\Models\User as UserModel;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\DTO\InlineQuery;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
 use Illuminate\Database\Eloquent\Builder;
+use App\Services\QR;
 
 
 class User extends WebhookHandler
@@ -57,6 +59,11 @@ class User extends WebhookHandler
                     ->param('start', 1)
             ]);
 
+            if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
+            {
+                $this->delete_active_page();
+            }
+
             $response = null;
             if(isset($this->message)) {
                 $page = $this->user->page;
@@ -72,19 +79,15 @@ class User extends WebhookHandler
                     $this->terminate_filling_order($order);
                 }
 
-                if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
-                {
-                    $this->delete_active_page();
-                }
-
                 $response = $this->chat
-                    ->message(view($template, ['user' => $this->user]))
+                    ->photo(Storage::path("user/qr_code_{$this->user->id}.png"))
+                    ->html(view($template, ['user' => $this->user]))
                     ->keyboard($keyboard)
                     ->send();
             } else {
                 $response = $this->chat
-                    ->edit($this->user->message_id)
-                    ->message(view($template, ['user' => $this->user]))
+                    ->photo(Storage::path("user/qr_code_{$this->user->id}.png"))
+                    ->html(view($template, ['user' => $this->user]))
                     ->keyboard($keyboard)
                     ->send();
             }
@@ -106,7 +109,10 @@ class User extends WebhookHandler
                 $bonuses = $this->user->referrals()->sum('bonuses');
 
                 $this->chat
-                    ->edit($this->user->message_id)
+                    ->deleteMessage($this->user->message_id)
+                    ->send();
+
+                $response = $this->chat
                     ->message(view($template,
                         [
                             'referrals_amount' => $referrals_amount,
@@ -115,6 +121,11 @@ class User extends WebhookHandler
                     ))
                     ->keyboard(Keyboard::make()->buttons([$back_button]))
                     ->send();
+
+                $this->user
+                    ->update([
+                        'message_id' => $response->telegraphMessageId()
+                    ]);
             }
         }
     }
@@ -350,7 +361,7 @@ class User extends WebhookHandler
             }
 
             $orders = Order::where('user_id', $this->user->id)
-                ->orderBy(OrderStatus::select('created_at')
+                ->orderBy(OrderStatusPivot::select('created_at')
                 ->whereColumn('order_id', 'orders.id')
                 ->where('status_id', 1)
                 ->limit(1)
@@ -432,7 +443,7 @@ class User extends WebhookHandler
                             ->where('status_id', 4)
                             ->where('reason_id', 5);
                     })
-                    ->orderBy(OrderStatus::select('created_at')
+                    ->orderBy(OrderStatusPivot::select('created_at')
                         ->whereColumn('order_id', 'orders.id')
                         ->where('status_id', 1)
                         ->limit(1)
@@ -479,7 +490,7 @@ class User extends WebhookHandler
                 $orders = Order::where('user_id', $this->user->id)
                     ->where('status_id', 4)
                     ->whereNot('reason_id', 5)
-                    ->orderBy(OrderStatus::select('created_at')
+                    ->orderBy(OrderStatusPivot::select('created_at')
                         ->whereColumn('order_id', 'orders.id')
                         ->where('status_id', 1)
                         ->limit(1)
@@ -641,6 +652,8 @@ class User extends WebhookHandler
                     'username' => $username,
                 ]);
 
+                QR::generate_referrals_qr($this->user);
+
                 if($ref_flag) {
                     $inviter_id = trim(str_replace('ref', '', $ref));
                     $invited_id = $this->user->id;
@@ -670,7 +683,7 @@ class User extends WebhookHandler
             } else {
                 $step = $order->last_step;
                 $order = Order::withoutEvents(function () use ($order) {
-                    OrderStatus::where('order_id', $order->id)
+                    OrderStatusPivot::where('order_id', $order->id)
                         ->where('status_id', 4)
                         ->delete();
 

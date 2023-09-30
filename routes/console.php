@@ -22,13 +22,6 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Artisan::command('fake:user', function () {
-    User::create([
-        'username' => 'fake_user',
-        'chat_id' => 123321
-    ]);
-});
-
 Artisan::command('commands:register:bot=1', function () {
     $bot = TelegraphBot::where('id', 1)->first();
 

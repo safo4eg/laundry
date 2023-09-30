@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Order;
-use App\Models\OrderStatus;
+use App\Models\OrderStatusPivot;
 use App\Observers\OrderObserver;
 use App\Observers\OrderStatusObserver;
 use Illuminate\Auth\Events\Registered;
@@ -32,7 +32,7 @@ class EventServiceProvider extends ServiceProvider
     public function boot()
     {
         Order::observe(OrderObserver::class);
-        OrderStatus::observe(OrderStatusObserver::class);
+        OrderStatusPivot::observe(OrderStatusObserver::class);
     }
 
     /**

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamp('created_at')->nullable();
 
             $table->foreign('order_id')->references('id')->on('orders');
-            $table->foreign('status_id')->references('id')->on('statuses');
+            $table->foreign('status_id')->references('id')->on('order_statuses');
         });
     }
 

@@ -26,7 +26,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('last_step')->nullable();
 
             $table->foreignId('user_id')->references('id')->on('users');
-            $table->foreign('status_id')->references('id')->on('statuses');
+            $table->foreign('status_id')->references('id')->on('order_statuses');
             $table->foreign('reason_id')->references('id')->on('reasons');
         });
     }
