@@ -14,17 +14,18 @@ trait SupportTrait
     {
         $template = "{$this->template_prefix}{$this->user->language_code}.support.hello";
         $buttons = $this->config['support'][$this->user->language_code];
+        $button = $this->config['tickets'][$this->user->language_code];
 
         if (!$this->user->message_id){
             $response = $this->chat->message(view($template))->keyboard(Keyboard::make()->buttons([
                 Button::make($buttons)->action("support")->param('support', 1),
-                Button::make('Посмотреть прошлые заявки')->action("check_user_tickets")
+                Button::make($button)->action("check_user_tickets")
             ]))->send();
         }
         else {
             $response = $this->chat->edit($this->user->message_id)->message(view($template))->keyboard(Keyboard::make()->buttons([
                 Button::make($buttons)->action("support")->param('support', 1),
-                Button::make('Посмотреть прошлые заявки')->action("check_user_tickets")
+                Button::make($button)->action("check_user_tickets")
             ]))->send();
         }
 
@@ -56,10 +57,6 @@ trait SupportTrait
             $this->delete_active_page();
         }
 
-        $this->user->update([
-            "step" => 3,
-        ]);
-
         $template = "{$this->template_prefix}{$this->user->language_code}.support.wait_answer";
 
 
@@ -78,14 +75,21 @@ trait SupportTrait
         }
 
         if ($ticket) {
-            $this->chat
+            $button = $this->config['tickets'][$this->user->language_code];
+
+            $response = $this->chat
                 ->message(view($template, [
                     'id' => $ticket->id
                 ]))
                 ->keyboard(Keyboard::make()->buttons([
-                    Button::make('Проверить статус заявки')->action('check_user_tickets')
+                    Button::make($button)->action('check_user_tickets')
                 ]))
                 ->send();
+
+            $this->user->update([
+                "step" => 3,
+                "message_id" => $response->telegraphMessageId()
+            ]);
         }
     }
 
