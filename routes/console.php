@@ -35,4 +35,3 @@ Artisan::command('commands:register:bot=1', function () {
         ->send();
 });
 
-

@@ -9,9 +9,11 @@ trait CommandsFuncsTrait
 {
     public function check_for_language_code(): bool
     {
-        if(!isset($this->user)) {
-            $this->start();
-            return true;
+        if(!isset($this->user) and isset($this->message)) {
+            if($this->message->text() !== '/start') {
+                $this->start();
+                return true;
+            }
         } else if (!isset($this->user->language_code)) {
             $this->select_language();
             return true;
