@@ -20,7 +20,7 @@ trait FirstAndSecondScenarioTrait
                 'steps_amount' => $steps_amount
             ]))
             ->replyKeyboard(ReplyKeyboard::make()
-                ->button($button)->requestLocation())
+                ->button($button)->requestLocation()->resize())
             ->send();
     }
 
@@ -84,7 +84,9 @@ trait FirstAndSecondScenarioTrait
             ['step' => $step, 'steps_amount' => $steps_amount]
         ))
             ->replyKeyboard(ReplyKeyboard::make()
-                ->button($button)->requestContact()->oneTime())
+                ->button($button)
+                    ->requestContact()
+                    ->resize())
             ->send();
     }
 
