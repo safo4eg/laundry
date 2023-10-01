@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('username', 32)->unique();
             $table->bigInteger('chat_id')->unique();
             $table->bigInteger('balance')->nullable();
-            $table->string('phone_number', 12)->nullable();
+            $table->string('phone_number', 32)->nullable();
             $table->string('whatsapp', 32)->nullable();
             $table->string('language_code', 2)->nullable();
             $table->string('page', 64)->nullable();
