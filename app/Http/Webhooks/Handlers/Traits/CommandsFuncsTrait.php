@@ -7,6 +7,17 @@ use DefStudio\Telegraph\Keyboard\Keyboard;
 
 trait CommandsFuncsTrait
 {
+    public function check_for_language_code(): bool
+    {
+        if(!isset($this->user)) {
+            $this->start();
+            return true;
+        } else if (!isset($this->user->language_code)) {
+            $this->select_language();
+            return true;
+        }
+        return false;
+    }
     public function terminate_filling_order(Order $order): void
     {
         $pause_template = $this->template_prefix.$this->user->language_code.'.order.pause';

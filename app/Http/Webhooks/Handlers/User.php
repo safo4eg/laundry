@@ -38,6 +38,7 @@ class User extends WebhookHandler
 
     public function referrals(): void
     {
+        if($this->check_for_language_code()) return;
         $flag = $this->data->get('referrals');
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
@@ -166,6 +167,7 @@ class User extends WebhookHandler
 
     public function profile(): void
     {
+        if($this->check_for_language_code()) return;
         $flag = $this->data->get('profile');
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
@@ -342,6 +344,7 @@ class User extends WebhookHandler
 
     public function orders(): void
     {
+        if($this->check_for_language_code()) return;
         $flag = $this->data->get('orders');
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
@@ -552,6 +555,7 @@ class User extends WebhookHandler
 
     public function about(): void // можно попасть только с команды /about
     {
+        if($this->check_for_language_code()) return;
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
         $page = $this->user->page;
         $order = $this->user->active_order;
@@ -591,6 +595,7 @@ class User extends WebhookHandler
 
     public function start(string $ref = null): void
     {
+        if($this->check_for_language_code()) return;
         $flag = $this->data->get('start');
         $ref_flag = false;
         if(isset($ref) and $ref !== '/start') $ref_flag = true;
@@ -816,7 +821,7 @@ class User extends WebhookHandler
                 ->param('language_code', 'ru');
             $page = $this->user->page;
 
-            if (isset($page)) {
+            if (isset($page) and $page !== 'select_language') {
                 $back_button_text = $this->config['select_language']['back'][$this->user->language_code];
                 $back_button = Button::make($back_button_text);
 
@@ -838,6 +843,22 @@ class User extends WebhookHandler
                     ->keyboard($keyboard)
                     ->send();
 
+            } else if(isset($page) and $page === 'select_language') {
+                $keyboard = Keyboard::make()->buttons([
+                    $button_select_en->param('page', 1),
+                    $button_select_ru->param('page', 1),
+                ]);
+
+                $this->delete_active_page();
+
+                $response = $this->chat
+                    ->message((string)view($template))
+                    ->keyboard($keyboard)
+                    ->send();
+
+                $this->user->update([
+                    'message_id' => $response->telegraphMessageId()
+                ]);
             } else {
                 $keyboard = Keyboard::make()->buttons([
                     $button_select_en->param('page', 1),
@@ -1127,10 +1148,9 @@ class User extends WebhookHandler
 
     public function support()
     {
+        if($this->check_for_language_code()) return;
         $step = $this->user->step;
         $flag = $this->data->get("support");
-
-
 
         if(isset($flag) or $step === 2) {
             switch ($step) {
