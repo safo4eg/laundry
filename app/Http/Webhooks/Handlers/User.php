@@ -396,7 +396,7 @@ class User extends WebhookHandler
                 $no_orders_template = $template_prefix_lang . '.orders.no_orders';
                 $response = $this->chat
                     ->message(view($no_orders_template))
-                    ->keyboard($keyboard)
+                    ->keyboard($keyboard->buttons([$start_button]))
                     ->send();
             } else {
                 $keyboard = $keyboard
