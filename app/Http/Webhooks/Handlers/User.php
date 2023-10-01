@@ -284,27 +284,44 @@ class User extends WebhookHandler
                 ];
                 $back_button = $back_button->param('choice', 1);
 
-                $this->chat->edit($this->user->message_id)
-                    ->message(view($template, [
-                        'order' => $order,
-                        'status_1' => $status_1
-                    ]))
-                    ->keyboard(Keyboard::make()
-                        ->buttons([
-                            Button::make($buttons['wishes'])
-                                ->action('write_order_wishes')
-                                ->param('write_order_wishes', 1),
-                            Button::make($buttons['cancel'])
-                                ->action('cancel_order')
-                                ->param('cancel_order', 1),
-                            $recommend_button,
-                            $back_button
-                        ])
-                    )->send();
-
-                $order->update([
-                    'active' => true
+                $keyboard = Keyboard::make()->buttons([
+                    Button::make($buttons['wishes'])
+                        ->action('write_order_wishes')
+                        ->param('write_order_wishes', 1),
+                    Button::make($buttons['cancel'])
+                        ->action('cancel_order')
+                        ->param('cancel_order', 1),
+                    $recommend_button,
+                    $back_button
                 ]);
+
+                if(isset($this->message)) {
+                    $this->delete_active_page();
+                    $response = $this->chat
+                        ->message(view($template, [
+                            'order' => $order,
+                            'status_1' => $status_1
+                    ]))
+                        ->keyboard($keyboard)
+                        ->send();
+
+                    $this->user->update([
+                        'page' => 'orders',
+                        'message_id' => $response->telegraphMessageId()
+                    ]);
+                } else {
+                    $this->chat->edit($this->user->message_id)
+                        ->message(view($template, [
+                            'order' => $order,
+                            'status_1' => $status_1
+                        ]))
+                        ->keyboard($keyboard)
+                        ->send();
+
+                    $order->update([
+                        'active' => true
+                    ]);
+                }
             } else if ($status_id === 4 and $order->reason_id !== 5) {
                 $back_button = $back_button->param('choice', 2);
 
@@ -341,7 +358,7 @@ class User extends WebhookHandler
             ->param('start', 1);
 
         if (!isset($flag)) {
-            $keyboard = Keyboard::make()->buttons([$start_button]);
+            $keyboard = Keyboard::make();
 
             if (isset($this->message)) {
                 $page = $this->user->page;
@@ -381,19 +398,17 @@ class User extends WebhookHandler
             } else {
                 $keyboard = $keyboard
                     ->button($buttons_text['active'])
-                    ->action('orders')
-                    ->param('orders', 1)
-                    ->param('choice', 1)
+                        ->action('orders')
+                        ->param('orders', 1)
+                        ->param('choice', 1)
                     ->button($buttons_text['canceled'])
-                    ->action('orders')
-                    ->param('orders', 1)
-                    ->param('choice', 2)
-                    ->width(0.5)
+                        ->action('orders')
+                        ->param('orders', 1)
+                        ->param('choice', 2)
                     ->button($buttons_text['completed'])
-                    ->action('orders')
-                    ->param('orders', 1)
-                    ->param('choice', 3)
-                    ->width(0.5);
+                        ->action('orders')
+                        ->param('orders', 1)
+                        ->param('choice', 3);
 
 
                 $orders_template = $template_prefix_lang . '.orders.all';
@@ -456,7 +471,7 @@ class User extends WebhookHandler
                     $no_active_orders_template = $template_prefix_lang . '.orders.no_active_orders';
                     $this->chat->edit($this->user->message_id)
                         ->message(view($no_active_orders_template))
-                        ->keyboard(Keyboard::make()->row([$start_button, $back_button]))->send();
+                        ->keyboard(Keyboard::make()->row([$back_button]))->send();
                 } else {
                     $orders_buttons_line = [];
                     foreach ($orders as $order) {
@@ -479,7 +494,7 @@ class User extends WebhookHandler
                     foreach ($orders_buttons_slices as $orders_buttons) {
                         $keyboard = $keyboard->row($orders_buttons);
                     }
-                    $keyboard->row([$start_button, $back_button]);
+                    $keyboard->row([$back_button]);
 
                     $orders_template = $template_prefix_lang . '.orders.active';
                     $view = (string)view($orders_template, ['orders' => $orders]);
@@ -1059,7 +1074,9 @@ class User extends WebhookHandler
             $template = $this->template_prefix . $this->user->language_code . '.order.wishes';
 
             $keyboard = Keyboard::make();
+            $step = null;
             if ($this->user->page === 'orders') {
+                $step = 2;
                 $keyboard = $keyboard->button($button)
                     ->action('show_order_info')
                     ->param('show_order_info', 1)
@@ -1067,6 +1084,7 @@ class User extends WebhookHandler
             }
 
             if ($this->user->page === 'order_accepted') {
+                $step = 1;
                 $keyboard = $keyboard->button($button)
                     ->action('order_accepted_handler')
                     ->param('order_accepted_handler', 1);
@@ -1079,7 +1097,7 @@ class User extends WebhookHandler
 
             $this->user->update([
                 'page' => 'order_wishes',
-                'step' => null,
+                'step' => $step,
                 'message_id' => $response->telegraphMessageId()
             ]);
         }
@@ -1091,7 +1109,17 @@ class User extends WebhookHandler
                 'wishes' => $wishes
             ]);
 
-            $this->orders();
+            switch ($this->user->step) {
+                case 1:
+                    $this->order_accepted_handler();
+                    break;
+                case 2:
+                    $this->data->put('show_order_info', 1);
+                    $this->data->put('id', $order->id);
+                    $this->show_order_info();
+                    break;
+            }
+
         }
     }
 

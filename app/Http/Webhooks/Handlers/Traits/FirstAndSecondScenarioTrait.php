@@ -157,40 +157,53 @@ trait FirstAndSecondScenarioTrait
     public function order_accepted_handler(): void
     {
         $flag = $this->data->get('order_accepted_handler');
+        $order = $this->user->active_order;
 
-        if($flag) {
-            $order = $this->user->active_order;
+        $buttons = [
+            'wishes' => $this->config['order_accepted']['wishes'][$this->user->language_code],
+            'cancel' => $this->config['order_accepted']['cancel'][$this->user->language_code],
+            'recommend' => $this->config['order_accepted']['recommend'][$this->user->language_code],
+        ];
+        $template = $this->template_prefix.$this->user->language_code.".order.accepted";
+        $keyboard = Keyboard::make()->buttons([
+            Button::make($buttons['wishes'])
+                ->action('write_order_wishes')
+                ->param('write_order_wishes', 1),
+            Button::make($buttons['cancel'])
+                ->action('cancel_order')
+                ->param('cancel_order', 1),
+            Button::make($buttons['recommend'])
+                ->action('referrals')
+        ]);
+
+        $response = null;
+        if(isset($flag)) {
             $order->update([ // в этот момент заказ улетает в ADMIN CHAT
                 'status_id' => 2
             ]);
 
-            $buttons = [
-                'wishes' => $this->config['order_accepted']['wishes'][$this->user->language_code],
-                'cancel' => $this->config['order_accepted']['cancel'][$this->user->language_code],
-                'recommend' => $this->config['order_accepted']['recommend'][$this->user->language_code],
-            ];
-            $template = $this->template_prefix.$this->user->language_code.".order.accepted";
             $response = $this->chat->edit($this->messageId)
                 ->message((string) view($template, [
                     'order_id' => $order->id
                 ]))
-                ->keyboard(Keyboard::make()
-                    ->buttons([
-                        Button::make($buttons['wishes'])
-                            ->action('write_order_wishes')
-                            ->param('write_order_wishes', 1),
-                        Button::make($buttons['cancel'])
-                            ->action('cancel_order')
-                            ->param('cancel_order', 1),
-                        Button::make($buttons['recommend'])->action('referrals')
-                    ]))
+                ->keyboard($keyboard)
                 ->send();
-
-            $this->user->update([
-                'page' => 'order_accepted',
-                'step' => null,
-                'message_id' => $response->telegraphMessageId()
-            ]);
         }
+
+        if(!isset($flag)) {
+            $this->chat->deleteMessage($this->user->message_id)->send();
+            $response = $this->chat
+                ->message((string) view($template, [
+                    'order_id' => $order->id
+            ]))
+                ->keyboard($keyboard)
+                ->send();
+        }
+
+        $this->user->update([
+            'page' => 'order_accepted',
+            'step' => null,
+            'message_id' => $response->telegraphMessageId()
+        ]);
     }
 }

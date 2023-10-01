@@ -11,7 +11,7 @@ class OrderStatus extends Model
 
     public $timestamps = false;
 
-    protected $table = 'statuses';
+    protected $table = 'order_statuses';
     protected $guarded = [];
 
     public function orders()
