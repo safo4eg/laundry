@@ -349,19 +349,16 @@ class User extends WebhookHandler
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
         $buttons_text = [
-            'order_laundry' => $this->config['orders']['order_laundry'][$this->user->language_code],
+            'new_order' => $this->config['orders']['new_order'][$this->user->language_code],
+            'continue_order' => $this->config['orders']['continue_order'][$this->user->language_code],
             'active' => $this->config['orders']['active'][$this->user->language_code],
-            'canceled' => $this->config['orders']['canceled'][$this->user->language_code],
             'completed' => $this->config['orders']['completed'][$this->user->language_code],
             'back' => $this->config['orders']['back'][$this->user->language_code]
         ];
+        $start_order_button = null;
 
-        $start_button = Button::make($buttons_text['order_laundry'])
-            ->action('start')
-            ->param('start', 1);
 
         if (!isset($flag)) {
-            $keyboard = Keyboard::make();
 
             if (isset($this->message)) {
                 $page = $this->user->page;
@@ -383,6 +380,11 @@ class User extends WebhookHandler
             }
 
             $orders = Order::where('user_id', $this->user->id)
+                ->whereNot(function (Builder $query) {
+                    $query
+                        ->where('status_id', 4)
+                        ->whereNot('reason_id', 5);
+                })
                 ->orderBy(OrderStatusPivot::select('created_at')
                 ->whereColumn('order_id', 'orders.id')
                 ->where('status_id', 1)
@@ -391,28 +393,32 @@ class User extends WebhookHandler
 
 
             $response = null;
+            if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
+                $start_order_button = Button::make($buttons_text['continue_order'])
+                    ->action('start')
+                    ->param('start', 1);
+            } else {
+                $start_order_button = Button::make($buttons_text['new_order'])->action('start');
+            }
 
             if ($orders->isEmpty()) {
                 $no_orders_template = $template_prefix_lang . '.orders.no_orders';
                 $response = $this->chat
                     ->message(view($no_orders_template))
-                    ->keyboard($keyboard->buttons([$start_button]))
+                    ->keyboard(Keyboard::make()->buttons([$start_order_button]))
                     ->send();
             } else {
-                $keyboard = $keyboard
-                    ->button($buttons_text['active'])
+                $keyboard = Keyboard::make()->buttons([
+                    Button::make($buttons_text['active'])
                         ->action('orders')
                         ->param('orders', 1)
-                        ->param('choice', 1)
-                    ->button($buttons_text['canceled'])
+                        ->param('choice', 1),
+                    Button::make($buttons_text['completed'])
                         ->action('orders')
                         ->param('orders', 1)
-                        ->param('choice', 2)
-                    ->button($buttons_text['completed'])
-                        ->action('orders')
-                        ->param('orders', 1)
-                        ->param('choice', 3);
-
+                        ->param('choice', 2),
+                    $start_order_button
+                ]);
 
                 $orders_template = $template_prefix_lang . '.orders.all';
                 $view = (string)view($orders_template, ['orders' => $orders]);
@@ -460,6 +466,7 @@ class User extends WebhookHandler
                     ->whereBetween('status_id', [1, 3])
                     ->orWhere(function (Builder $query) {
                         $query
+                            ->where('user_id', $this->user->id)
                             ->where('status_id', 4)
                             ->where('reason_id', 5);
                     })
@@ -506,45 +513,7 @@ class User extends WebhookHandler
                         ->keyboard($keyboard)
                         ->send();
                 }
-            } else if ($choice == 2) {
-                $orders = Order::where('user_id', $this->user->id)
-                    ->where('status_id', 4)
-                    ->whereNot('reason_id', 5)
-                    ->orderBy(OrderStatusPivot::select('created_at')
-                        ->whereColumn('order_id', 'orders.id')
-                        ->where('status_id', 1)
-                        ->limit(1)
-                        , 'desc')
-                    ->get();
-
-                if ($orders->isEmpty()) {
-                    $no_canceled_orders_template = $template_prefix_lang . '.orders.no_canceled_orders';
-                    $this->chat->edit($this->user->message_id)
-                        ->message(view($no_canceled_orders_template))
-                        ->keyboard(Keyboard::make()->row([$start_button, $back_button]))
-                        ->send();
-                } else {
-                    $orders_buttons_line = [];
-                    foreach ($orders as $order) {
-                        $orders_buttons_line[] = Button::make("#{$order->id}")
-                            ->action('show_order_info')
-                            ->param('show_order_info', 1)
-                            ->param('id', $order->id);
-                    }
-                    $orders_buttons_slices = collect($orders_buttons_line)->chunk(2)->toArray();
-                    $keyboard = Keyboard::make();
-                    foreach ($orders_buttons_slices as $orders_buttons) {
-                        $keyboard = $keyboard->row($orders_buttons);
-                    }
-                    $keyboard->row([$start_button, $back_button]);
-
-                    $orders_template = $template_prefix_lang . '.orders.canceled';
-                    $view = (string)view($orders_template, ['orders' => $orders]);
-                    $this->chat->edit($this->user->message_id)
-                        ->message(preg_replace('#^[^\n]\s+#m', '', $view))
-                        ->keyboard($keyboard)->send();
-                }
-            } else if ($choice == 3) { // показ завершенных заказов
+            } else if ($choice == 2) { // завершенные заявки
                 $this->chat->message('пока неизвестно какой статус будет у завершенного заказа')->send();
                 return;
             }

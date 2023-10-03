@@ -7,6 +7,17 @@ use DefStudio\Telegraph\Keyboard\Keyboard;
 
 trait CommandsFuncsTrait
 {
+    public function check_for_incomplete_order(): bool
+    {
+        $order = Order::where('user_id', $this->user->id)
+            ->where('status_id', 4)
+            ->where('reason_id', 5)
+            ->first();
+
+        if(isset($order)) return true;
+        else return false;
+    }
+
     public function check_for_language_code(): bool
     {
         if(!isset($this->user) and isset($this->message)) {
