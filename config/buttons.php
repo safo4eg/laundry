@@ -2,7 +2,8 @@
 return [
     'user' => [
         'start' => [
-            'start' => ['ru' => 'Начать', 'en' => 'Start'],
+            'new_order' => ['ru' => 'Заказать стирку', 'en' => 'Order laundry'],
+            'continue_order' => ['ru' => 'Продолжить оформление заказа', 'en' => 'Continue ordering'],
             'reviews' => ['ru' => 'Отзывы', 'en' => 'Reviews']
         ],
 

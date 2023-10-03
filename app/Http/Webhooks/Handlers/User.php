@@ -574,22 +574,41 @@ class User extends WebhookHandler
                 $template_prefix_lang = $this->template_prefix . $this->user->language_code;
                 $template_start = $template_prefix_lang . '.start';
 
-                $buttons = [
-                    'start' => $this->config['start']['start'][$this->user->language_code],
+                $buttons_text = [
+                    'new_order' => $this->config['start']['new_order'][$this->user->language_code],
+                    'continue_order' => $this->config['start']['continue_order'][$this->user->language_code],
                     'reviews' => $this->config['start']['reviews'][$this->user->language_code],
                 ];
-                $keyboard = Keyboard::make()->buttons([
-                    Button::make($buttons['start'])
+
+                $page = $this->user->page;
+                $order = $this->user->active_order;
+
+                if(
+                    $page === 'first_scenario' or
+                    $page === 'second_scenario' or
+                    $page === 'first_scenario_phone' or
+                    $page === 'first_scenario_whatsapp'
+                ) {
+                    $this->terminate_filling_order($order);
+                }
+
+                $start_order_button = null;
+                if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
+                    $start_order_button = Button::make($buttons_text['continue_order'])
                         ->action('start')
-                        ->param('start', 1)
-                        ->param('choice', 1),
-                    Button::make($buttons['reviews'])->url('https://t.me/laundrybot_feedback')
+                        ->param('start', 1);
+                } else {
+                    $start_order_button = Button::make($buttons_text['new_order'])
+                        ->action('start')
+                        ->param('start', 1);
+                }
+
+                $keyboard = Keyboard::make()->buttons([
+                    $start_order_button,
+                    Button::make($buttons_text['reviews'])->url('https://t.me/laundrybot_feedback')
                 ]);
 
                 if (isset($this->user->message_id)) {
-                    // если активное окно есть - редактируем ,
-                    // если нет то отправляем просто новое сообщение
-
                     if (isset($this->message)) { // проверяем проинициализирована ли переменная, т.к сюда можно попасть и с кнопки
                         $this->delete_active_page();
                     } else { // если не с команды попало, тогда редактируем, т.к ничего не писали
@@ -604,18 +623,6 @@ class User extends WebhookHandler
                         ]);
                         return;
                     }
-                }
-
-                $page = $this->user->page;
-                $order = $this->user->active_order;
-
-                if(
-                    $page === 'first_scenario' or
-                    $page === 'second_scenario' or
-                    $page === 'first_scenario_phone' or
-                    $page === 'first_scenario_whatsapp'
-                ) {
-                    $this->terminate_filling_order($order);
                 }
 
                 $response = $this->chat
