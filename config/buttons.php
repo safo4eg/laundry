@@ -68,8 +68,9 @@ return [
         ],
 
         'referrals' => [
+            'new_order' => ['ru' => 'Заказать стирку', 'en' => 'Order laundry'],
+            'continue_order' => ['ru' => 'Продолжить оформление заказа', 'en' => 'Continue ordering'],
             'recommend' => ['ru' => 'Рекомендовать другу', 'en' => 'Recommend to friends'],
-            'start' => ['ru' => 'Заказать стирку', 'en' => 'Order Laundry'],
             'info' => ['ru' => 'Мои рефералы', 'en' => 'My referrals'],
             'back' => ['ru' => 'Вернуться назад', 'en' => 'Go to back']
         ],

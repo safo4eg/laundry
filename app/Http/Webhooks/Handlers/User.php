@@ -45,10 +45,38 @@ class User extends WebhookHandler
         if(!isset($flag)) {
             $buttons_texts = [
                 'recommend' => $this->config['referrals']['recommend'][$this->user->language_code],
-                'start' => $this->config['referrals']['start'][$this->user->language_code],
+                'new_order' => $this->config['referrals']['new_order'][$this->user->language_code],
+                'continue_order' => $this->config['referrals']['continue_order'][$this->user->language_code],
                 'info' => $this->config['referrals']['info'][$this->user->language_code]
             ];
             $template = $template_prefix_lang.'.referrals.main';
+
+            $page = $this->user->page;
+            $order = $this->user->active_order;
+            if (
+                $page === 'first_scenario' or
+                $page === 'second_scenario' or
+                $page === 'first_scenario_phone' or
+                $page === 'first_scenario_whatsapp'
+
+            ) {
+                $this->terminate_filling_order($order);
+            }
+
+            if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
+            {
+                $this->delete_active_page();
+            }
+
+            $start_order_button = null;
+            if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
+                $start_order_button = Button::make($buttons_texts['continue_order'])
+                    ->action('start')
+                    ->param('start', 1);
+            } else {
+                $start_order_button = Button::make($buttons_texts['new_order'])->action('start');
+            }
+
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons_texts['recommend'])
                     ->url("https://t.me/share/url?url=https://t.me/rastan_telegraph_bot?start=ref{$this->user->id}"),
@@ -56,31 +84,11 @@ class User extends WebhookHandler
                     ->action('referrals')
                     ->param('referrals', 1)
                     ->param('info', 1),
-                Button::make($buttons_texts['start'])
-                    ->action('start')
-                    ->param('start', 1)
+                $start_order_button
             ]);
-
-            if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
-            {
-                $this->delete_active_page();
-            }
 
             $response = null;
             if(isset($this->message)) {
-                $page = $this->user->page;
-                $order = $this->user->active_order;
-
-                if (
-                    $page === 'first_scenario' or
-                    $page === 'second_scenario' or
-                    $page === 'first_scenario_phone' or
-                    $page === 'first_scenario_whatsapp'
-
-                ) {
-                    $this->terminate_filling_order($order);
-                }
-
                 $response = $this->chat
                     ->photo(Storage::path("user/qr_code_{$this->user->id}.png"))
                     ->html(view($template, ['user' => $this->user]))
