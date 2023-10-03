@@ -2,7 +2,7 @@
 return [
     'user' => [
         'start' => [
-            'new_order' => ['ru' => 'Заказать стирку', 'en' => 'Order laundry'],
+            'new_order' => ['ru' => 'Начать', 'en' => 'Start'],
             'continue_order' => ['ru' => 'Продолжить оформление заказа', 'en' => 'Continue ordering'],
             'reviews' => ['ru' => 'Отзывы', 'en' => 'Reviews']
         ],
@@ -38,7 +38,11 @@ return [
             'recommend' => ['ru' => 'Рекомендовать друзьям', 'en' => 'Recommend to friends']
         ],
 
-        'about_us' => ['ru' => 'Начать', 'en' => 'Start'],
+        'about_us' => [
+            'new_order' => ['ru' => 'Заказать стирку', 'en' => 'Order laundry'],
+            'continue_order' => ['ru' => 'Продолжить оформление заказа', 'en' => 'Continue ordering'],
+        ],
+
         'orders' => [
             'new_order' => ['ru' => 'Заказать стирку', 'en' => 'Order laundry'],
             'continue_order' => ['ru' => 'Продолжить оформление заказа', 'en' => 'Continue ordering'],

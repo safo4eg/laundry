@@ -528,6 +528,10 @@ class User extends WebhookHandler
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
         $page = $this->user->page;
         $order = $this->user->active_order;
+        $buttons_text = [
+            'new_order' => $this->config['about_us']['new_order'][$this->user->language_code],
+            'continue_order' => $this->config['about_us']['continue_order'][$this->user->language_code],
+        ];
 
         if(
             $page === 'first_scenario' or
@@ -543,11 +547,21 @@ class User extends WebhookHandler
             $this->delete_active_page();
         }
 
-        $button = $this->config['about_us'][$this->user->language_code];
+        $start_order_button = null;
+        if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
+            $start_order_button = Button::make($buttons_text['continue_order'])
+                ->action('start')
+                ->param('start', 1);
+        } else {
+            $start_order_button = Button::make($buttons_text['new_order'])->action('start');
+        }
+
         $template_about = $template_prefix_lang . '.about_us';
         $response = $this->chat
             ->message((string)view($template_about))
-            ->keyboard(Keyboard::make()->button($button)->action('start')->param('start', 1))
+            ->keyboard(Keyboard::make()->buttons([
+                $start_order_button
+            ]))
             ->send();
 
         if (isset($order)) {
