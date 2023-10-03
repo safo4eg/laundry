@@ -173,38 +173,52 @@ class User extends WebhookHandler
 
         if (!isset($flag)) {
             $buttons_texts = [
+                'new_order' => $this->config['profile']['new_order'][$this->user->language_code],
+                'continue_order' => $this->config['profile']['continue_order'][$this->user->language_code],
                 'phone_number' => $this->config['profile']['phone_number'][$this->user->language_code],
                 'whatsapp' => $this->config['profile']['whatsapp'][$this->user->language_code],
                 'language' => $this->config['profile']['language'][$this->user->language_code],
             ];
             $template = $template_prefix_lang . '.profile.main';
-            $keyboard = Keyboard::make()
-                ->button($buttons_texts['phone_number'])
-                ->action('profile')
-                ->param('profile', 1)
-                ->param('choice', 1)
-                ->button($buttons_texts['whatsapp'])
-                ->action('profile')
-                ->param('profile', 1)
-                ->param('choice', 2)
-                ->button($buttons_texts['language'])
-                ->action('profile')
-                ->param('profile', 1)
-                ->param('choice', 3);
+
+            $page = $this->user->page;
+            $order = $this->user->active_order;
+            if (
+                $page === 'first_scenario' or
+                $page === 'second_scenario' or
+                $page === 'first_scenario_phone' or
+                $page === 'first_scenario_whatsapp'
+            ) {
+                $this->terminate_filling_order($order);
+            }
+
+            $start_order_button = null;
+            if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
+                $start_order_button = Button::make($buttons_texts['continue_order'])
+                    ->action('start')
+                    ->param('start', 1);
+            } else {
+                $start_order_button = Button::make($buttons_texts['new_order'])->action('start');
+            }
+
+            $keyboard = Keyboard::make()->buttons([
+                Button::make($buttons_texts['phone_number'])
+                    ->action('profile')
+                    ->param('profile', 1)
+                    ->param('choice', 1),
+                Button::make($buttons_texts['whatsapp'])
+                    ->action('profile')
+                    ->param('profile', 1)
+                    ->param('choice', 2),
+                Button::make($buttons_texts['language'])
+                    ->action('profile')
+                    ->param('profile', 1)
+                    ->param('choice', 3),
+                $start_order_button
+            ]);
 
             $response = null;
             if (isset($this->message)) {
-                $page = $this->user->page;
-                $order = $this->user->active_order;
-
-                if (
-                    $page === 'first_scenario' or
-                    $page === 'second_scenario' or
-                    $page === 'first_scenario_phone' or
-                    $page === 'first_scenario_whatsapp'
-                ) {
-                    $this->terminate_filling_order($order);
-                }
 
                 if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
                 {

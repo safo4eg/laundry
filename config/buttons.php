@@ -59,6 +59,8 @@ return [
         ],
 
         'profile' => [
+            'new_order' => ['ru' => 'Заказать стирку', 'en' => 'Order laundry'],
+            'continue_order' => ['ru' => 'Продолжить оформление заказа', 'en' => 'Continue ordering'],
             'phone_number' => ['ru' => 'Изменить номер телефона', 'en' => 'Change phone number'],
             'whatsapp' => ['ru' => 'Изменить whatsapp', 'en' => 'Change whatsapp'],
             'language' => ['ru' => 'Сменить язык', 'en' => 'Change language'],
