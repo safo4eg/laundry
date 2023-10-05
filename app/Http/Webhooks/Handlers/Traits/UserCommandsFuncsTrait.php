@@ -5,7 +5,7 @@ namespace App\Http\Webhooks\Handlers\Traits;
 use App\Models\Order;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 
-trait CommandsFuncsTrait
+trait UserCommandsFuncsTrait
 {
     public function check_for_incomplete_order(): bool
     {
@@ -21,8 +21,11 @@ trait CommandsFuncsTrait
     public function check_for_language_code(): bool
     {
         if(!isset($this->user) and isset($this->message)) {
-            if($this->message->text() !== '/start') {
-                $this->start();
+            $command = $this->message->text();
+            if($command != '/start') {
+                $this->chat
+                    ->message('БД была обновлена, вызовите команду /start')
+                    ->send();
                 return true;
             }
         } else if (!isset($this->user->language_code)) {

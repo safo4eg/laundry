@@ -18,4 +18,9 @@ class Chat extends TelegraphChat
             'telegraph_chat_id',
             'order_id');
     }
+
+    public function laundry()
+    {
+        return $this->belongsTo(Laundry::class, 'laundry_id', 'id');
+    }
 }

@@ -2,18 +2,15 @@
 
 namespace App\Http\Webhooks\Handlers;
 
-use App\Http\Webhooks\Handlers\Traits\CommandsFuncsTrait;
+use App\Http\Webhooks\Handlers\Traits\UserCommandsFuncsTrait;
 use App\Http\Webhooks\Handlers\Traits\FirstAndSecondScenarioTrait;
 use App\Models\Order;
 use App\Models\OrderStatusPivot;
 use App\Models\Referral;
-use App\Models\OrderStatus;
 use App\Models\User as UserModel;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use DefStudio\Telegraph\DTO\InlineQuery;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,7 +19,7 @@ use App\Services\QR;
 
 class User extends WebhookHandler
 {
-    use FirstAndSecondScenarioTrait, CommandsFuncsTrait;
+    use FirstAndSecondScenarioTrait, UserCommandsFuncsTrait;
 
     private UserModel|null $user = null;
     private array $config;

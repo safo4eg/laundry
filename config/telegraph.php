@@ -69,7 +69,7 @@ return [
      */
     'models' => [
         'bot' => DefStudio\Telegraph\Models\TelegraphBot::class,
-        'chat' => DefStudio\Telegraph\Models\TelegraphChat::class,
+        'chat' => App\Models\Chat::class,
     ],
 
     'storage' => [
@@ -90,12 +90,12 @@ return [
                  * Laravel Storage disk to use. See /config/filesystems/disks for available disks
                  * If 'null', Laravel default store will be used,
                  */
-                'disk' => 'local',
+                'disk' => 'public',
 
                 /**
                  * Folder inside filesystem to be used as root for Telegraph storage
                  */
-                'root' => 'telegraph',
+                'root' => '',
             ],
             'cache' => [
                 /**

@@ -38,15 +38,7 @@ class OrderStatusObserver
                 ->telegraphMessageId();
 
         }
-//        else if($order->status_id === 3) {
-//            // этап когда заявка только отправилась в чат курьеров
-//            // отправка в MANAGER CHAT для отслеживания и взаимодействия
-//            $chat = Chat::where('name', 'Manager')->first();
-//            $message_id = $chat->message((string) view('bot.manager.order_info', ['order' => $order]))
-//                ->send()
-//                ->telegraphMessageId();
-//        }
-//
+
         if(isset($message_id)) {
             ChatOrder::create([
                 'telegraph_chat_id' => $chat->id,

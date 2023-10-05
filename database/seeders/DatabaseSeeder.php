@@ -22,12 +22,13 @@ class DatabaseSeeder extends Seeder
         // ]);
 
         $this->call([
+            LaundrySeeder::class,
             TelegraphBotSeeder::class,
             TelegraphChatSeeder::class,
             OrderStatuses::class,
             MessageTypeSeeder::class,
             ReasonSeeder::class,
-            TicketStatusesSeeder::class
+            TicketStatusesSeeder::class,
         ]);
     }
 }
