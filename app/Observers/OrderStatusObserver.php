@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\Chat;
+use App\Models\Laundry;
 use App\Models\OrderStatusPivot;
 use App\Models\ChatOrder;
 use DefStudio\Telegraph\Keyboard\Button;
@@ -20,20 +21,23 @@ class OrderStatusObserver
         if($order->status_id === 2) {
             // этап когда заявка полностью заполнена пользователем
             // отправка в MANAGER CHAT
+
+            $laundries = Laundry::all();
+            $keyboard = Keyboard::make();
+            foreach ($laundries as $laundry)
+            {
+                $courier_chat = $laundry->chats()->where('name', $laundry->title.'Couriers')->first();
+                $keyboard
+                    ->button($laundry->title)
+                    ->action('send_to_couriers')
+                    ->param('courier_chat_id', $courier_chat->chat_id)
+                    ->param('order_id', $order->id);
+            }
+
             $chat = Chat::where('name', 'Manager')->first();
             $message_id = ($chat
                 ->message((string) view('bot.manager.order_distribution', ['order' => $order]))
-                ->keyboard(Keyboard::make()
-                    ->row([
-                        Button::make('Courier_1')
-                            ->action('send_to_couriers')
-                            ->param('choice', 1)
-                            ->param('order_id', $order->id),
-                        Button::make('Courier_2')
-                            ->action('send_to_couriers')
-                            ->param('choice', 2)
-                            ->param('order_id', $order->id)
-                    ]))
+                ->keyboard($keyboard)
                 ->send())
                 ->telegraphMessageId();
 

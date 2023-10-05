@@ -27,14 +27,14 @@ class TelegraphChatSeeder extends Seeder
 
             [
                 'chat_id' => -4061588577,
-                'name' => 'CangguCouriers LaundryBot',
+                'name' => 'CangguCouriers',
                 'telegraph_bot_id' => 1,
                 'laundry_id' => 2
             ],
 
             [
                 'chat_id' => -4025423918,
-                'name' => 'SanurCouriers LaundryBot',
+                'name' => 'SanurCouriers',
                 'telegraph_bot_id' => 1,
                 'laundry_id' => 1
             ]

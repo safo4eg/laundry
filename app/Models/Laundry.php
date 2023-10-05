@@ -12,4 +12,10 @@ class Laundry extends Model
     public $timestamps = false;
     protected $table = 'laundries';
     protected $guarded = [];
+    protected $with = ['chats'];
+
+    public function chats()
+    {
+        return $this->hasMany(Chat::class, 'laundry_id', 'id');
+    }
 }

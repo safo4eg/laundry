@@ -2,6 +2,7 @@
 
 namespace App\Http\Webhooks\Handlers;
 
+use App\Models\Chat;
 use App\Models\Order;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use Illuminate\Support\Facades\Log;
@@ -18,20 +19,15 @@ class Manager extends WebhookHandler
     {
         $choice = $this->data->get('choice');
         $order_id = $this->data->get('order_id');
+        $courier_chat_id = $this->data->get('courier_chat_id');
 
         (Order::find($order_id))->update([
             'status_id' => 3,
             'laundry_id' => 1
         ]);
 
-        switch ($choice) {
-            case 1:
-                $this->chat->message('отправка курьерам 1')->send();
-                break;
-            case 2:
-                $this->chat->message('отправка курьерам 2')->send();
-                break;
-        }
+        $courier_chat = Chat::where('chat_id', $courier_chat_id)->first();
+        $courier_chat->message('отправка заказа')->send();
     }
 
     public function qr(): void
