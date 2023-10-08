@@ -19,7 +19,7 @@ class TelegraphChatSeeder extends Seeder
         DB::table('telegraph_chats')->insert([
 
             [
-                'chat_id' => -4099543781,
+                'chat_id' => -1001815697480,
                 'name' => 'Manager',
                 'telegraph_bot_id' => 1,
                 'laundry_id' => null
@@ -27,14 +27,14 @@ class TelegraphChatSeeder extends Seeder
 
             [
                 'chat_id' => -4061588577,
-                'name' => 'CangguCouriers',
+                'name' => 'Couriers',
                 'telegraph_bot_id' => 1,
                 'laundry_id' => 2
             ],
 
             [
                 'chat_id' => -4025423918,
-                'name' => 'SanurCouriers',
+                'name' => 'Couriers',
                 'telegraph_bot_id' => 1,
                 'laundry_id' => 1
             ]

@@ -1,10 +1,7 @@
 <b>Order #{{$order->id}}</b>
 @if($order->status_id === 2)
-    Status: <b>Ready to be sent to the courier</b>
-@elseif($order->status_id === 3)
-    Status: <b>Sent to courier</b>
+    Status: <b>Pending acceptance</b>
 @endif
-Wishes: {{isset($order->wishes)? $order->wishes: 'NULL'}}
 
 User id: <b>{{$order->user->id}}</b>
 User login: <b>{{"@".$order->user->username}}</b>

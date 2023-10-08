@@ -178,9 +178,11 @@ trait FirstAndSecondScenarioTrait
 
         $response = null;
         if(isset($flag)) {
-            $order->update([ // в этот момент заказ улетает в ADMIN CHAT
-                'status_id' => 2
-            ]);
+            if($order->status_id < 2) { // если статус заказа больше 2
+                $order->update([ // в этот момент заказ улетает в MANAGER CHAT
+                    'status_id' => 2
+                ]);
+            }
 
             $response = $this->chat->edit($this->messageId)
                 ->message((string) view($template, [

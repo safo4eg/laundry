@@ -37,7 +37,7 @@ class HandlersManager
                     ->chat();
             }
 
-            if($this->chat->type() === 'group') {
+            if($this->chat->type() === 'supergroup') {
                 $chat = TelegraphChat::where('chat_id', $this->chat->id())->first();
                 if($chat) {
                     // Если прилетает сообщение от левого чата

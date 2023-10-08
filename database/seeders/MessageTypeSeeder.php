@@ -17,7 +17,9 @@ class MessageTypeSeeder extends Seeder
     {
         DB::table('message_types')->insert([
             ['title' => 'main'],
-            ['title' => 'wishes']
+            ['title' => 'wishes'],
+            ['title' => 'notification'],
+            ['title' => 'command']
         ]);
     }
 }

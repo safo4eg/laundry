@@ -26,21 +26,22 @@ class OrderStatusObserver
             $keyboard = Keyboard::make();
             foreach ($laundries as $laundry)
             {
-                $courier_chat = $laundry->chats()->where('name', $laundry->title.'Couriers')->first();
                 $keyboard
                     ->button($laundry->title)
                     ->action('send_to_couriers')
-                    ->param('courier_chat_id', $courier_chat->chat_id)
+                    ->param('laundry_id', $laundry->id)
                     ->param('order_id', $order->id);
             }
 
             $chat = Chat::where('name', 'Manager')->first();
             $message_id = ($chat
-                ->message((string) view('bot.manager.order_distribution', ['order' => $order]))
+                ->message((string) view('bot.manager.order_info', ['order' => $order]))
                 ->keyboard($keyboard)
                 ->send())
                 ->telegraphMessageId();
 
+        } else if($order->status_id == 3) {
+            // отправка инфо о карте курьерам (в зависимости от laundry_id)
         }
 
         if(isset($message_id)) {

@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('chat_order', function (Blueprint $table) {
             $table->unsignedBigInteger('telegraph_chat_id');
-            $table->unsignedBigInteger('order_id');
+            $table->unsignedBigInteger('order_id')->nullable();
             $table->unsignedBigInteger('message_id');
             $table->unsignedTinyInteger('message_type_id');
 

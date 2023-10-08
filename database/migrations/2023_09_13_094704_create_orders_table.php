@@ -28,6 +28,7 @@ return new class extends Migration
             $table->foreignId('user_id')->references('id')->on('users');
             $table->foreign('status_id')->references('id')->on('order_statuses');
             $table->foreign('reason_id')->references('id')->on('reasons');
+            $table->foreign('laundry_id')->references('id')->on('laundries');
         });
     }
 

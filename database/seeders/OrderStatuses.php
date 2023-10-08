@@ -30,8 +30,8 @@ class OrderStatuses extends Seeder
 
             [
                 'name' => 'sent_to_courier',
-                'en_desc' => 'Waiting for a suitable courier',
-                'ru_desc' => 'Ждем подходящего курьера'
+                'en_desc' => 'Sent to courier',
+                'ru_desc' => 'Отправлен курьеру'
             ],
 
             [

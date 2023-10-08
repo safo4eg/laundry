@@ -88,4 +88,8 @@ return [
         'tickets' => ['ru' => 'Проверить статус заявки', 'en' => 'Check application status' ]
         // end
     ],
+
+    'manager' => [
+        'send_to_couriers' => null, // подхватываются в нужных местах из таблицы laundries
+    ]
 ];
