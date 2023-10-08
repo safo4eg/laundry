@@ -91,5 +91,11 @@ return [
 
     'manager' => [
         'send_to_couriers' => null, // подхватываются в нужных местах из таблицы laundries
+    ],
+
+    'courier' => [
+        'accept_order' => [
+            'accept' => 'Accept order'
+        ]
     ]
 ];

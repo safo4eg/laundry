@@ -41,7 +41,21 @@ class OrderStatusObserver
                 ->telegraphMessageId();
 
         } else if($order->status_id == 3) {
-            // отправка инфо о карте курьерам (в зависимости от laundry_id)
+            $laundry = Laundry::find($order->laundry_id);
+            $chat = Chat::where('name', 'Courier')
+                ->where('laundry_id', $laundry->id)
+                ->first();
+
+            $button_texts = config('buttons.courier.accept_order');
+            $keyboard = Keyboard::make()->buttons([
+                Button::make($button_texts['accept'])->action('accept_order')
+            ]);
+
+            $message_id = ($chat
+                ->message((string) view('bot.courier.order_info', ['order' => $order]))
+                ->keyboard($keyboard)
+                ->send())
+                ->telegraphMessageId();
         }
 
         if(isset($message_id)) {

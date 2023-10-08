@@ -44,16 +44,18 @@ class OrderObserver
             ]);
         }
 
-        if(isset($attributes['wishes'])) {
-            $chat_order_active = ChatOrder::where('order_id', $order->id)
+        if(isset($attributes['wishes'])) { // отправка пожеланий только в чат менеджеров (когда только пользователь ввёл)
+            $chat_order_main = ChatOrder::where('order_id', $order->id)
                 ->where('message_type_id', 1)
+                ->where('telegraph_chat_id', 1)
                 ->first();
 
             $chat_order_wishes = ChatOrder::where('order_id', $order->id)
                 ->where('message_type_id', 2)
+                ->where('telegraph_chat_id', 1)
                 ->first();
 
-            $chat = $chat_order_active->chat;
+            $chat = $chat_order_main->chat;
 
             if(isset($chat_order_wishes)) {
                 $chat->deleteMessage($chat_order_wishes->message_id)->send();
@@ -62,7 +64,7 @@ class OrderObserver
 
             $response = $chat
                 ->message("Пожелания к заказу: {$order->wishes}")
-                ->reply($chat_order_active->message_id)
+                ->reply($chat_order_main->message_id)
                 ->send();
 
             ChatOrder::create([

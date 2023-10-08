@@ -7,11 +7,15 @@ use DefStudio\Telegraph\Keyboard\Keyboard;
 
 class Courier extends WebhookHandler
 {
-    public function start(): void
+    public function __construct()
     {
-        $this->chat->message('Какой-то текст о возможностях бота')
-            ->keyboard(Keyboard::make()->buttons([
-                Button::make('Начать')->action('order_step_1')->param('choice', 1)
-            ]))->send();
+        $this->config = config('buttons.courier');
+        $this->template_prefix = 'bot.courier.';
+        parent::__construct();
+    }
+
+    public function accept_order(): void
+    {
+        $this->chat->message('заказ принят')->send();
     }
 }

@@ -1,5 +1,5 @@
 <b>Order #{{$order->id}}</b>
-@if($order->status_id === 2)
+@if($order->status_id === 3)
     Status: <b>Pending acceptance</b>
 @endif
 
