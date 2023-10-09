@@ -28,7 +28,8 @@ class OrderStatusObserver
             {
                 $keyboard
                     ->button($laundry->title)
-                    ->action('send_to_couriers')
+                    ->action('distribute')
+                    ->param('distribute', 1)
                     ->param('laundry_id', $laundry->id)
                     ->param('order_id', $order->id);
             }
@@ -41,14 +42,16 @@ class OrderStatusObserver
                 ->telegraphMessageId();
 
         } else if($order->status_id == 3) {
-            $laundry = Laundry::find($order->laundry_id);
             $chat = Chat::where('name', 'Courier')
-                ->where('laundry_id', $laundry->id)
+                ->where('laundry_id', $order->laundry_id)
                 ->first();
 
-            $button_texts = config('buttons.courier.accept_order');
+            $button_texts = config('buttons.courier.pickup');
             $keyboard = Keyboard::make()->buttons([
-                Button::make($button_texts['accept'])->action('accept_order')
+                Button::make($button_texts['pickup'])
+                    ->action('pickup')
+                    ->param('pickup', 1)
+                    ->param('order_id', $order->id)
             ]);
 
             $message_id = ($chat
@@ -56,6 +59,9 @@ class OrderStatusObserver
                 ->keyboard($keyboard)
                 ->send())
                 ->telegraphMessageId();
+        } else if($order->status_id == 5) {
+            // отправка уведомления пользователю о том, что курьер принял заказ
+            // редактирования карточки в чате менеджеров
         }
 
         if(isset($message_id)) {

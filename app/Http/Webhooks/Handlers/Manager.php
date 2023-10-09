@@ -22,19 +22,47 @@ class Manager extends WebhookHandler
         $this->template_prefix = 'bot.manager.';
         parent::__construct();
     }
-    public function send_to_couriers(): void
+
+    public function send_order_card(Order $order): void // ообязательный метод(должен вообще быть у родителя абстрактным)
     {
+        switch ($order->status_id) {
+            case 2:
+                $this->distribute($order);
+                break;
+        }
+    }
+
+    public function distribute(Order $order = null): void
+    {
+        $flag = $this->data->get('distribute');
         $order_id = $this->data->get('order_id');
-        $laundry_id = $this->data->get('laundry_id');
+        $order = isset($order)? $order: Order::find($order_id);
 
-        $order = Order::find($order_id);
-        $order->update([
-            'status_id' => 3,
-            'laundry_id' => $laundry_id
-        ]);
+        if(isset($flag)) {
+            $laundry_id = $this->data->get('laundry_id');
+            $order->update([
+                'status_id' => 3,
+                'laundry_id' => $laundry_id
+            ]);
 
-        $this->update_order_card($order, $this->get_current_order_card_keyboard($order));
-        // обновляем инфу о карте
+            $this->update_order_card($order, $this->get_current_order_card_keyboard($order));
+        }
+
+        if(!isset($flag)) {
+            $template = $this->template_prefix.'order_info';
+            $keyboard = $this->get_current_order_card_keyboard($order);
+            $response = $this->chat
+                ->message(view($template, ['order' => $order]))
+                ->keyboard($keyboard)
+                ->send();
+
+            ChatOrder::create([
+                'telegraph_chat_id' => $this->chat->id,
+                'order_id' => $order->id,
+                'message_id' => $response->telegraphMessageId(),
+                'message_type_id' => 1
+            ]);
+        }
     }
 
     public function refresh(string $order_id): void
@@ -52,7 +80,7 @@ class Manager extends WebhookHandler
         } else {
             $order = $this->check_order_existence_in_chat_message($order_id);
             if(isset($order)) {
-                $this->update_order_card_through_command($order, $this->get_current_order_card_keyboard($order));
+                $this->update_order_card_through_command($order);
                 $this->remove_other_messages();
             }
         }
@@ -77,4 +105,5 @@ class Manager extends WebhookHandler
 
         return $keyboard;
     }
+
 }

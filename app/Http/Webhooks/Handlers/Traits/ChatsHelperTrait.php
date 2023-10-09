@@ -14,39 +14,27 @@ use function Webmozart\Assert\Tests\StaticAnalysis\null;
 
 trait ChatsHelperTrait
 {
-    public function update_order_card_through_command(Order $order, Keyboard $keyboard = null)
+    public function update_order_card_through_command(Order $order)
     {
         $chat_orders = ChatOrder::where('order_id', $order->id)
             ->where('telegraph_chat_id', $this->chat->id)
             ->get();
 
-        $template = $this->template_prefix.'order_info';
-
         foreach ($chat_orders as $chat_order) {
-            $this->chat
-                ->deleteMessage($chat_order->message_id)
-                ->send();
-            $chat_order->delete();
+            if($chat_order->message_type_id === 1) {
+                $this->chat
+                    ->deleteMessage($chat_order->message_id)
+                    ->send();
+                $chat_order->delete();
+                $this->send_order_card($order);
+            }
+            else {
+                $this->chat
+                    ->deleteMessage($chat_order->message_id)
+                    ->send();
+                $chat_order->delete();
+            }
         }
-
-        $response = null;
-        if(isset($keyboard)) {
-            $response = $this->chat
-                ->message(view($template, ['order' => $order]))
-                ->keyboard($keyboard)
-                ->send();
-        } else {
-            $response = $this->chat
-                ->message(view($template, ['order' => $order]))
-                ->send();
-        }
-
-        ChatOrder::create([
-            'telegraph_chat_id' => $this->chat->id,
-            'order_id' => $order->id,
-            'message_id' => $response->telegraphMessageId(),
-            'message_type_id' => 1
-        ]);
     }
     public function update_order_card(Order $order, Keyboard $keyboard = null)
     {
@@ -95,7 +83,7 @@ trait ChatsHelperTrait
 
         if($orders->count() > 0) {
             foreach ($orders as $order) {
-                $this->update_order_card_through_command($order, $this->get_current_order_card_keyboard($order));
+                $this->update_order_card_through_command($order);
             }
         }
     }

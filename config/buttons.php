@@ -94,8 +94,8 @@ return [
     ],
 
     'courier' => [
-        'accept_order' => [
-            'accept' => 'Accept order'
+        'pickup' => [
+            'pickup' => 'Pickup'
         ]
     ]
 ];
