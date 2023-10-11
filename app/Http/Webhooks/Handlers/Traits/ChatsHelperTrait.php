@@ -145,7 +145,7 @@ trait ChatsHelperTrait
             OR метод вызван с начальным параметром Order
             (то есть было выбрано к каком заказку относится фото */
             if(isset($chat_order) OR isset($order)) {
-                $order = $chat_order->order;
+                $order = isset($chat_order)? $chat_order->order: $order;
                 $dir = "{$this->chat->name}/order_{$order->id}";
                 $file_name = $photo->id().".jpg";
                 $buttons_texts = $this->config['confirm_photo'];
@@ -161,16 +161,53 @@ trait ChatsHelperTrait
                     ]))
                     ->send();
             } else if(!isset($chat_order) AND !isset($order)) { // если прилетело фото, которое не ожидалось по логике работы
-                $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
-                    ->where('message_type_id', 1)
-                    ->get();
-
-                if($chat_orders->isNotEmpty()) { // если в чате есть карточки заказа
-                    $this->chat->message('предложение выбрать к какой карточке заказа было адресовано')->send();
-                } else { // если в чате нет карточек заказа
-                    $this->chat->message('в чате отсутствуют заказы к которым можно прикрепить это фото')->send();
-                }
+                $this->select_order();
             }
+        }
+    }
+
+    public function select_order(): void
+    {
+        $flag = $this->data->get('select_order');
+
+        if(isset($flag)) {
+
+        }
+
+        if(!isset($flag)) {
+            $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+                ->where('message_type_id', 1)
+                ->get();
+            $message_type_id = null;
+            $response = null;
+            if($chat_orders->isNotEmpty()) { // если в чате есть карточки заказа
+                $buttons = [];
+                foreach ($chat_orders as $chat_order) {
+                    $buttons[] = Button::make("#{$chat_order->order->id}")
+                        ->action('select_order')
+                        ->param('select_order', 1)
+                        ->param('order_id', $chat_order->order->id);
+                }
+                $template = $this->template_prefix."select_order";
+                $response = $this->chat
+                    ->message(view($template))
+                    ->keyboard(Keyboard::make()
+                        ->buttons($buttons)
+                    )->send();
+                $message_type_id = 7;
+            } else { // если в чате нет карточек заказа
+                $response = $this->chat
+                    ->message('в чате отсутствуют заказы к которым можно прикрепить это фото')
+                    ->send();
+                $message_type_id = 3;
+            }
+
+            ChatOrder::create([
+                'telegraph_chat_id' => $this->chat->id,
+                'order_id' => null,
+                'message_id' => $response->telegraphMessageId(),
+                'message_type_id' => $message_type_id
+            ]);
         }
     }
 

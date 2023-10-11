@@ -20,7 +20,9 @@ class MessageTypeSeeder extends Seeder
             ['title' => 'wishes'],
             ['title' => 'notification'],
             ['title' => 'command'],
-            ['title' => 'request_photo']
+            ['title' => 'request_photo'],
+            ['title' => 'confirm_photo'],
+            ['title' => 'select_order'],
         ]);
     }
 }

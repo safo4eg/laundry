@@ -113,12 +113,6 @@ class Courier extends WebhookHandler
 
 
             $this->chat->storage()->set('photo_message_timestamp', $message_timestamp);
-//            if(isset($last_message_timestamp) AND $message_timestamp === $last_message_timestamp) { // проверка были ли они в одном сообщении
-//                $this->chat->message('отправка нескольких фото подряд')->send();
-//            } else {
-//                $this->chat->message('отправка одного фото')->send();
-//            }
-//            $photo = $photos->last(); // получаем лучшее по качеству изображение
 
         }
     }
