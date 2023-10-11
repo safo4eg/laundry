@@ -96,6 +96,15 @@ return [
     'courier' => [
         'pickup' => [
             'pickup' => 'Pickup'
+        ],
+
+        'photo_request' => [
+            'cancel' => 'Cancel'
+        ],
+
+        'confirm_photo' => [
+            'yes' => 'YES',
+            'no' => 'NO'
         ]
     ]
 ];

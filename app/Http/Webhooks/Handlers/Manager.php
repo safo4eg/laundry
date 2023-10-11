@@ -32,6 +32,27 @@ class Manager extends WebhookHandler
         }
     }
 
+    public function get_current_order_card_keyboard(Order $order): Keyboard|null
+    {
+        $keyboard = null;
+
+        if($order->status_id === 2) {
+            $keyboard = Keyboard::make();
+            $laundries = Laundry::all();
+            foreach ($laundries as $laundry)
+            {
+                $keyboard
+                    ->button($laundry->title)
+                    ->action('distribute')
+                    ->param('distribute', 1)
+                    ->param('laundry_id', $laundry->id)
+                    ->param('order_id', $order->id);
+            }
+        }
+
+        return $keyboard;
+    }
+
     public function distribute(Order $order = null): void
     {
         $flag = $this->data->get('distribute');
@@ -84,26 +105,6 @@ class Manager extends WebhookHandler
                 $this->remove_other_messages();
             }
         }
-    }
-
-    public function get_current_order_card_keyboard(Order $order): Keyboard|null
-    {
-        $keyboard = null;
-
-        if($order->status_id === 2) {
-            $keyboard = Keyboard::make();
-            $laundries = Laundry::all();
-            foreach ($laundries as $laundry)
-            {
-                $keyboard
-                    ->button($laundry->title)
-                    ->action('send_to_couriers')
-                    ->param('laundry_id', $laundry->id)
-                    ->param('order_id', $order->id);
-            }
-        }
-
-        return $keyboard;
     }
 
 }

@@ -6,11 +6,14 @@ use App\Models\Chat;
 use App\Models\ChatOrder;
 use App\Models\Order;
 use App\Models\OrderStatus;
+use DefStudio\Telegraph\DTO\Photo;
+use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use DefStudio\Telegraph\Facades\Telegraph;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use function Webmozart\Assert\Tests\StaticAnalysis\null;
+use Illuminate\Support\Facades\Storage;
 
 trait ChatsHelperTrait
 {
@@ -125,5 +128,66 @@ trait ChatsHelperTrait
                 $other_message->delete();
             }
         }
+    }
+
+    /* МЕТОДЫ ОБРАБОТКИ ОТПРАВЛЕННЫХ ФОТО */
+
+    public function confirm_photo(Photo $photo, ChatOrder $chat_order = null, Order $order = null): void
+    {
+        $flag = $this->data->get('confirm_photo');
+
+        if(isset($flag)) {
+            // обработка подтверждения/отклонения
+        }
+
+        if(!isset($flag)) {
+            /* Если существует сообщение с message_type_id=5
+            OR метод вызван с начальным параметром Order
+            (то есть было выбрано к каком заказку относится фото */
+            if(isset($chat_order) OR isset($order)) {
+                $order = $chat_order->order;
+                $dir = "{$this->chat->name}/order_{$order->id}";
+                $file_name = $photo->id().".jpg";
+                $buttons_texts = $this->config['confirm_photo'];
+                $template = $this->template_prefix.'confirm_photo';
+
+                $this->chat->photo(Storage::path("{$dir}/{$file_name}"))
+                    ->html(view($template, ['order' => $order]))
+                    ->keyboard(Keyboard::make()->buttons([
+                        Button::make($buttons_texts['yes'])
+                            ->action('yes_confirm'),
+                        Button::make($buttons_texts['no'])
+                            ->action('no_confirm')
+                    ]))
+                    ->send();
+            } else if(!isset($chat_order) AND !isset($order)) { // если прилетело фото, которое не ожидалось по логике работы
+                $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+                    ->where('message_type_id', 1)
+                    ->get();
+
+                if($chat_orders->isNotEmpty()) { // если в чате есть карточки заказа
+                    $this->chat->message('предложение выбрать к какой карточке заказа было адресовано')->send();
+                } else { // если в чате нет карточек заказа
+                    $this->chat->message('в чате отсутствуют заказы к которым можно прикрепить это фото')->send();
+                }
+            }
+        }
+    }
+
+    public function save_photo(Collection $photos, ChatOrder $chat_order = null): Photo
+    {
+        $photo = $photos->last(); // получение фото с лучшем качеством
+        $dir = "{$this->chat->name}/";
+        $file_name = $photo->id().".jpg";
+
+        if(isset($chat_order)) { // если есть сообщение, которое просит отправить фото
+            $dir = $dir."order_{$chat_order->order->id}";
+        } else { // если фото просто так закинули в чат
+            $dir = $dir."order_undefined";
+        }
+
+        Telegraph::store($photo, Storage::path($dir), $file_name); // сохранение фото
+
+        return $photo;
     }
 }
