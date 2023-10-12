@@ -130,19 +130,50 @@ trait ChatsHelperTrait
         }
     }
 
-    /* МЕТОДЫ ОБРАБОТКИ ОТПРАВЛЕННЫХ ФОТО */
+    /* МЕТОДЫ ОБРАБОТКИ ДОБАВЛЕНИЯ ФОТО */
 
-    public function confirm_photo(Photo $photo, Order $order): void
+    /* request_photo отвечает только за отправку сообщения, своих кнопок у него нет (которые обрабатываются им же)
+       есть одна кнопка "cancel", она обрабатывается delete_message_by_types */
+    public function request_photo(Order $order):void
+    {
+        $template = $this->template_prefix.'photo_request';
+        $buttons_texts = $this->config['request_photo'];
+
+        $response = $this->chat
+            ->message(view($template, ['order' => $order]))
+            ->keyboard(Keyboard::make()->buttons([
+                Button::make($buttons_texts['cancel'])
+                    ->action('delete_message_by_types')
+                    ->param('delete', 1)
+                    ->param('type_id', 5)
+            ]))->send();
+
+        ChatOrder::create([
+            'telegraph_chat_id' => $this->chat->id,
+            'order_id' => $order->id,
+            'message_id' => $response->telegraphMessageId(),
+            'message_type_id' => 5
+        ]);
+    }
+
+    public function confirm_photo(Photo $photo = null, Order $order = null): void
     {
         $flag = $this->data->get('confirm_photo');
 
         if(isset($flag)) {
             $choice = $this->data->get('choice');
+            if(isset($choice)) {
+                $order_id = $this->data->get('order_id');
+                $order = Order::where('id', $order_id)->first();
 
-            if($choice == 1) { // YES
-                // обновление карточки заказа
-            } else if($choice == 2) { // NO
-
+                if($choice == 1) { // YES
+                    // удаляем текущее сообщение
+                    // добавляем путь до фото в БД
+                    // обновляем карточку заказа
+                } else if($choice == 2) { // NO
+                    $this->delete_message_by_types([6]);
+                    $this->request_photo($order);
+                }
             }
         }
 
@@ -159,11 +190,17 @@ trait ChatsHelperTrait
                     Button::make($buttons_texts['yes'])
                         ->action('confirm_photo')
                         ->param('confirm_photo', 1)
-                        ->param('choice', 1),
+                        ->param('choice', 1)
+                        ->param('order_id', $order->id),
                     Button::make($buttons_texts['no'])
                         ->action('confirm_photo')
                         ->param('confirm_photo', 1)
                         ->param('choice', 2)
+                        ->param('order_id', $order->id),
+                    Button::make($buttons_texts['cancel'])
+                        ->action('delete_message_by_types')
+                        ->param('delete', 1)
+                        ->param('type_id', 6)
                 ]))->send();
 
             ChatOrder::create([

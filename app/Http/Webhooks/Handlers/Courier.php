@@ -56,32 +56,8 @@ class Courier extends WebhookHandler
         $order = isset($order)? $order: Order::find($order_id);
 
         if(isset($flag)) { // Обработка данных с кнопки
-            $chat_order = ChatOrder::where('telegraph_chat_id', $this->chat->id)
-                ->where('order_id', $order->id)
-                ->where('message_type_id', 5)
-                ->first();
-
-            if(isset($chat_order)) {
-                $this->chat->deleteMessage($chat_order->message_id)->send();
-                $chat_order->delete();
-            }
-
-            $template = $this->template_prefix.'photo_request';
-            $button_text = $this->config['photo_request']['cancel'];
-            $response = $this->chat
-                ->message(view($template, ['order' => $order]))
-                ->keyboard(Keyboard::make()->buttons([
-                    Button::make($button_text)->action('test')
-                ]))->send();
-
-            ChatOrder::create([
-                'telegraph_chat_id' => $this->chat->id,
-                'order_id' => $order->id,
-                'message_id' => $response->telegraphMessageId(),
-                'message_type_id' => 5
-            ]);
-
-            $this->chat->storage()->set('order', $order);
+            $this->delete_message_by_types([5, 6, 7]);
+            $this->request_photo($order); // сообщение с просьбой отправить фото
         }
 
         if(!isset($flag)) { // отображения карточки с кнопками
@@ -119,7 +95,7 @@ class Courier extends WebhookHandler
                     $this->delete_message_by_types([5, 8]);
                     $this->confirm_photo($photo, $chat_order->order);
                 } else {
-                    $this->delete_message_by_types([8]);
+                    $this->delete_message_by_types([5, 6, 7, 8]);
                     $this->select_order($photo);
                 }
             } // else if(...) {} обработка если несколько фото

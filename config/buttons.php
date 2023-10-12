@@ -98,13 +98,14 @@ return [
             'pickup' => 'Pickup'
         ],
 
-        'photo_request' => [
+        'request_photo' => [
             'cancel' => 'Cancel'
         ],
 
         'confirm_photo' => [
             'yes' => 'YES',
-            'no' => 'NO'
+            'no' => 'NO',
+            'cancel' => 'CANCEL'
         ],
 
         'select_order' => [
