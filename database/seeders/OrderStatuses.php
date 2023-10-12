@@ -39,6 +39,12 @@ class OrderStatuses extends Seeder
                 'en_desc' => 'User canceled an order',
                 'ru_desc' => 'Пользователь отменил заказ'
             ],
+
+            [
+                'name' => 'picked',
+                'en_desc' => 'Courier collected the clients items',
+                'ru_desc' => 'Курьер забрал вещи у клиента'
+            ]
         ]);
     }
 }

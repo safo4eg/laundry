@@ -98,6 +98,10 @@ return [
             'pickup' => 'Pickup'
         ],
 
+        'deliver_in_laundry' => [
+            'deliver' => 'In the Laundry'
+        ],
+
         'request_photo' => [
             'cancel' => 'Cancel'
         ],

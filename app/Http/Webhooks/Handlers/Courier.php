@@ -23,11 +23,15 @@ class Courier extends WebhookHandler
         parent::__construct();
     }
 
-    public function send_order_card(Order $order): void // ообязательный метод(должен вообще быть у родителя абстрактным)
+    public function send_order_card(Order $order): void
     {
+        $keyboard = $this->get_current_order_card_keyboard($order);
         switch ($order->status_id) {
             case 3:
-                $this->pickup($order);
+                $this->pickup($order, $keyboard);
+                break;
+            case 5:
+                $this->deliver_in_laundry($order, $keyboard);
                 break;
         }
     }
@@ -36,7 +40,7 @@ class Courier extends WebhookHandler
     {
         $keyboard = null;
 
-        if($order->status_id == 5) {
+        if($order->status_id == 4) {
             $buttons_texts = $this->config['pickup'];
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons_texts['pickup'])
@@ -44,12 +48,20 @@ class Courier extends WebhookHandler
                     ->param('pickup', 1)
                     ->param('order_id', $order->id)
             ]);
+        } else if($order->status_id == 5) {
+            $buttons_texts = $this->config['deliver_in_laundry'];
+            $keyboard = Keyboard::make()->buttons([
+                Button::make($buttons_texts['deliver'])
+                    ->action('deliver_in_laundry')
+                    ->param('deliver_in_laundry', 1)
+                    ->param('order_id', $order->id)
+            ]);
         }
 
         return $keyboard;
     }
 
-    public function pickup(Order $order = null): void
+    public function pickup(Order $order = null, Keyboard $keyboard = null): void
     {
         $flag = $this->data->get('pickup');
         $order_id = $this->data->get('order_id');
@@ -62,11 +74,47 @@ class Courier extends WebhookHandler
 
         if(!isset($flag)) { // отображения карточки с кнопками
             $template = $this->template_prefix.'order_info';
-            $keyboard = $this->get_current_order_card_keyboard($order);
             $this->chat
                 ->message(view($template, ['order' => $order]))
                 ->keyboard($keyboard)
                 ->send();
+        }
+    }
+
+    public function deliver_in_laundry(Order $order = null, Keyboard $keyboard = null): void
+    {
+        $flag = $this->data->get('deliver_in_laundry');
+
+        if(isset($flag)) {
+
+        }
+
+        if(!isset($flag)) {
+            $main_chat_order = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+                ->where('order_id', $order->id)
+                ->where('message_type_id', 1)
+                ->first();
+            $template = $this->template_prefix.'order_info';
+            if(isset($main_chat_order)) { // редактируем
+                $this->chat
+                    ->edit($main_chat_order->message_id)
+                    ->html(view($template, ['order' => $order]))
+                    ->keyboard($keyboard)
+                    ->send();
+                // нужно отправлять вместе с фото (достать из БД)
+            } else { // отправляем новое
+                $response = $this->chat
+                    ->message(view($template, ['order' => $order]))
+                    ->keyboard($keyboard)
+                    ->send();
+
+                ChatOrder::create([
+                    'telegraph_chat_id' => $this->chat->id,
+                    'order_id' => $order->id,
+                    'message_id' => $response->telegraphMessageId(),
+                    'message_type_id' => 1
+                ]);
+            }
         }
     }
 

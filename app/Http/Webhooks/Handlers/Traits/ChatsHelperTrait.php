@@ -167,9 +167,10 @@ trait ChatsHelperTrait
                 $order = Order::where('id', $order_id)->first();
 
                 if($choice == 1) { // YES
-                    // удаляем текущее сообщение
-                    // добавляем путь до фото в БД
-                    // обновляем карточку заказа
+                    $this->delete_message_by_types([6]);
+                    $order->update(['status_id' => 5]);
+                    $this->send_order_card($order);
+                    // нужно еще добавлять в БД путь до фото
                 } else if($choice == 2) { // NO
                     $this->delete_message_by_types([6]);
                     $this->request_photo($order);

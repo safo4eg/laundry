@@ -23,7 +23,7 @@ class Manager extends WebhookHandler
         parent::__construct();
     }
 
-    public function send_order_card(Order $order): void // ообязательный метод(должен вообще быть у родителя абстрактным)
+    public function send_order_card(Order $order): void // распределение какую карточку отправить
     {
         switch ($order->status_id) {
             case 2:
