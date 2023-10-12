@@ -105,6 +105,10 @@ return [
         'confirm_photo' => [
             'yes' => 'YES',
             'no' => 'NO'
+        ],
+
+        'select_order' => [
+            'cancel' => 'Cancel'
         ]
     ]
 ];

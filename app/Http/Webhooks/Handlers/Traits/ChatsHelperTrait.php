@@ -197,6 +197,13 @@ trait ChatsHelperTrait
                         ->param('select_order', 1)
                         ->param('order_id', $chat_order->order->id);
                 }
+
+                $buttons_texts = $this->config['select_order'];
+                $buttons[] = Button::make($buttons_texts['cancel'])
+                    ->action('delete_message_by_types')
+                    ->param('delete', 1)
+                    ->param('type_id', 7);
+
                 $template = $this->template_prefix."select_order";
                 $response = $this->chat
                     ->message(view($template))
@@ -220,16 +227,32 @@ trait ChatsHelperTrait
         }
     }
 
-    public function delete_message_by_types(array $messages_types_id): void // массив типа [1,2,3], где значения - тайп_ид
+    public function delete_message_by_types(array $messages_types_id = null): void // массив типа [1,2,3], где значения - тайп_ид
     {
-        $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
-            ->whereIn('message_type_id', $messages_types_id)
-            ->get();
+        $flag = $this->data->get('delete');
 
-        if($chat_orders->isNotEmpty()) {
-            foreach ($chat_orders as $chat_order) {
-                $this->chat->deleteMessage($chat_order->message_id)->send();
-                $chat_order->delete();
+        if(isset($flag)) { // значит прилетело с кнопки
+            $type_id = $this->data->get('type_id'); // тип сообщения
+            $chat_order = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+                ->where('message_type_id', $type_id)
+                ->first();
+
+            $this->chat->deleteMessage($chat_order->message_id)->send();
+            $chat_order->delete();
+        }
+
+        if(!isset($flag)) {
+            if(isset($messages_types_id)) {
+                $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+                    ->whereIn('message_type_id', $messages_types_id)
+                    ->get();
+
+                if($chat_orders->isNotEmpty()) {
+                    foreach ($chat_orders as $chat_order) {
+                        $this->chat->deleteMessage($chat_order->message_id)->send();
+                        $chat_order->delete();
+                    }
+                }
             }
         }
     }

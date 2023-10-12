@@ -118,8 +118,10 @@ class Courier extends WebhookHandler
                 if(isset($chat_order)) {
                     $this->delete_message_by_types([5, 8]);
                     $this->confirm_photo($photo, $chat_order->order);
+                } else {
+                    $this->delete_message_by_types([8]);
+                    $this->select_order();
                 }
-                else $this->select_order();
             } // else if(...) {} обработка если несколько фото
 
             $this->chat->storage()->set('photo_message_timestamp', $message_timestamp);
