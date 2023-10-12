@@ -100,6 +100,13 @@ class Courier extends WebhookHandler
 
         // *** Еще проверку на то, что есть просьба отправить фото!
         if(isset($photos) AND $photos->isNotEmpty()) { // обработка прилетевших фотографий
+            ChatOrder::create([
+                'telegraph_chat_id' => $this->chat->id,
+                'order_id' => null,
+                'message_id' => $this->messageId,
+                'message_type_id' => 8
+            ]);
+
             $chat_order = ChatOrder::where('telegraph_chat_id', $this->chat->id)
                 ->where('message_type_id', 5)
                 ->first();
@@ -108,9 +115,12 @@ class Courier extends WebhookHandler
             $message_timestamp = $this->message->date()->timestamp; // timestamp отправки текущего фото
             $last_message_timestamp = $this->chat->storage()->get('photo_message_timestamp'); // timestamp последнего прилетевшего фото
             if(is_null($last_message_timestamp) OR $message_timestamp !== $last_message_timestamp) {
-                    $this->confirm_photo($photo, $chat_order);
-            }
-
+                if(isset($chat_order)) {
+                    $this->delete_message_by_types([5, 8]);
+                    $this->confirm_photo($photo, $chat_order->order);
+                }
+                else $this->select_order();
+            } // else if(...) {} обработка если несколько фото
 
             $this->chat->storage()->set('photo_message_timestamp', $message_timestamp);
 

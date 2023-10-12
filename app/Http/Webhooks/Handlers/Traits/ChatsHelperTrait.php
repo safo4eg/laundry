@@ -132,37 +132,46 @@ trait ChatsHelperTrait
 
     /* МЕТОДЫ ОБРАБОТКИ ОТПРАВЛЕННЫХ ФОТО */
 
-    public function confirm_photo(Photo $photo, ChatOrder $chat_order = null, Order $order = null): void
+    public function confirm_photo(Photo $photo, Order $order): void
     {
         $flag = $this->data->get('confirm_photo');
 
         if(isset($flag)) {
-            // обработка подтверждения/отклонения
+            $choice = $this->data->get('choice');
+
+            if($choice == 1) { // YES
+                // обновление карточки заказа
+            } else if($choice == 2) { // NO
+
+            }
         }
 
         if(!isset($flag)) {
-            /* Если существует сообщение с message_type_id=5
-            OR метод вызван с начальным параметром Order
-            (то есть было выбрано к каком заказку относится фото */
-            if(isset($chat_order) OR isset($order)) {
-                $order = isset($chat_order)? $chat_order->order: $order;
-                $dir = "{$this->chat->name}/order_{$order->id}";
-                $file_name = $photo->id().".jpg";
-                $buttons_texts = $this->config['confirm_photo'];
-                $template = $this->template_prefix.'confirm_photo';
+            $order = isset($chat_order)? $chat_order->order: $order;
+            $dir = "{$this->chat->name}/order_{$order->id}";
+            $file_name = $photo->id().".jpg";
+            $buttons_texts = $this->config['confirm_photo'];
+            $template = $this->template_prefix.'confirm_photo';
 
-                $this->chat->photo(Storage::path("{$dir}/{$file_name}"))
-                    ->html(view($template, ['order' => $order]))
-                    ->keyboard(Keyboard::make()->buttons([
-                        Button::make($buttons_texts['yes'])
-                            ->action('yes_confirm'),
-                        Button::make($buttons_texts['no'])
-                            ->action('no_confirm')
-                    ]))
-                    ->send();
-            } else if(!isset($chat_order) AND !isset($order)) { // если прилетело фото, которое не ожидалось по логике работы
-                $this->select_order();
-            }
+            $response = $this->chat->photo(Storage::path("{$dir}/{$file_name}"))
+                ->html(view($template, ['order' => $order]))
+                ->keyboard(Keyboard::make()->buttons([
+                    Button::make($buttons_texts['yes'])
+                        ->action('confirm_photo')
+                        ->param('confirm_photo', 1)
+                        ->param('choice', 1),
+                    Button::make($buttons_texts['no'])
+                        ->action('confirm_photo')
+                        ->param('confirm_photo', 1)
+                        ->param('choice', 2)
+                ]))->send();
+
+            ChatOrder::create([
+                'telegraph_chat_id' => $this->chat->id,
+                'order_id' => $order->id,
+                'message_id' => $response->telegraphMessageId(),
+                'message_type_id' => 6
+            ]);
         }
     }
 
@@ -208,6 +217,20 @@ trait ChatsHelperTrait
                 'message_id' => $response->telegraphMessageId(),
                 'message_type_id' => $message_type_id
             ]);
+        }
+    }
+
+    public function delete_message_by_types(array $messages_types_id): void // массив типа [1,2,3], где значения - тайп_ид
+    {
+        $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+            ->whereIn('message_type_id', $messages_types_id)
+            ->get();
+
+        if($chat_orders->isNotEmpty()) {
+            foreach ($chat_orders as $chat_order) {
+                $this->chat->deleteMessage($chat_order->message_id)->send();
+                $chat_order->delete();
+            }
         }
     }
 

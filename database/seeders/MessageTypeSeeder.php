@@ -23,6 +23,7 @@ class MessageTypeSeeder extends Seeder
             ['title' => 'request_photo'],
             ['title' => 'confirm_photo'],
             ['title' => 'select_order'],
+            ['title' => 'photo'],
         ]);
     }
 }
