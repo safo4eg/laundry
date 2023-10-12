@@ -175,7 +175,7 @@ trait ChatsHelperTrait
         }
     }
 
-    public function select_order(): void
+    public function select_order(Photo $photo): void
     {
         $flag = $this->data->get('select_order');
 
@@ -205,8 +205,9 @@ trait ChatsHelperTrait
                     ->param('type_id', 7);
 
                 $template = $this->template_prefix."select_order";
-                $response = $this->chat
-                    ->message(view($template))
+                $path = "{$this->chat->name}/order_undefined/{$photo->id()}.jpg";
+                $response = $this->chat->photo(Storage::path($path))
+                    ->html(view($template))
                     ->keyboard(Keyboard::make()
                         ->buttons($buttons)
                     )->send();

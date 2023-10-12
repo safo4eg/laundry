@@ -120,7 +120,7 @@ class Courier extends WebhookHandler
                     $this->confirm_photo($photo, $chat_order->order);
                 } else {
                     $this->delete_message_by_types([8]);
-                    $this->select_order();
+                    $this->select_order($photo);
                 }
             } // else if(...) {} обработка если несколько фото
 
