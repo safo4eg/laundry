@@ -10,7 +10,6 @@ class OrderStatus extends Model
     use HasFactory;
 
     public $timestamps = false;
-
     protected $table = 'order_statuses';
     protected $guarded = [];
 

@@ -13,16 +13,18 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('photos', function (Blueprint $table) {
+        Schema::create('files', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('order_id')->nullable();
             $table->unsignedBigInteger('ticket_item_id')->nullable();
             $table->unsignedTinyInteger('file_type_id');
+            $table->unsignedTinyInteger('order_status_id');
             $table->text('path');
 
             $table->foreign('order_id')->references('id')->on('orders');
             $table->foreign('ticket_item_id')->references('id')->on('ticket_items');
             $table->foreign('file_type_id')->references('id')->on('file_types');
+            $table->foreign('order_status_id')->references('id')->on('order_statuses');
         });
     }
 
@@ -33,6 +35,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('photos');
+        Schema::dropIfExists('files');
     }
 };

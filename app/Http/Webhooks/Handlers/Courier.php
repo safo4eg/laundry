@@ -5,11 +5,12 @@ use App\Http\Webhooks\Handlers\Traits\ChatsHelperTrait;
 use App\Models\Chat;
 use App\Models\ChatOrder;
 use App\Models\Order;
+use App\Models\File;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Session\Store;
 use Illuminate\Support\Stringable;
 use Illuminate\Support\Facades\Storage;
 
@@ -95,26 +96,24 @@ class Courier extends WebhookHandler
                 ->where('message_type_id', 1)
                 ->first();
             $template = $this->template_prefix.'order_info';
-            if(isset($main_chat_order)) { // редактируем
-                $this->chat
-                    ->edit($main_chat_order->message_id)
-                    ->html(view($template, ['order' => $order]))
-                    ->keyboard($keyboard)
-                    ->send();
-                // нужно отправлять вместе с фото (достать из БД)
-            } else { // отправляем новое
-                $response = $this->chat
-                    ->message(view($template, ['order' => $order]))
-                    ->keyboard($keyboard)
-                    ->send();
+            $photos = File::where('order_id', $order->id)
+                ->where('file_type_id', 1)
+                ->where('order_status_id', 5)
+                ->get();
 
-                ChatOrder::create([
-                    'telegraph_chat_id' => $this->chat->id,
-                    'order_id' => $order->id,
-                    'message_id' => $response->telegraphMessageId(),
-                    'message_type_id' => 1
-                ]);
-            }
+            $first_photo = $photos->first();
+            $this->chat->deleteMessage($main_chat_order->message_id)->send();
+            $response = $this->chat->photo(Storage::path($first_photo->path))
+                ->html(view($template, ['order' => $order]))
+                ->keyboard($keyboard)
+                ->send();
+
+            $main_chat_order = ChatOrder::create([
+                'telegraph_chat_id' => $this->chat->id,
+                'order_id' => $order->id,
+                'message_id' => $response->telegraphMessageId(),
+                'message_type_id' => 1
+            ]);
         }
     }
 
@@ -146,6 +145,12 @@ class Courier extends WebhookHandler
                     $this->delete_message_by_types([5, 6, 7, 8]);
                     $this->select_order($photo);
                 }
+
+                /* Если фото первое из пачки или единственное -> создаем массив с ид этого фото */
+                $current_photos_ids = [$photo->id()];
+                /* Добавляем его в хранилище, что можно было в нужный момент вытащить и записать в бд */
+                $this->chat->storage()->set('current_photos_ids', $current_photos_ids);
+
             } // else if(...) {} обработка если несколько фото
 
             $this->chat->storage()->set('photo_message_timestamp', $message_timestamp);

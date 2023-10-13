@@ -2,10 +2,9 @@
 
 namespace App\Http\Webhooks\Handlers\Traits;
 
-use App\Models\Chat;
 use App\Models\ChatOrder;
+use App\Models\File;
 use App\Models\Order;
-use App\Models\OrderStatus;
 use DefStudio\Telegraph\DTO\Photo;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
@@ -159,18 +158,33 @@ trait ChatsHelperTrait
     public function confirm_photo(Photo $photo = null, Order $order = null): void
     {
         $flag = $this->data->get('confirm_photo');
+        $order = isset($order)? $order: Order::where('id', $this->data->get('order_id'))->first();
 
+        $dir = "{$this->chat->name}/order_{$order->id}"; // путь к папке с фото текущей карточки заказа
         if(isset($flag)) {
             $choice = $this->data->get('choice');
             if(isset($choice)) {
-                $order_id = $this->data->get('order_id');
-                $order = Order::where('id', $order_id)->first();
-
                 if($choice == 1) { // YES
                     $this->delete_message_by_types([6]);
-                    $order->update(['status_id' => 5]);
+
+                    /* Получаем текущее/текущие для подтверждения фото и добавляем в БД */
+                    $current_photos_ids = $this->chat->storage()->get('current_photos_ids');
+                    if($this->chat->name === 'Courier' AND $order->status_id === 3) {
+                        $order->update(['status_id' => 5]);
+                    } else {
+                        $order->update(['status_id' => ++$order->status_id]);
+                    }
+                    foreach ($current_photos_ids as $photo_id) {
+                        File::create([
+                            'order_id' => $order->id,
+                            'ticket_item_id' => null,
+                            'file_type_id' => 1,
+                            'path' => $this->chat->name."/order_{$order->id}"."/{$photo_id}.jpg",
+                            'order_status_id' => $order->status_id
+                        ]);
+                    }
+
                     $this->send_order_card($order);
-                    // нужно еще добавлять в БД путь до фото
                 } else if($choice == 2) { // NO
                     $this->delete_message_by_types([6]);
                     $this->request_photo($order);
@@ -179,8 +193,6 @@ trait ChatsHelperTrait
         }
 
         if(!isset($flag)) {
-            $order = isset($chat_order)? $chat_order->order: $order;
-            $dir = "{$this->chat->name}/order_{$order->id}";
             $file_name = $photo->id().".jpg";
             $buttons_texts = $this->config['confirm_photo'];
             $template = $this->template_prefix.'confirm_photo';
@@ -213,12 +225,12 @@ trait ChatsHelperTrait
         }
     }
 
-    public function select_order(Photo $photo): void
+    public function select_order(Photo $photo = null): void
     {
         $flag = $this->data->get('select_order');
 
         if(isset($flag)) {
-
+            $this->chat->message('выбор пока не работает')->send();
         }
 
         if(!isset($flag)) {

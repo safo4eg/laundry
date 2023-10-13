@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Photo extends Model
+class File extends Model
 {
     use HasFactory;
 
     public $timestamps = false;
-    protected $table = 'photos';
+    protected $table = 'files';
     protected $guarded = [];
 }
