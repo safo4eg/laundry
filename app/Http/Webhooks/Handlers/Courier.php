@@ -70,7 +70,7 @@ class Courier extends WebhookHandler
         $order = isset($order)? $order: Order::find($order_id);
 
         if(isset($flag)) { // Обработка данных с кнопки
-            $this->delete_message_by_types([5, 6, 7]);
+            $this->delete_other_messages();
             $this->request_photo($order); // сообщение с просьбой отправить фото
         }
 
@@ -132,7 +132,7 @@ class Courier extends WebhookHandler
             ]);
 
             $chat_order = ChatOrder::where('telegraph_chat_id', $this->chat->id)
-                ->whereIn('message_type_id', [5, 6, 7])
+                ->where('message_type_id', 5)
                 ->first();
 
             $order = isset($chat_order)? $chat_order->order: null;
@@ -141,23 +141,20 @@ class Courier extends WebhookHandler
             $message_timestamp = $this->message->date()->timestamp; // время отправки прилетевшего фото
             $last_message_timestamp = $this->chat->storage()->get('photo_message_timestamp'); // timestamp предыдущего прилетевшего фото
 
-            if(isset($chat_order)) {
-                if($chat_order->message_type_id === 5) {
+            if($message_timestamp !== $last_message_timestamp) {
+                $this->chat->storage()->set('photo_id', $photo->id());
+
+                if(isset($chat_order)) { // если есть запрос на фото
                     $this->delete_message_by_types([5, 8]);
-                    $this->confirm_photo($photo, $chat_order->order);
-                } else {
-                    if($message_timestamp === $last_message_timestamp) {
-                        if($chat_order->message_type_id === 6 OR $chat_order->message_type_id === 7) {
-                            $this->delete_message_by_types([8]);
-                        }
-                    } else {
-                        $this->delete_message_by_types([6, 7, 8]);
-                        $this->select_order($photo);
-                    }
+                    $this->confirm_photo($photo, $order);
+                }
+
+                if(!isset($chat_order)) { // если фото было просто закинуто
+                    $this->delete_other_messages();
+                    $this->select_order($photo);
                 }
             } else {
                 $this->delete_message_by_types([8]);
-                $this->select_order($photo);
             }
 
             $this->chat->storage()->set('photo_message_timestamp', $message_timestamp);
