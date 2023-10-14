@@ -11,6 +11,7 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use Illuminate\Session\Store;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Stringable;
 use Illuminate\Support\Facades\Storage;
 
@@ -131,27 +132,33 @@ class Courier extends WebhookHandler
             ]);
 
             $chat_order = ChatOrder::where('telegraph_chat_id', $this->chat->id)
-                ->where('message_type_id', 5)
+                ->whereIn('message_type_id', [5, 6, 7])
                 ->first();
-            $photo = $this->save_photo($photos, $chat_order);
 
-            $message_timestamp = $this->message->date()->timestamp; // timestamp отправки текущего фото
-            $last_message_timestamp = $this->chat->storage()->get('photo_message_timestamp'); // timestamp последнего прилетевшего фото
-            if(is_null($last_message_timestamp) OR $message_timestamp !== $last_message_timestamp) {
-                if(isset($chat_order)) {
+            $order = isset($chat_order)? $chat_order->order: null;
+            $photo = $this->save_photo($photos, $order);
+
+            $message_timestamp = $this->message->date()->timestamp; // время отправки прилетевшего фото
+            $last_message_timestamp = $this->chat->storage()->get('photo_message_timestamp'); // timestamp предыдущего прилетевшего фото
+
+            if(isset($chat_order)) {
+                if($chat_order->message_type_id === 5) {
                     $this->delete_message_by_types([5, 8]);
                     $this->confirm_photo($photo, $chat_order->order);
                 } else {
-                    $this->delete_message_by_types([5, 6, 7, 8]);
-                    $this->select_order($photo);
+                    if($message_timestamp === $last_message_timestamp) {
+                        if($chat_order->message_type_id === 6 OR $chat_order->message_type_id === 7) {
+                            $this->delete_message_by_types([8]);
+                        }
+                    } else {
+                        $this->delete_message_by_types([6, 7, 8]);
+                        $this->select_order($photo);
+                    }
                 }
-
-                /* Если фото первое из пачки или единственное -> создаем массив с ид этого фото */
-                $current_photos_ids = [$photo->id()];
-                /* Добавляем его в хранилище, что можно было в нужный момент вытащить и записать в бд */
-                $this->chat->storage()->set('current_photos_ids', $current_photos_ids);
-
-            } // else if(...) {} обработка если несколько фото
+            } else {
+                $this->delete_message_by_types([8]);
+                $this->select_order($photo);
+            }
 
             $this->chat->storage()->set('photo_message_timestamp', $message_timestamp);
 

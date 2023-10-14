@@ -155,7 +155,7 @@ trait ChatsHelperTrait
         ]);
     }
 
-    public function confirm_photo(Photo $photo = null, Order $order = null): void
+    public function confirm_photo(Photo $photo, Order $order = null): void
     {
         $flag = $this->data->get('confirm_photo');
         $order = isset($order)? $order: Order::where('id', $this->data->get('order_id'))->first();
@@ -308,15 +308,15 @@ trait ChatsHelperTrait
         }
     }
 
-    public function save_photo(Collection $photos, ChatOrder $chat_order = null): Photo
+    public function save_photo(Collection $photos, Order $order = null): Photo
     {
         $photo = $photos->last(); // получение фото с лучшем качеством
         $dir = "{$this->chat->name}/";
         $file_name = $photo->id().".jpg";
 
-        if(isset($chat_order)) { // если есть сообщение, которое просит отправить фото
-            $dir = $dir."order_{$chat_order->order->id}";
-        } else { // если фото просто так закинули в чат
+        if(isset($order)) { // если известен заказ
+            $dir = $dir."order_{$order->id}";
+        } else { // если заказ неизвестен
             $dir = $dir."order_undefined";
         }
 
