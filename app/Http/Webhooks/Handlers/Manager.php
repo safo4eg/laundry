@@ -25,9 +25,10 @@ class Manager extends WebhookHandler
 
     public function send_order_card(Order $order): void // распределение какую карточку отправить
     {
+        $keyboard = $this->get_current_order_card_keyboard($order);
         switch ($order->status_id) {
             case 2:
-                $this->distribute($order);
+                $this->distribute($order, $keyboard);
                 break;
         }
     }
@@ -53,7 +54,7 @@ class Manager extends WebhookHandler
         return $keyboard;
     }
 
-    public function distribute(Order $order = null): void
+    public function distribute(Order $order = null, Keyboard $keyboard = null): void
     {
         $flag = $this->data->get('distribute');
         $order_id = $this->data->get('order_id');
@@ -66,12 +67,11 @@ class Manager extends WebhookHandler
                 'laundry_id' => $laundry_id
             ]);
 
-            $this->update_order_card($order, $this->get_current_order_card_keyboard($order));
+            $this->update_order_card($order);
         }
 
         if(!isset($flag)) {
             $template = $this->template_prefix.'order_info';
-            $keyboard = $this->get_current_order_card_keyboard($order);
             $response = $this->chat
                 ->message(view($template, ['order' => $order]))
                 ->keyboard($keyboard)
@@ -96,13 +96,12 @@ class Manager extends WebhookHandler
         ]);
 
         if($order_id == '/refresh') {
-            $this->update_all_orders_cards_command();
-            $this->remove_other_messages();
+            $this->refresh_chat();
         } else {
-            $order = $this->check_order_existence_in_chat_message($order_id);
+            $order = $this->check_order_message_existence_in_chat($order_id);
             if(isset($order)) {
-                $this->update_order_card_through_command($order);
-                $this->remove_other_messages();
+                $this->delete_message_by_types([3, 4]);
+                $this->update_order_card($order);
             }
         }
     }

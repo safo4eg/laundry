@@ -25,6 +25,20 @@ trait ChatsHelperTrait
         $this->send_order_card($order);
     }
 
+    public function refresh_chat()
+    {
+        $this->delete_message_by_types([3, 4, 7, 8]); // удаляем сообщения не относящиеся к карточкам заказов
+        $main_chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id) // получаем все карточки заказа в чате
+            ->where('message_type_id', 1)
+            ->get();
+
+        if($main_chat_orders->isNotEmpty()) {
+            foreach($main_chat_orders as $chat_order) {
+                $this->update_order_card($chat_order->order);
+            }
+        }
+    }
+
     public function delete_order_card_messages(Order $order, bool $with_main = null): void
     {
         $chat_orders = null;
