@@ -70,7 +70,6 @@ class Courier extends WebhookHandler
         $order = isset($order)? $order: Order::find($order_id);
 
         if(isset($flag)) { // Обработка данных с кнопки
-            $this->delete_other_messages();
             $this->request_photo($order); // сообщение с просьбой отправить фото
         }
 
@@ -92,24 +91,18 @@ class Courier extends WebhookHandler
         }
 
         if(!isset($flag)) {
-            $main_chat_order = ChatOrder::where('telegraph_chat_id', $this->chat->id)
-                ->where('order_id', $order->id)
-                ->where('message_type_id', 1)
-                ->first();
             $template = $this->template_prefix.'order_info';
-            $photos = File::where('order_id', $order->id)
+            $photo = File::where('order_id', $order->id)
                 ->where('file_type_id', 1)
                 ->where('order_status_id', 5)
-                ->get();
+                ->first();
 
-            $first_photo = $photos->first();
-            $this->chat->deleteMessage($main_chat_order->message_id)->send();
-            $response = $this->chat->photo(Storage::path($first_photo->path))
+            $response = $this->chat->photo(Storage::path($photo->path))
                 ->html(view($template, ['order' => $order]))
                 ->keyboard($keyboard)
                 ->send();
 
-            $main_chat_order = ChatOrder::create([
+            ChatOrder::create([
                 'telegraph_chat_id' => $this->chat->id,
                 'order_id' => $order->id,
                 'message_id' => $response->telegraphMessageId(),
@@ -136,12 +129,12 @@ class Courier extends WebhookHandler
                 ->first();
 
             $order = isset($chat_order)? $chat_order->order: null;
-            $photo = $this->save_photo($photos, $order);
 
             $message_timestamp = $this->message->date()->timestamp; // время отправки прилетевшего фото
             $last_message_timestamp = $this->chat->storage()->get('photo_message_timestamp'); // timestamp предыдущего прилетевшего фото
 
             if($message_timestamp !== $last_message_timestamp) {
+                $photo = $this->save_photo($photos, $order);
                 $this->chat->storage()->set('photo_id', $photo->id());
 
                 if(isset($chat_order)) { // если есть запрос на фото
@@ -150,7 +143,7 @@ class Courier extends WebhookHandler
                 }
 
                 if(!isset($chat_order)) { // если фото было просто закинуто
-                    $this->delete_other_messages();
+                    $this->delete_message_by_types([2, 3, 4, 5, 6, 7]);
                     $this->select_order($photo);
                 }
             } else {

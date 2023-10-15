@@ -2,6 +2,7 @@
 
 namespace App\Http\Webhooks\Handlers\Traits;
 
+use App\Models\Chat;
 use App\Models\ChatOrder;
 use App\Models\File;
 use App\Models\Order;
@@ -16,81 +17,68 @@ use Illuminate\Support\Facades\Storage;
 
 trait ChatsHelperTrait
 {
-    public function update_order_card_through_command(Order $order)
+    /* удаляет все сообщения связанные с карточкой заказа */
+    /* отправляет на метод отправки новго сообщения */
+    public function update_order_card(Order $order)
     {
-        $chat_orders = ChatOrder::where('order_id', $order->id)
-            ->where('telegraph_chat_id', $this->chat->id)
-            ->get();
+        $this->delete_order_card_messages($order, true);
+        $this->send_order_card($order);
+    }
+
+    public function delete_order_card_messages(Order $order, bool $with_main = null): void
+    {
+        $chat_orders = null;
+
+        if(!empty($with_main)) { // удаляет все сообщения связанные с карточкой, но без главной карточки заказа
+            $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+                ->where('order_id', $order->id)
+                ->get();
+        }
+
+        if(empty($with_main)) { // удаляет сообщения включая карточку заказа
+            $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+                ->where('order_id', $order->id)
+                ->where('message_type_id', '!=', 1)
+                ->get();
+        }
 
         foreach ($chat_orders as $chat_order) {
-            if ($chat_order->message_type_id === 1) {
-                $this->chat
-                    ->deleteMessage($chat_order->message_id)
-                    ->send();
-                $chat_order->delete();
-                $this->send_order_card($order);
-            } else {
-                $this->chat
-                    ->deleteMessage($chat_order->message_id)
-                    ->send();
-                $chat_order->delete();
-            }
+            $this->chat->deleteMessage($chat_order->message_id)->send();
+            $chat_order->delete();
         }
     }
 
-    public function update_order_card(Order $order, Keyboard $keyboard = null)
+    public function delete_message_by_types(array $messages_types_ids = null): void // массив типа [1,2,3], где значения - тайп_ид
     {
-        $chat_orders = ChatOrder::where('order_id', $order->id)
-            ->where('telegraph_chat_id', $this->chat->id)
-            ->get();
+        $flag = $this->data->get('delete');
 
-        $chat_order_main = $chat_orders
-            ->where('message_type_id', 1)
-            ->first();
+        if (isset($flag)) { // значит прилетело с кнопки
+            $type_id = $this->data->get('type_id'); // тип сообщения
+            $chat_order = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+                ->where('message_type_id', $type_id)
+                ->first();
 
-        $template = $this->template_prefix . 'order_info';
-
-        foreach ($chat_orders as $chat_order) {
-            if ($chat_order->message_type_id != 1) {
-                $this->chat
-                    ->deleteMessage($chat_order->message_id)
-                    ->send();
-                $chat_order->delete();
-            }
+            $this->chat->deleteMessage($chat_order->message_id)->send();
+            $chat_order->delete();
         }
 
-        if (isset($keyboard)) {
-            $this->chat
-                ->edit($chat_order_main->message_id)
-                ->message(view($template, ['order' => $order]))
-                ->keyboard($keyboard)
-                ->send();
-        } else {
-            $this->chat
-                ->edit($chat_order_main->message_id)
-                ->message(view($template, ['order' => $order]))
-                ->send();
-        }
-    }
+        if (!isset($flag)) {
+            if (isset($messages_types_ids)) { // удаляет конкретные типы сообщения из чата
+                $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+                    ->whereIn('message_type_id', $messages_types_ids)
+                    ->get();
 
-    public function update_all_orders_cards_command(): void
-    {
-        $orders = Order::whereExists(function ($query) {
-            $query->select(DB::raw(1))
-                ->from('chat_order')
-                ->whereColumn('chat_order.order_id', 'orders.id')
-                ->where('telegraph_chat_id', $this->chat->id);
-        })
-            ->get();
-
-        if ($orders->count() > 0) {
-            foreach ($orders as $order) {
-                $this->update_order_card_through_command($order);
+                if ($chat_orders->isNotEmpty()) {
+                    foreach ($chat_orders as $chat_order) {
+                        $this->chat->deleteMessage($chat_order->message_id)->send();
+                        $chat_order->delete();
+                    }
+                }
             }
         }
     }
 
-    public function check_order_existence_in_chat_message(string|int $order_id): Order|null
+    public function check_order_message_existence_in_chat(string|int $order_id): Order|null
     {
         $chat_order = ChatOrder::where('telegraph_chat_id', $this->chat->id)
             ->where('order_id', $order_id)
@@ -113,19 +101,6 @@ trait ChatsHelperTrait
                 ]
             ]);
             return null;
-        }
-    }
-
-    public function delete_other_messages(): void
-    {
-        $other_messages = ChatOrder::where('telegraph_chat_id', $this->chat->id)
-            ->whereIn('message_type_id', [2, 3, 4, 5, 6, 7, 8])
-            ->get();
-        if ($other_messages->count() > 0) {
-            foreach ($other_messages as $other_message) {
-                $this->chat->deleteMessage($other_message->message_id)->send();
-                $other_message->delete();
-            }
         }
     }
 
@@ -165,25 +140,8 @@ trait ChatsHelperTrait
             $choice = $this->data->get('choice');
             if (isset($choice)) {
                 if ($choice == 1) { // YES
-                    $this->delete_message_by_types([6]);
-
-                    /* Получаем текущее/текущие для подтверждения фото и добавляем в БД */
-                    $photo_id = $this->chat->storage()->get('photo_id');
-                    if ($this->chat->name === 'Courier' and $order->status_id === 3) {
-                        $order->update(['status_id' => 5]);
-                    } else {
-                        $order->update(['status_id' => ++$order->status_id]);
-                    }
-
-                    File::create([
-                        'order_id' => $order->id,
-                        'ticket_item_id' => null,
-                        'file_type_id' => 1,
-                        'path' => $this->chat->name . "/order_{$order->id}" . "/{$photo_id}.jpg",
-                        'order_status_id' => $order->status_id
-                    ]);
-
-                    $this->send_order_card($order);
+                    $this->push_photo_to_db($order);
+                    $this->update_order_card($order);
                 } else if ($choice == 2) { // NO
                     $this->delete_message_by_types([6]);
                     $this->request_photo($order);
@@ -228,8 +186,18 @@ trait ChatsHelperTrait
     {
         $flag = $this->data->get('select_order');
 
-        if (isset($flag)) {
-            $this->chat->message('выбор пока не работает')->send();
+        if(isset($flag)) {
+            $order_id = $this->data->get('order_id');
+            $order = Order::where('id', $order_id)->first();
+
+            /* перенос фото из андефаинд в конкретную папку заказа */
+            $photo_id = $this->chat->storage()->get('photo_id');
+            $old_path = $this->chat->name . "/order_undefined" . "/{$photo_id}.jpg";
+            $new_path = $this->chat->name . "/order_{$order->id}" . "/{$photo_id}.jpg";
+            Storage::move($old_path, $new_path);
+
+            $this->push_photo_to_db($order);
+            $this->update_order_card($order);
         }
 
         if (!isset($flag)) {
@@ -277,36 +245,6 @@ trait ChatsHelperTrait
         }
     }
 
-    public function delete_message_by_types(array $messages_types_id = null): void // массив типа [1,2,3], где значения - тайп_ид
-    {
-        $flag = $this->data->get('delete');
-
-        if (isset($flag)) { // значит прилетело с кнопки
-            $type_id = $this->data->get('type_id'); // тип сообщения
-            $chat_order = ChatOrder::where('telegraph_chat_id', $this->chat->id)
-                ->where('message_type_id', $type_id)
-                ->first();
-
-            $this->chat->deleteMessage($chat_order->message_id)->send();
-            $chat_order->delete();
-        }
-
-        if (!isset($flag)) {
-            if (isset($messages_types_id)) {
-                $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
-                    ->whereIn('message_type_id', $messages_types_id)
-                    ->get();
-
-                if ($chat_orders->isNotEmpty()) {
-                    foreach ($chat_orders as $chat_order) {
-                        $this->chat->deleteMessage($chat_order->message_id)->send();
-                        $chat_order->delete();
-                    }
-                }
-            }
-        }
-    }
-
     public function save_photo(Collection $photos, Order $order = null): Photo
     {
         $photo = $photos->last(); // получение фото с лучшем качеством
@@ -322,5 +260,24 @@ trait ChatsHelperTrait
         Telegraph::store($photo, Storage::path($dir), $file_name); // сохранение фото
 
         return $photo;
+    }
+
+    public function push_photo_to_db(Order $order = null): void
+    {
+        $photo_id = $this->chat->storage()->get('photo_id');
+
+        if ($this->chat->name === 'Courier' and $order->status_id === 3) {
+            $order->update(['status_id' => 5]);
+        } else {
+            $order->update(['status_id' => ++$order->status_id]);
+        }
+
+        File::create([
+            'order_id' => $order->id,
+            'ticket_item_id' => null,
+            'file_type_id' => 1,
+            'path' => $this->chat->name . "/order_{$order->id}" . "/{$photo_id}.jpg",
+            'order_status_id' => $order->status_id
+        ]);
     }
 }
