@@ -4,12 +4,14 @@ namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\ChatsHelperTrait;
 use App\Models\ChatOrder;
+use App\Models\File;
 use App\Models\Laundry;
 use App\Models\Order;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 
 class Manager extends WebhookHandler
@@ -25,18 +27,7 @@ class Manager extends WebhookHandler
 
     public function send_order_card(Order $order): void // распределение какую карточку отправить
     {
-        $keyboard = $this->get_current_order_card_keyboard($order);
-        switch ($order->status_id) {
-            case 2:
-                $this->distribute($order, $keyboard);
-                break;
-        }
-    }
-
-    public function get_current_order_card_keyboard(Order $order): Keyboard|null
-    {
-        $keyboard = null;
-
+        $keyboard = Keyboard::make();
         if($order->status_id === 2) {
             $keyboard = Keyboard::make();
             $laundries = Laundry::all();
@@ -49,9 +40,15 @@ class Manager extends WebhookHandler
                     ->param('laundry_id', $laundry->id)
                     ->param('order_id', $order->id);
             }
-        }
 
-        return $keyboard;
+            $this->distribute($order, $keyboard);
+        } else {
+            $keyboard->buttons([
+                Button::make('тестовая кнопка 1')->action('show_card'),
+                Button::make('тестовая кнопка 2')->action('show_card')
+            ]);
+            $this->show_card($order, $keyboard);
+        }
     }
 
     public function distribute(Order $order = null, Keyboard $keyboard = null): void
@@ -83,6 +80,46 @@ class Manager extends WebhookHandler
                 'message_id' => $response->telegraphMessageId(),
                 'message_type_id' => 1
             ]);
+        }
+    }
+
+    public function show_card(Order $order = null, Keyboard $keyboard = null): void
+    {
+        $flag = $this->data->get('show_card');
+
+        if(isset($flag)) {
+
+        }
+
+        if(!isset($flag)) {
+            $template = $this->template_prefix.'order_info';
+            $response = null;
+            if($order->status_id === 3) { // если только отправилось курьеру
+                $response = $this->chat
+                    ->message(view($template, ['order' => $order]))
+                    ->keyboard($keyboard)
+                    ->send();
+            }
+
+            if($order->status_id !== 3) {
+                $photo = File::where('order_id', $order->id)
+                    ->where('file_type_id', 1)
+                    ->where('order_status_id', $order->status_id)
+                    ->first();
+
+                $response = $this->chat->photo(Storage::path($photo->path))
+                    ->message(view($template, ['order' => $order]))
+                    ->keyboard($keyboard)
+                    ->send();
+            }
+
+            ChatOrder::create([
+                'telegraph_chat_id' => $this->chat->id,
+                'order_id' => $order->id,
+                'message_id' => $response->telegraphMessageId(),
+                'message_type_id' => 1
+            ]);
+
         }
     }
 
