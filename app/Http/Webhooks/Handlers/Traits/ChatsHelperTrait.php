@@ -6,6 +6,7 @@ use App\Models\Chat;
 use App\Models\ChatOrder;
 use App\Models\Order;
 use App\Models\OrderStatus;
+use App\Models\TicketItem;
 use DefStudio\Telegraph\DTO\Photo;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
@@ -259,7 +260,7 @@ trait ChatsHelperTrait
 
     public function save_photo(Collection $photos, ChatOrder $chat_order = null): Photo
     {
-        $photo = $photos->last(); // получение фото с лучшем качеством
+        $photo = $photos->last(); // получение фото с лучшим качеством
         $dir = "{$this->chat->name}/";
         $file_name = $photo->id().".jpg";
 
@@ -268,6 +269,18 @@ trait ChatsHelperTrait
         } else { // если фото просто так закинули в чат
             $dir = $dir."order_undefined";
         }
+
+        Telegraph::store($photo, Storage::path($dir), $file_name); // сохранение фото
+
+        return $photo;
+    }
+
+    public function save_ticket_photo(Collection $photos, TicketItem $ticket_item): Photo
+    {
+        $photo = $photos->last(); // получение фото с лучшим качеством
+        $dir = "ticket/";
+        $file_name = $photo->id().".jpg";
+        $dir = $dir."ticket_item_{$ticket_item->id}";
 
         Telegraph::store($photo, Storage::path($dir), $file_name); // сохранение фото
 

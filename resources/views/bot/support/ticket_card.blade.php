@@ -1,15 +1,16 @@
-Обращение #{{ $ticket->id }}
+<b>Ticket #{{$ticket->id}}</b>
 
-@foreach($messages as $message)
+@foreach($ticket->ticketItems as $message)
     @if($message->chat_id !== \App\Models\Chat::where('name', 'Support')->first()->id)
-        <b>You</b> <i>{{ $message->time }}</i>
+        <b>{{"@".$ticket->user->username}}</b> <i>{{ $message->time }}</i>
     @else
         <b>Support</b> <i>{{ $message->time }}</i>
     @endif
     {{ $message->text }}
     @if($message->file)
         @foreach($message->file as $file)
-            <a href="">ляляля</a>
+            хуй
+            <a href="https://bd9c-5-136-117-53.ngrok-free.app/{{$file->path}}">Вложение</a>
         @endforeach
     @endif
 @endforeach

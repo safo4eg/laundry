@@ -13,7 +13,13 @@ class Ticket extends Model
 
     protected $guarded = [];
 
-    public function ticketItems(){
+    public function ticketItems(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
         return $this->hasMany(TicketItem::class);
+    }
+
+    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }
