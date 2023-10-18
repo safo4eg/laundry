@@ -11,5 +11,7 @@
                 <b>Заказ {{$order->id}}</b> <i>Waiting to be filled</i>
                 @break
         @endswitch
+    @elseif($order->status_id === 5)
+        <b>Order {{$order->id}}</b> <i>The courier took the things</i>
     @endif
 @endforeach

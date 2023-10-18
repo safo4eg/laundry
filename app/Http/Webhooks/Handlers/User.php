@@ -298,7 +298,7 @@ class User extends WebhookHandler
             $back_button = Button::make($buttons['back'])
                 ->action('orders')
                 ->param('orders', 1); // нужно еще добавить choice чтобы знать с какого типа назад
-            if ($status_id === 2 or $status_id === 3) {
+            if ($status_id !== 4) {
                 $buttons = [
                     'wishes' => $this->config['order_info']['wishes'][$this->user->language_code],
                     'cancel' => $this->config['order_info']['cancel'][$this->user->language_code],
@@ -482,7 +482,7 @@ class User extends WebhookHandler
                 }
 
                 $orders = Order::where('user_id', $this->user->id)
-                    ->whereBetween('status_id', [1, 3])
+                    ->whereNotIn('status_id', [4])
                     ->orWhere(function (Builder $query) {
                         $query
                             ->where('user_id', $this->user->id)
