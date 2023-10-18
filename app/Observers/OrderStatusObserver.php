@@ -2,10 +2,13 @@
 
 namespace App\Observers;
 
+use App\Models\Bot;
 use App\Models\Chat;
 use App\Models\Laundry;
 use App\Models\OrderStatusPivot;
 use App\Models\ChatOrder;
+use App\Http\Webhooks\Handlers\Manager;
+use App\Services\FakeRequest;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +20,7 @@ class OrderStatusObserver
         $order = $orderStatus->order;
         $chat = null;
         $message_id = null;
+        $bot = Bot::where('username', 'rastan_telegraph_bot')->first();
 
         if($order->status_id === 2) {
             // этап когда заявка полностью заполнена пользователем
@@ -60,8 +64,17 @@ class OrderStatusObserver
                 ->send())
                 ->telegraphMessageId();
         } else if($order->status_id == 5) {
-            // отправка уведомления пользователю о том, что курьер принял заказ
-            // редактирования карточки в чате менеджеров
+            $chat = Chat::where('name', 'Manager')->first();
+            $dataset = [
+                'action' => 'update_order_card',
+                'params' => [
+                    'update_order_card' => 1,
+                    'order_id' => $order->id
+                ]
+            ];
+
+            $request = FakeRequest::callback_query($chat, $bot, $dataset);
+            (new Manager())->handle($request, $bot);
         }
 
         if(isset($message_id)) {

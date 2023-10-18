@@ -19,8 +19,14 @@ trait ChatsHelperTrait
 {
     /* удаляет все сообщения связанные с карточкой заказа */
     /* отправляет на метод отправки новго сообщения */
-    public function update_order_card(Order $order)
+    public function update_order_card(Order $order = null)
     {
+        $flag = $this->data->get('update_order_card');
+
+        if(isset($flag)) {
+            $order_id = $this->data->get('order_id');
+            $order = Order::where('id', $order_id)->first();
+        }
         $this->delete_order_card_messages($order, true);
         $this->send_order_card($order);
     }
@@ -201,6 +207,7 @@ trait ChatsHelperTrait
         $flag = $this->data->get('select_order');
 
         if(isset($flag)) {
+            $this->delete_message_by_types([7]);
             $order_id = $this->data->get('order_id');
             $order = Order::where('id', $order_id)->first();
 
@@ -280,10 +287,11 @@ trait ChatsHelperTrait
     {
         $photo_id = $this->chat->storage()->get('photo_id');
 
+        $status_id = $order->status_id;
         if ($this->chat->name === 'Courier' and $order->status_id === 3) {
-            $order->update(['status_id' => 5]);
+            $status_id = 5;
         } else {
-            $order->update(['status_id' => ++$order->status_id]);
+            ++$status_id;
         }
 
         File::create([
@@ -291,7 +299,9 @@ trait ChatsHelperTrait
             'ticket_item_id' => null,
             'file_type_id' => 1,
             'path' => $this->chat->name . "/order_{$order->id}" . "/{$photo_id}.jpg",
-            'order_status_id' => $order->status_id
+            'order_status_id' => $status_id
         ]);
+
+        $order->update(['status_id' => $status_id]);
     }
 }
