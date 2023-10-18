@@ -70,6 +70,7 @@ class Courier extends WebhookHandler
         $order = isset($order)? $order: Order::find($order_id);
 
         if(isset($flag)) { // Обработка данных с кнопки
+            $this->delete_message_by_types([5, 6, 7]);
             $this->request_photo($order); // сообщение с просьбой отправить фото
         }
 
@@ -111,11 +112,35 @@ class Courier extends WebhookHandler
         }
     }
 
+    public function refresh(string $order_id): void
+    {
+        ChatOrder::create([
+            'telegraph_chat_id' => $this->chat->id,
+            'order_id' => null,
+            'message_id' => $this->messageId,
+            'message_type_id' => 4
+        ]);
+
+        if($order_id == '/refresh') {
+            $this->refresh_chat();
+        } else {
+            $order = $this->check_order_message_existence_in_chat($order_id);
+            if(isset($order)) {
+                $this->delete_message_by_types([3, 4]);
+                $this->update_order_card($order);
+            }
+        }
+    }
+
     protected function handleChatMessage(Stringable $text): void
     {
         $photos = $this->message->photos();
+        $message_text = $this->message->text(); // обычный текст
 
-        // *** Еще проверку на то, что есть просьба отправить фото!
+        if(isset($message_text) AND $photos->isEmpty()) { // просто текст
+            $this->chat->message('просто текст')->send();
+        }
+
         if(isset($photos) AND $photos->isNotEmpty()) { // обработка прилетевших фотографий
             ChatOrder::create([
                 'telegraph_chat_id' => $this->chat->id,
@@ -143,7 +168,7 @@ class Courier extends WebhookHandler
                 }
 
                 if(!isset($chat_order)) { // если фото было просто закинуто
-                    $this->delete_message_by_types([2, 3, 4, 5, 6, 7]);
+                    $this->delete_message_by_types([2, 3, 4, 5, 6, 7, 8]);
                     $this->select_order($photo);
                 }
             } else {

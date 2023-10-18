@@ -8,7 +8,6 @@ use DefStudio\Telegraph\DTO\Chat;
 use DefStudio\Telegraph\DTO\Message;
 use DefStudio\Telegraph\Models\TelegraphBot;
 use DefStudio\Telegraph\Models\TelegraphChat;
-use http\Client\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\User as UserModel;
