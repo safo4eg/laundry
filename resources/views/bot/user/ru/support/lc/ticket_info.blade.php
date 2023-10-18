@@ -9,7 +9,7 @@
     {{ $message->text }}
     @if($message->file)
         @foreach($message->file as $file)
-            <a href="">ляляля</a>
+            <a href="{{ url($file->path) }}">Вложение</a>
         @endforeach
     @endif
 @endforeach

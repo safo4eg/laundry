@@ -9,7 +9,7 @@ use Carbon\Carbon;
 
 class TicketObserver
 {
-    public function created(Ticket $ticket)
+    public function created(Ticket $ticket): void
     {
         TicketStatusPivot::create([
             'ticket_id' => $ticket->id,

@@ -112,8 +112,7 @@ trait SupportTrait
             ->first();
 
         if ($this->message->photos() && $this->message->photos()->isNotEmpty()) {
-            if (isset($this->user->message_id))
-            {
+            if (isset($this->user->message_id)) {
                 $this->delete_active_page();
             }
 
@@ -158,7 +157,7 @@ trait SupportTrait
             ->first();
 
         if ($flag) {
-            $dir = "Ticket/ticket_item_{$ticket_item->id}";
+            $dir = "ticket/ticket_item_{$ticket_item->id}";
             $photo_id = $this->bot->storage()->get('photo_id');
             $file_name = "$photo_id.jpg";
 
@@ -166,7 +165,7 @@ trait SupportTrait
                 'status_id' => 2
             ]);
             File::create([
-                'path' => Storage::path("{$dir}/{$file_name}"),
+                'path' => Storage::url("{$dir}/{$file_name}"),
                 'ticket_item_id' => $ticket_item->id,
             ]);
             $this->user->update([
@@ -186,12 +185,12 @@ trait SupportTrait
     {
         $flag = $this->data->get('ticket_created_flag');
 
-        if ($flag){
+        if ($flag) {
             $ticket_id = $this->bot->storage()->get('current_ticket_id');
             $ticket = Ticket::where('id', $ticket_id)->first();
 
             $ticket->update([
-               'status_id' => 2
+                'status_id' => 2
             ]);
         }
 

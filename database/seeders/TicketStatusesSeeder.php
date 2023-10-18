@@ -2,8 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Http\Webhooks\Handlers\Courier;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -30,6 +28,11 @@ class TicketStatusesSeeder extends Seeder
             [
                 'name' => 'closed',
                 'desc' => 'Ticket closed'
+            ],
+
+            [
+                'name' => 'rejected',
+                'desc' => 'Ticket rejected'
             ]
         ]);
     }

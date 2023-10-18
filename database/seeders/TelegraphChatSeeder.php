@@ -2,8 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Http\Webhooks\Handlers\Courier;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -44,7 +42,14 @@ class TelegraphChatSeeder extends Seeder
                 'name' => 'Support',
                 'telegraph_bot_id' => 1,
                 'laundry_id' => null
-        ]
+            ],
+
+            [
+                'chat_id' => -1001964319343,
+                'name' => 'Archive',
+                'telegraph_bot_id' => 1,
+                'laundry_id' => null
+            ]
         ]);
     }
 }

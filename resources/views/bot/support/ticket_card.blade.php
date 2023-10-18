@@ -10,7 +10,6 @@
     @if($message->file)
         @foreach($message->file as $file)
             хуй
-            <a href="https://bd9c-5-136-117-53.ngrok-free.app/{{$file->path}}">Вложение</a>
         @endforeach
     @endif
 @endforeach

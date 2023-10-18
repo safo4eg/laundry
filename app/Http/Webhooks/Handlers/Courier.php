@@ -125,7 +125,6 @@ class Courier extends WebhookHandler
             } // else if(...) {} обработка если несколько фото
 
             $this->chat->storage()->set('photo_message_timestamp', $message_timestamp);
-
         }
     }
 }
