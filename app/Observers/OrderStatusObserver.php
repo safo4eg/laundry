@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Http\Webhooks\Handlers\Courier;
 use App\Models\Bot;
 use App\Models\Chat;
 use App\Models\Laundry;
@@ -21,80 +22,42 @@ class OrderStatusObserver
     public function created(OrderStatusPivot $orderStatus)
     {
         $order = $orderStatus->order;
-        $chat = null;
-        $message_id = null;
-        $bot = Bot::where('username', 'rastan_telegraph_bot')->first();
+        $update_order_dataset = null;
+        $bot = null;
 
-        if($order->status_id === 2) {
-            // этап когда заявка полностью заполнена пользователем
-            // отправка в MANAGER CHAT
-
-            $laundries = Laundry::all();
-            $keyboard = Keyboard::make();
-            foreach ($laundries as $laundry)
-            {
-                $keyboard
-                    ->button($laundry->title)
-                    ->action('distribute')
-                    ->param('distribute', 1)
-                    ->param('laundry_id', $laundry->id)
-                    ->param('order_id', $order->id);
-            }
-
-            $chat = Chat::where('name', 'Manager')->first();
-            $message_id = ($chat
-                ->message((string) view('bot.manager.order_info', ['order' => $order]))
-                ->keyboard($keyboard)
-                ->send())
-                ->telegraphMessageId();
-
-        } else if($order->status_id == 3) {
-            $chat = Chat::where('name', 'Courier')
-                ->where('laundry_id', $order->laundry_id)
-                ->first();
-
-            $button_texts = config('buttons.courier.pickup');
-            $keyboard = Keyboard::make()->buttons([
-                Button::make($button_texts['pickup'])
-                    ->action('pickup')
-                    ->param('pickup', 1)
-                    ->param('order_id', $order->id)
-            ]);
-
-            $message_id = ($chat
-                ->message((string) view('bot.courier.order_info', ['order' => $order]))
-                ->keyboard($keyboard)
-                ->send())
-                ->telegraphMessageId();
-        } else if($order->status_id == 5) {
-            $manager_chat = Chat::where('name', 'Manager')->first();
-            $manager_chat_dataset = [
+        if($order->status_id !== 1) {
+            $bot = Bot::where('username', 'rastan_telegraph_bot')->first();
+            $update_order_dataset = [
                 'action' => 'update_order_card',
                 'params' => [
                     'update_order_card' => 1,
                     'order_id' => $order->id
                 ]
             ];
-            $request = FakeRequest::callback_query($manager_chat, $bot, $manager_chat_dataset);
-            (new Manager())->handle($request, $bot);
 
+            if($order->status_id !== 3) {
+                $manager_chat = Chat::where('name', 'Manager')->first();
+                $manager_chat_request = FakeRequest::callback_query($manager_chat, $bot, $update_order_dataset);
+                (new Manager())->handle($manager_chat_request, $bot);
+            }
+        }
+
+        if($order->status_id === 3) { // отправка карточки заказа в чат курьеров
+            $courier_chat = Chat::where('name', 'Courier')
+                ->where('laundry_id', $order->laundry_id)
+                ->first();
+            $courier_chat_request = FakeRequest::callback_query($courier_chat, $bot, $update_order_dataset);
+            (new Courier())->handle($courier_chat_request, $bot);
+        }
+
+        if($order->status_id === 5) { // отправка уведомления клиенту
             $status = $order->statuses()->where('name', 'picked')->first();
             $picked_time = (new Carbon($status->pivot->created_at))->format('Y-m-d H:i');
             $user_chat_dataset = [
                 'order' => $order,
                 'picked_time' => $picked_time
             ];
-
             Helper::send_user_notification($order->user, 'order_pickuped', $user_chat_dataset);
-        }
-
-        if(isset($message_id)) {
-            ChatOrder::create([
-                'telegraph_chat_id' => $chat->id,
-                'order_id' => $order->id,
-                'message_id' => $message_id,
-                'message_type_id' => 1
-            ]);
         }
 
     }

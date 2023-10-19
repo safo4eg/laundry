@@ -42,7 +42,7 @@ class Courier extends WebhookHandler
     {
         $keyboard = null;
 
-        if($order->status_id == 4) {
+        if($order->status_id === 3) {
             $buttons_texts = $this->config['pickup'];
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons_texts['pickup'])
@@ -50,7 +50,7 @@ class Courier extends WebhookHandler
                     ->param('pickup', 1)
                     ->param('order_id', $order->id)
             ]);
-        } else if($order->status_id == 5) {
+        } else if($order->status_id === 5) {
             $buttons_texts = $this->config['deliver_in_laundry'];
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons_texts['deliver'])
@@ -76,10 +76,17 @@ class Courier extends WebhookHandler
 
         if(!isset($flag)) { // отображения карточки с кнопками
             $template = $this->template_prefix.'order_info';
-            $this->chat
+            $response = $this->chat
                 ->message(view($template, ['order' => $order]))
                 ->keyboard($keyboard)
                 ->send();
+
+            ChatOrder::create([
+                'telegraph_chat_id' => $this->chat->id,
+                'order_id' => $order->id,
+                'message_id' => $response->telegraphMessageId(),
+                'message_type_id' => 1
+            ]);
         }
     }
 
