@@ -9,9 +9,12 @@ use App\Models\OrderStatusPivot;
 use App\Models\ChatOrder;
 use App\Http\Webhooks\Handlers\Manager;
 use App\Services\FakeRequest;
+use App\Services\Helper;
+use Carbon\Carbon;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use Illuminate\Support\Facades\Log;
+use function Webmozart\Assert\Tests\StaticAnalysis\null;
 
 class OrderStatusObserver
 {
@@ -64,17 +67,25 @@ class OrderStatusObserver
                 ->send())
                 ->telegraphMessageId();
         } else if($order->status_id == 5) {
-            $chat = Chat::where('name', 'Manager')->first();
-            $dataset = [
+            $manager_chat = Chat::where('name', 'Manager')->first();
+            $manager_chat_dataset = [
                 'action' => 'update_order_card',
                 'params' => [
                     'update_order_card' => 1,
                     'order_id' => $order->id
                 ]
             ];
-
-            $request = FakeRequest::callback_query($chat, $bot, $dataset);
+            $request = FakeRequest::callback_query($manager_chat, $bot, $manager_chat_dataset);
             (new Manager())->handle($request, $bot);
+
+            $status = $order->statuses()->where('name', 'picked')->first();
+            $picked_time = (new Carbon($status->pivot->created_at))->format('Y-m-d H:i');
+            $user_chat_dataset = [
+                'order' => $order,
+                'picked_time' => $picked_time
+            ];
+
+            Helper::send_user_notification($order->user, 'order_pickuped', $user_chat_dataset);
         }
 
         if(isset($message_id)) {
