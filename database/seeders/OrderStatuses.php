@@ -44,6 +44,12 @@ class OrderStatuses extends Seeder
                 'name' => 'picked',
                 'en_desc' => 'Courier collected the clients items',
                 'ru_desc' => 'Курьер забрал вещи у клиента'
+            ],
+
+            [
+                'name' => 'deliver_in_laundry',
+                'en_desc' => 'Courier delivered things to the laundry',
+                'ru_desc' => 'Курьер доставил вещи в прачечную'
             ]
         ]);
     }

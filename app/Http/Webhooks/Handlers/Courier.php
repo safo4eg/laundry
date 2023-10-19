@@ -86,9 +86,12 @@ class Courier extends WebhookHandler
     public function deliver_in_laundry(Order $order = null, Keyboard $keyboard = null): void
     {
         $flag = $this->data->get('deliver_in_laundry');
+        $order_id = $this->data->get('order_id');
+        $order = isset($order)? $order: Order::find($order_id);
 
         if(isset($flag)) {
-
+            $this->delete_message_by_types([5, 6, 7]);
+            $this->request_photo($order); // сообщение с просьбой отправить фото
         }
 
         if(!isset($flag)) {
