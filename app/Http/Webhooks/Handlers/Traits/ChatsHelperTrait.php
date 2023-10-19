@@ -131,7 +131,7 @@ trait ChatsHelperTrait
     public function request_photo(Order $order): void
     {
         $template = $this->template_prefix . 'photo_request';
-        $buttons_texts = $this->config['request_photo'];
+        $buttons_texts = $this->general_buttons['request_photo'];
 
         $response = $this->chat
             ->message(view($template, ['order' => $order]))
@@ -171,7 +171,7 @@ trait ChatsHelperTrait
 
         if (!isset($flag)) {
             $file_name = $photo->id() . ".jpg";
-            $buttons_texts = $this->config['confirm_photo'];
+            $buttons_texts = $this->general_buttons['confirm_photo'];
             $template = $this->template_prefix . 'confirm_photo';
 
             $response = $this->chat->photo(Storage::path("{$dir}/{$file_name}"))
@@ -236,7 +236,7 @@ trait ChatsHelperTrait
                         ->param('order_id', $chat_order->order->id);
                 }
 
-                $buttons_texts = $this->config['select_order'];
+                $buttons_texts = $this->general_buttons['select_order'];
                 $buttons[] = Button::make($buttons_texts['cancel'])
                     ->action('delete_message_by_types')
                     ->param('delete', 1)

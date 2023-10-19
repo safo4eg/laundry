@@ -27,7 +27,7 @@ class Manager extends WebhookHandler
     public function __construct()
     {
         $this->config = config('buttons.manager');
-        $this->template_prefix = 'bot.manager.';
+        $this->template_prefix = 'bot.chats.';
         parent::__construct();
     }
 

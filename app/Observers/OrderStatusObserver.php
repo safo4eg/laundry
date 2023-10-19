@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Http\Webhooks\Handlers\Courier;
+use App\Http\Webhooks\Handlers\Washer;
 use App\Models\Bot;
 use App\Models\Chat;
 use App\Models\Laundry;
@@ -58,6 +59,15 @@ class OrderStatusObserver
                 'picked_time' => $picked_time
             ];
             Helper::send_user_notification($order->user, 'order_pickuped', $user_chat_dataset);
+        }
+
+        if($order->status_id === 6) { // отправка в прачку
+            Log::debug('зашел в наблюдатель');
+            $washer_chat = Chat::where('name', 'Washer')
+                ->where('laundry_id', $order->laundry_id)
+                ->first();
+            $washer_chat_request = FakeRequest::callback_query($washer_chat, $bot, $update_order_dataset);
+            (new Washer())->handle($washer_chat_request, $bot);
         }
 
     }

@@ -102,6 +102,16 @@ return [
             'deliver' => 'In the Laundry'
         ],
 
+    ],
+
+    'washer' => [
+        6 => 'Photo before washing', // когда только доставили статус = Доставлен (ид=6) меняет на 7
+        7 => 'Photo after washing', // вещи постираны статус = Постираны (ид=7) меняет на 8
+        8 => 'Ready for weighing', // вещи переданы курьеру на взвешивание (ид=8) меняет на 9
+        'report' => 'Report'
+    ],
+
+    'chats' => [
         'request_photo' => [
             'cancel' => 'Cancel'
         ],

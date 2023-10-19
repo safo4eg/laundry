@@ -20,8 +20,9 @@ class Courier extends WebhookHandler
     use ChatsHelperTrait;
     public function __construct()
     {
-        $this->config = config('buttons.courier');
-        $this->template_prefix = 'bot.courier.';
+        $this->buttons = config('buttons.courier');
+        $this->general_buttons = config('buttons.chats');
+        $this->template_prefix = 'bot.chats.';
         parent::__construct();
     }
 
@@ -43,7 +44,7 @@ class Courier extends WebhookHandler
         $keyboard = null;
 
         if($order->status_id === 3) {
-            $buttons_texts = $this->config['pickup'];
+            $buttons_texts = $this->buttons['pickup'];
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons_texts['pickup'])
                     ->action('pickup')
@@ -51,7 +52,7 @@ class Courier extends WebhookHandler
                     ->param('order_id', $order->id)
             ]);
         } else if($order->status_id === 5) {
-            $buttons_texts = $this->config['deliver_in_laundry'];
+            $buttons_texts = $this->buttons['deliver_in_laundry'];
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons_texts['deliver'])
                     ->action('deliver_in_laundry')

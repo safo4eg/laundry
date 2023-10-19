@@ -50,6 +50,24 @@ class OrderStatuses extends Seeder
                 'name' => 'deliver_in_laundry',
                 'en_desc' => 'Courier delivered things to the laundry',
                 'ru_desc' => 'Курьер доставил вещи в прачечную'
+            ],
+
+            [
+                'name' => 'things_are_washed',
+                'en_desc' => 'Things are washes',
+                'ru_desc' => 'Вещи постираны'
+            ],
+
+            [
+                'name' => 'ready_to_weighing',
+                'en_desc' => 'Things are ready to weighing',
+                'ru_desc' => 'Вещи готовы ко взвешиванию'
+            ],
+
+            [
+                'name' => 'weigh things',
+                'en_desc' => 'Courier weighs things',
+                'ru_desc' => 'Курьер взвешивает вещи'
             ]
         ]);
     }
