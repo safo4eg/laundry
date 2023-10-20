@@ -16,12 +16,17 @@ class TicketStatusesSeeder extends Seeder
     {
         DB::table('ticket_statuses')->insert([
             [
+                'name' => 'start',
+                'desc' => 'Ticket started'
+            ],
+
+            [
                 'name' => 'created',
                 'desc' => 'Ticket created'
             ],
 
             [
-                'name' => 'consideration',
+                'name' => 'on consideration',
                 'desc' => 'Ticket under consideration'
             ],
 

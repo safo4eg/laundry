@@ -12,13 +12,18 @@ class ChatOrder extends Pivot
     protected $primaryKey = 'message_id';
     protected $with = ['chat'];
 
-    public function chat()
+    public function chat(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Chat::class, 'telegraph_chat_id', 'id');
     }
 
-    public function order()
+    public function order(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Order::class, 'order_id', 'id');
+    }
+
+    public function ticket(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Ticket::class, 'ticket_id', 'id');
     }
 }

@@ -24,6 +24,12 @@ class MessageTypeSeeder extends Seeder
             ['title' => 'confirm_photo'],
             ['title' => 'select_order'],
             ['title' => 'photo'],
+            ['title' => 'ticket'],
+            ['title' => 'request_text'],
+            ['title' => 'text'],
+            ['title' => 'confirm_ticket'],
+            ['title' => 'select_ticket'],
+            ['title' => 'ticket_reject'],
         ]);
     }
 }

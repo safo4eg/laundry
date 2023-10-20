@@ -1150,7 +1150,7 @@ class User extends WebhookHandler
         }
     }
 
-    use Traits\SupportTrait;
+    use Traits\SupportUserTrait;
     use Traits\ChatsHelperTrait;
 
     public function support(): void
