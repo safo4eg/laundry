@@ -28,17 +28,32 @@ class Washer extends WebhookHandler
     public function send_order_card(Order $order): void
     {
         if(in_array($order->status_id, [6, 7, 8])) {
-            $keyboard = Keyboard::make()->buttons([
-                Button::make($this->buttons[$order->status_id])
+            $keyboard = Keyboard::make();
+            if($order->status_id === 8) {
+                $keyboard->button($this->buttons[$order->status_id])
+                    ->action('send_for_weighing')
+                    ->param('order_id', $order->id);
+            } else {
+                $keyboard->button($this->buttons[$order->status_id])
                     ->action('show_card')
                     ->param('show_card', 1)
-                    ->param('order_id', $order->id),
-                Button::make($this->buttons['report'])
-                    ->action('test'),
-            ]);
+                    ->param('order_id', $order->id);
+            }
 
+            $keyboard->button($this->buttons['report'])
+                ->action('test');
             $this->show_card($order, $keyboard);
         }
+    }
+
+    /* без флагов т.к ничего не показывает только обрабатывает действие */
+
+    public function send_for_weighing(): void
+    {
+        $order_id = $this->data->get('order_id');
+        $order = Order::where('id', $order_id)->first();
+        $order->update(['status_id' => ++$order->status_id]);
+        $this->delete_order_card_messages($order, true);
     }
 
     public function show_card(Order $order = null, Keyboard $keyboard = null): void
