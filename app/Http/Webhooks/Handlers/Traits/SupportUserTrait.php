@@ -12,6 +12,16 @@ use Illuminate\Support\Facades\Storage;
 
 trait SupportUserTrait
 {
+    use SupportTrait;
+    public function close_ticket(): void
+    {
+        $ticket = Ticket::where('id', $this->data->get('ticket_id'))->first();
+        $ticket->update([
+            'status_id' => 4
+        ]);
+        $this->delete_ticket_card($this->chat, $ticket);
+    }
+
     public function support_start(): void
     {
         $template = "{$this->template_prefix}{$this->user->language_code}.support.hello";

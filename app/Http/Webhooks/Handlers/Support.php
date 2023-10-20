@@ -13,7 +13,6 @@ use App\Models\User as UserModel;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Stringable;
 
 class Support extends WebhookHandler
@@ -33,7 +32,10 @@ class Support extends WebhookHandler
         $response = $this->chat->message(view($view, [
             'ticket' => $ticket
         ]))->keyboard(Keyboard::make()->buttons([
-            Button::make('Отмена')->action('cancel')
+            Button::make('Cancel')
+                ->action('delete_message_by_types')
+                ->param('delete', 1)
+                ->param('type_id', 10)
         ]))->send();
 
         ChatOrder::create([
@@ -43,7 +45,6 @@ class Support extends WebhookHandler
             'ticket_id' => $ticket->id
         ]);
     }
-
 
     use UserMessageTrait;
 
@@ -90,18 +91,17 @@ class Support extends WebhookHandler
         }
     }
 
-    public function close(): void
-    {
-        $ticket = Ticket::where('id', $this->data->get('ticket_id'));
-        $ticket->update([
-           'status_id' => 4
-        ]);
-
-        $this->delete_message_by_types();
-    }
-
     use SupportTrait;
     use ChatsHelperTrait;
+
+    public function close(): void
+    {
+        $ticket = Ticket::where('id', $this->data->get('ticket_id'))->first();
+        $ticket->update([
+            'status_id' => 4
+        ]);
+        $this->delete_ticket_card($this->chat, $ticket);
+    }
 
     protected function handleChatMessage(Stringable $text): void
     {
