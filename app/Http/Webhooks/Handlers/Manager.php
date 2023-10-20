@@ -100,24 +100,42 @@ class Manager extends WebhookHandler
         if(!isset($flag)) {
             $template = $this->template_prefix.'order_info';
             $response = null;
-            if($order->status_id === 3) { // если только отправилось курьеру
+
+            $photo = File::where('order_id', $order->id)
+                ->where('file_type_id', 1)
+                ->orderBy('order_status_id', 'desc')
+                ->first();
+
+            if(!isset($photo)) {
                 $response = $this->chat
                     ->message(view($template, ['order' => $order]))
                     ->keyboard($keyboard)
                     ->send();
-            }
-
-            if($order->status_id !== 3) {
-                $photo = File::where('order_id', $order->id)
-                    ->where('file_type_id', 1)
-                    ->where('order_status_id', $order->status_id)
-                    ->first();
-
+            } else {
                 $response = $this->chat->photo(Storage::path($photo->path))
                     ->message(view($template, ['order' => $order]))
                     ->keyboard($keyboard)
                     ->send();
             }
+
+//            if($order->status_id === 3) { // если только отправилось курьеру
+//                $response = $this->chat
+//                    ->message(view($template, ['order' => $order]))
+//                    ->keyboard($keyboard)
+//                    ->send();
+//            }
+//
+//            if($order->status_id !== 3) {
+//                $photo = File::where('order_id', $order->id)
+//                    ->where('file_type_id', 1)
+//                    ->where('order_status_id', $order->status_id)
+//                    ->first();
+//
+//                $response = $this->chat->photo(Storage::path($photo->path))
+//                    ->message(view($template, ['order' => $order]))
+//                    ->keyboard($keyboard)
+//                    ->send();
+//            }
 
             ChatOrder::create([
                 'telegraph_chat_id' => $this->chat->id,

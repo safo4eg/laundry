@@ -41,7 +41,7 @@ class OrderStatuses extends Seeder
             ],
 
             [
-                'name' => 'picked',
+                'name' => 'courier_picked_order',
                 'en_desc' => 'Courier collected the clients items',
                 'ru_desc' => 'Курьер забрал вещи у клиента'
             ],
@@ -53,19 +53,25 @@ class OrderStatuses extends Seeder
             ],
 
             [
+                'name' => 'washer_picked_order',
+                'en_desc' => 'Washer picked the order',
+                'ru_desc' => 'Прачка получила вещи'
+            ],
+
+            [
                 'name' => 'things_are_washed',
                 'en_desc' => 'Things are washes',
                 'ru_desc' => 'Вещи постираны'
             ],
 
             [
-                'name' => 'ready_to_weighing',
-                'en_desc' => 'Things are ready to weighing',
-                'ru_desc' => 'Вещи готовы ко взвешиванию'
+                'name' => 'send_for_weighing',
+                'en_desc' => 'Sent to the courier for weighing',
+                'ru_desc' => 'Вещи отправлены курьеру на взвешивание'
             ],
 
             [
-                'name' => 'weigh things',
+                'name' => 'weigh_things',
                 'en_desc' => 'Courier weighs things',
                 'ru_desc' => 'Курьер взвешивает вещи'
             ]

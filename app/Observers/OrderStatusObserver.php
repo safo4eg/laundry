@@ -52,7 +52,7 @@ class OrderStatusObserver
         }
 
         if($order->status_id === 5) { // отправка уведомления клиенту
-            $status = $order->statuses()->where('name', 'picked')->first();
+            $status = $order->statuses()->where('id', 5)->first();
             $picked_time = (new Carbon($status->pivot->created_at))->format('Y-m-d H:i');
             $user_chat_dataset = [
                 'order' => $order,
@@ -68,6 +68,10 @@ class OrderStatusObserver
                 ->first();
             $washer_chat_request = FakeRequest::callback_query($washer_chat, $bot, $update_order_dataset);
             (new Washer())->handle($washer_chat_request, $bot);
+        }
+
+        if($order->status_id === 9) { // отправка курьеру на взвешивание
+            Log::debug('вещи отправлены на взвешивание');
         }
 
     }
