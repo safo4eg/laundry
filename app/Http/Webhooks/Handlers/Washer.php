@@ -2,7 +2,7 @@
 
 namespace App\Http\Webhooks\Handlers;
 use App\Http\Webhooks\Handlers\Traits\ChatsHelperTrait;
-use App\Models\ChatOrder;
+use App\Models\ChatOrderPivot;
 use App\Models\File;
 use App\Models\Order;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
@@ -80,7 +80,7 @@ class Washer extends WebhookHandler
                 ->keyboard($keyboard)
                 ->send();
 
-            ChatOrder::create([
+            ChatOrderPivot::create([
                 'telegraph_chat_id' => $this->chat->id,
                 'order_id' => $order->id,
                 'message_id' => $response->telegraphMessageId(),
@@ -99,14 +99,14 @@ class Washer extends WebhookHandler
         }
 
         if(isset($photos) AND $photos->isNotEmpty()) { // обработка прилетевших фотографий
-            ChatOrder::create([
+            ChatOrderPivot::create([
                 'telegraph_chat_id' => $this->chat->id,
                 'order_id' => null,
                 'message_id' => $this->messageId,
                 'message_type_id' => 8
             ]);
 
-            $chat_order = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+            $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('message_type_id', 5)
                 ->first();
 

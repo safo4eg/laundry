@@ -3,7 +3,7 @@
 namespace App\Http\Webhooks\Handlers\Traits;
 
 use App\Models\Chat;
-use App\Models\ChatOrder;
+use App\Models\ChatOrderPivot;
 use App\Models\File;
 use App\Models\Order;
 use DefStudio\Telegraph\DTO\Photo;
@@ -34,7 +34,7 @@ trait ChatsHelperTrait
     public function refresh_chat()
     {
         $this->delete_message_by_types([3, 4, 7, 8]); // удаляем сообщения не относящиеся к карточкам заказов
-        $main_chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id) // получаем все карточки заказа в чате
+        $main_chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id) // получаем все карточки заказа в чате
             ->where('message_type_id', 1)
             ->get();
 
@@ -50,13 +50,13 @@ trait ChatsHelperTrait
         $chat_orders = null;
 
         if(!empty($with_main)) { // удаляет все сообщения связанные с карточкой, но без главной карточки заказа
-            $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+            $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('order_id', $order->id)
                 ->get();
         }
 
         if(empty($with_main)) { // удаляет сообщения включая карточку заказа
-            $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+            $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('order_id', $order->id)
                 ->where('message_type_id', '!=', 1)
                 ->get();
@@ -74,7 +74,7 @@ trait ChatsHelperTrait
 
         if (isset($flag)) { // значит прилетело с кнопки
             $type_id = $this->data->get('type_id'); // тип сообщения
-            $chat_order = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+            $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('message_type_id', $type_id)
                 ->first();
 
@@ -84,7 +84,7 @@ trait ChatsHelperTrait
 
         if (!isset($flag)) {
             if (isset($messages_types_ids)) { // удаляет конкретные типы сообщения из чата
-                $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+                $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                     ->whereIn('message_type_id', $messages_types_ids)
                     ->get();
 
@@ -100,7 +100,7 @@ trait ChatsHelperTrait
 
     public function check_order_message_existence_in_chat(string|int $order_id): Order|null
     {
-        $chat_order = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+        $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
             ->where('order_id', $order_id)
             ->first();
 
@@ -142,7 +142,7 @@ trait ChatsHelperTrait
                     ->param('type_id', 5)
             ]))->send();
 
-        ChatOrder::create([
+        ChatOrderPivot::create([
             'telegraph_chat_id' => $this->chat->id,
             'order_id' => $order->id,
             'message_id' => $response->telegraphMessageId(),
@@ -193,7 +193,7 @@ trait ChatsHelperTrait
                         ->param('type_id', 6)
                 ]))->send();
 
-            ChatOrder::create([
+            ChatOrderPivot::create([
                 'telegraph_chat_id' => $this->chat->id,
                 'order_id' => $order->id,
                 'message_id' => $response->telegraphMessageId(),
@@ -222,7 +222,7 @@ trait ChatsHelperTrait
         }
 
         if (!isset($flag)) {
-            $chat_orders = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+            $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('message_type_id', 1)
                 ->get();
             $message_type_id = null;
@@ -257,7 +257,7 @@ trait ChatsHelperTrait
                 $message_type_id = 3;
             }
 
-            ChatOrder::create([
+            ChatOrderPivot::create([
                 'telegraph_chat_id' => $this->chat->id,
                 'order_id' => null,
                 'message_id' => $response->telegraphMessageId(),

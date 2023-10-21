@@ -8,7 +8,7 @@ use App\Models\Bot;
 use App\Models\Chat;
 use App\Models\Laundry;
 use App\Models\OrderStatusPivot;
-use App\Models\ChatOrder;
+use App\Models\ChatOrderPivot;
 use App\Http\Webhooks\Handlers\Manager;
 use App\Services\FakeRequest;
 use App\Services\Helper;

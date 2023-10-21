@@ -4,7 +4,7 @@ namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\ChatsHelperTrait;
 use App\Models\Chat;
-use App\Models\ChatOrder;
+use App\Models\ChatOrderPivot;
 use App\Models\File;
 use App\Models\Laundry;
 use App\Models\Order;
@@ -80,7 +80,7 @@ class Manager extends WebhookHandler
                 ->keyboard($keyboard)
                 ->send();
 
-            ChatOrder::create([
+            ChatOrderPivot::create([
                 'telegraph_chat_id' => $this->chat->id,
                 'order_id' => $order->id,
                 'message_id' => $response->telegraphMessageId(),
@@ -118,7 +118,7 @@ class Manager extends WebhookHandler
                     ->send();
             }
 
-            ChatOrder::create([
+            ChatOrderPivot::create([
                 'telegraph_chat_id' => $this->chat->id,
                 'order_id' => $order->id,
                 'message_id' => $response->telegraphMessageId(),
@@ -130,7 +130,7 @@ class Manager extends WebhookHandler
 
     public function refresh(string $order_id): void
     {
-        ChatOrder::create([
+        ChatOrderPivot::create([
             'telegraph_chat_id' => $this->chat->id,
             'order_id' => null,
             'message_id' => $this->messageId,

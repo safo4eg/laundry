@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
             ReasonSeeder::class,
             TicketStatusesSeeder::class,
             FileTypeSeeder::class,
+            ServiceSeeder::class
         ]);
     }
 }
