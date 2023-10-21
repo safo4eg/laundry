@@ -94,21 +94,17 @@ return [
     ],
 
     'courier' => [
-        'pickup' => [
-            'pickup' => 'Pickup'
-        ],
-
-        'deliver_in_laundry' => [
-            'deliver' => 'In the Laundry'
-        ],
-
+        3 => 'Pickup',
+        5 => 'In the Laundry',
+        9 => 'Weigh', // отправлены на взвешивание
+        10 => 'Photo on the scales', // курьер взвешал вещи
+        11 => 'Photos of delivered things', // курьер привез вещи клиенту
     ],
 
     'washer' => [
         6 => 'Photo before washing', // когда только доставили статус = Доставлен (ид=6) меняет на 7
         7 => 'Photo after washing', // вещи постираны статус = Постираны (ид=7) меняет на 8
         8 => 'Ready for weighing', // вещи переданы курьеру на взвешивание (ид=8) меняет на 9
-        'report' => 'Report'
     ],
 
     'chats' => [
@@ -124,6 +120,8 @@ return [
 
         'select_order' => [
             'cancel' => 'Cancel'
-        ]
+        ],
+
+        'report' => 'Report'
     ]
 ];

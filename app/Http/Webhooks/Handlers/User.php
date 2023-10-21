@@ -4,6 +4,7 @@ namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\UserCommandsFuncsTrait;
 use App\Http\Webhooks\Handlers\Traits\FirstAndSecondScenarioTrait;
+use App\Models\Chat;
 use App\Models\Order;
 use App\Models\OrderStatusPivot;
 use App\Models\Referral;
@@ -11,6 +12,7 @@ use App\Models\User as UserModel;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use DefStudio\Telegraph\Models\TelegraphChat;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
 use Illuminate\Database\Eloquent\Builder;

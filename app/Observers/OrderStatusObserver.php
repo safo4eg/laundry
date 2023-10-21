@@ -43,7 +43,7 @@ class OrderStatusObserver
             }
         }
 
-        if($order->status_id === 3) { // отправка карточки заказа в чат курьеров
+        if($order->status_id === 3 OR $order->status_id === 9) { // отправка карточки заказа в чат курьеров
             $courier_chat = Chat::where('name', 'Courier')
                 ->where('laundry_id', $order->laundry_id)
                 ->first();
@@ -68,10 +68,6 @@ class OrderStatusObserver
                 ->first();
             $washer_chat_request = FakeRequest::callback_query($washer_chat, $bot, $update_order_dataset);
             (new Washer())->handle($washer_chat_request, $bot);
-        }
-
-        if($order->status_id === 9) { // отправка курьеру на взвешивание
-            Log::debug('вещи отправлены на взвешивание');
         }
 
     }

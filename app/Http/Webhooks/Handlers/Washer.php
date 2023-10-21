@@ -40,7 +40,7 @@ class Washer extends WebhookHandler
                     ->param('order_id', $order->id);
             }
 
-            $keyboard->button($this->buttons['report'])
+            $keyboard->button($this->general_buttons['report'])
                 ->action('test');
             $this->show_card($order, $keyboard);
         }

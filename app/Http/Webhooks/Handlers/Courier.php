@@ -28,91 +28,73 @@ class Courier extends WebhookHandler
 
     public function send_order_card(Order $order): void
     {
-        $keyboard = $this->get_current_order_card_keyboard($order);
-        switch ($order->status_id) {
-            case 3:
-                $this->pickup($order, $keyboard);
-                break;
-            case 5:
-                $this->deliver_in_laundry($order, $keyboard);
-                break;
+        if(in_array($order->status_id, [3, 5, 9, 10])) {
+            $keyboard = Keyboard::make();
+
+            if($order->status_id === 9) { // взвешивание
+                $keyboard->button($this->buttons[$order->status_id])
+                    ->action('weigh')
+                    ->param('order_id', $order->id);
+            } else {
+                $keyboard->button($this->buttons[$order->status_id])
+                    ->action('show_card')
+                    ->param('show_card', 1)
+                    ->param('order_id', $order->id);
+            }
+
+            $keyboard->button($this->general_buttons['report'])
+                ->action('test');
+            $this->show_card($order, $keyboard);
         }
     }
 
-    public function get_current_order_card_keyboard(Order $order): Keyboard|null
+    public function weigh(): void
     {
-        $keyboard = null;
-
-        if($order->status_id === 3) {
-            $buttons_texts = $this->buttons['pickup'];
-            $keyboard = Keyboard::make()->buttons([
-                Button::make($buttons_texts['pickup'])
-                    ->action('pickup')
-                    ->param('pickup', 1)
-                    ->param('order_id', $order->id)
-            ]);
-        } else if($order->status_id === 5) {
-            $buttons_texts = $this->buttons['deliver_in_laundry'];
-            $keyboard = Keyboard::make()->buttons([
-                Button::make($buttons_texts['deliver'])
-                    ->action('deliver_in_laundry')
-                    ->param('deliver_in_laundry', 1)
-                    ->param('order_id', $order->id)
-            ]);
-        }
-
-        return $keyboard;
-    }
-
-    public function pickup(Order $order = null, Keyboard $keyboard = null): void
-    {
-        $flag = $this->data->get('pickup');
+        $flag = $this->data->get('weight');
         $order_id = $this->data->get('order_id');
-        $order = isset($order)? $order: Order::find($order_id);
+        $order = Order::where('id', $order_id)->first();
 
-        if(isset($flag)) { // Обработка данных с кнопки
-            $this->delete_message_by_types([5, 6, 7]);
-            $this->request_photo($order); // сообщение с просьбой отправить фото
+        if(isset($flag)) { // обработка
+            // галочка у кнопки
+            // просьба ввести количество
         }
 
-        if(!isset($flag)) { // отображения карточки с кнопками
-            $template = $this->template_prefix.'order_info';
-            $response = $this->chat
-                ->message(view($template, ['order' => $order]))
-                ->keyboard($keyboard)
-                ->send();
-
-            ChatOrder::create([
-                'telegraph_chat_id' => $this->chat->id,
-                'order_id' => $order->id,
-                'message_id' => $response->telegraphMessageId(),
-                'message_type_id' => 1
-            ]);
+        if(!isset($flag)) { // просьба взвешать вещи
+            $this->chat->message('взвешивание вещей')->send();
         }
     }
 
-    public function deliver_in_laundry(Order $order = null, Keyboard $keyboard = null): void
+    public function show_card(Order $order = null, Keyboard $keyboard = null): void
     {
-        $flag = $this->data->get('deliver_in_laundry');
+        $flag = $this->data->get('show_card');
         $order_id = $this->data->get('order_id');
         $order = isset($order)? $order: Order::find($order_id);
 
         if(isset($flag)) {
             $this->delete_message_by_types([5, 6, 7]);
-            $this->request_photo($order); // сообщение с просьбой отправить фото
+            $this->request_photo($order);
         }
 
         if(!isset($flag)) {
             $template = $this->template_prefix.'order_info';
+            $response = null;
+
             $photo = File::where('order_id', $order->id)
                 ->where('file_type_id', 1)
-                ->where('order_status_id', 5)
+                ->orderBy('order_status_id', 'desc')
                 ->first();
 
-            $response = $this->chat->photo(Storage::path($photo->path))
-                ->html(view($template, ['order' => $order]))
-                ->keyboard($keyboard)
-                ->send();
+            if(!isset($photo)) {
+                $response = $this->chat
+                    ->message(view($template, ['order' => $order]))
+                    ->keyboard($keyboard)
+                    ->send();
+            } else {
+                $response = $this->chat->photo(Storage::path($photo->path))
+                    ->message(view($template, ['order' => $order]))
+                    ->keyboard($keyboard)
+                    ->send();
+            }
 
             ChatOrder::create([
                 'telegraph_chat_id' => $this->chat->id,
