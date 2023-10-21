@@ -24,6 +24,8 @@ class MessageTypeSeeder extends Seeder
             ['title' => 'confirm_photo'],
             ['title' => 'select_order'],
             ['title' => 'photo'],
+            ['title' => 'weighing'],
+            ['title' => 'confirming_weighing']
         ]);
     }
 }

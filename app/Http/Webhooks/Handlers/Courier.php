@@ -60,7 +60,7 @@ class Courier extends WebhookHandler
         }
 
         if(!isset($flag)) { // просьба взвешать вещи
-            $this->chat->message('взвешивание вещей')->send();
+
         }
     }
 
