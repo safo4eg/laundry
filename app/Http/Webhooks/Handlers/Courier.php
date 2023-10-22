@@ -170,12 +170,15 @@ class Courier extends WebhookHandler
             }
 
             if(isset($reset)) {
-                $this->delete_message_by_types([]);
+                $this->delete_message_by_types([3, 10, 12]);
+                $this->chat->storage()->set('order_services', null); // обнуляем выбранные услуги
+                $keyboard = $this->get_weighing_keyboard($order->id);
+                $this->chat->replaceKeyboard($this->messageId, $keyboard)->send();
             }
         }
 
         if(!isset($flag)) { // просьба взвешать вещи (тип сообщения=9)
-            $this->delete_message_by_types([3, 5, 6, 7, 9, 10, 11]);
+            $this->delete_message_by_types([3, 5, 6, 7, 9, 10, 11, 12]);
             $this->chat->storage()->set('order_services', null); // обнуляем выбранные услуги
 
             $main_chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
@@ -291,7 +294,8 @@ class Courier extends WebhookHandler
                         ->where('message_type_id', 9)
                         ->first();
 
-                    $this->replace_weighing_keyboard($chat_order->order->id, $chat_order->message_id);
+                    $keyboard = $this->get_weighing_keyboard($chat_order->order->id);
+                    $this->chat->replaceKeyboard($chat_order->message_id, $keyboard)->send();
                     $this->delete_message_by_types([3, 10, 12]);
                 } else {
                     $response = $this->chat
@@ -359,7 +363,7 @@ class Courier extends WebhookHandler
 
         $reset_button = Button::make($buttons_texts['reset'])
             ->action('weigh')
-            ->param('weight', 1)
+            ->param('weigh', 1)
             ->param('reset', 1)
             ->param('order_id', $order_id);
 
@@ -393,37 +397,4 @@ class Courier extends WebhookHandler
         return Keyboard::make()->buttons($keyboard_buttons);
     }
 
-//    private function replace_weighing_keyboard(int $order_id, int $replaceable_message): void
-//    {
-//        $services = Service::all();
-//        $order_services = $this->chat->storage()->get('order_services');
-//        $buttons_texts = $this->general_buttons['weighing'];
-//
-//        $keyboard = Keyboard::make();
-//        foreach ($services as $service) {
-//            $keyboard->button(in_array($service->id, $order_services['selected'])? "✅{$service->title}": $service->title)
-//                ->action('weigh')
-//                ->param('weigh', 1)
-//                ->param('order_id', $order_id)
-//                ->param('choice', $service->id)
-//                ->width(0.5);
-//        }
-//
-//        $keyboard->button($buttons_texts['accept'])
-//            ->action('confirm_weighing')
-//            ->param('order_id', $order_id);
-//
-//        $keyboard->button($buttons_texts['reset'])
-//            ->action('weigh')
-//            ->param('weight', 1)
-//            ->param('reset', 1)
-//            ->param('order_id', $order_id);
-//
-//        $keyboard->button($buttons_texts['cancel'])
-//            ->action('delete_message_by_types')
-//            ->action('delete', 1)
-//            ->action('type_id', 9);
-//
-//        $this->chat->replaceKeyboard($replaceable_message, $keyboard)->send();
-//    }
 }
