@@ -49,6 +49,66 @@ class Courier extends WebhookHandler
         }
     }
 
+    public function confirm_weighing(Order $order = null): void
+    {
+        $flag = $this->data->get('confirm_weighing');
+        $order_id = $this->data->get('order_id');
+        $order = Order::where('id', $order_id)->first();
+
+        if(isset($flag)) {
+
+        }
+
+        if(!isset($flag)) {
+            $order_services = $this->chat->storage()->get('order_services');
+            $template = null;
+            $response = null;
+            $message_type_id = null;
+            if(isset($order_services['selected'])) { // если есть выбранные
+                $this->delete_message_by_types([9, 10]);
+                $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id) // главная карточка заказа
+                    ->where('order_id', $order->id)
+                    ->where('message_type_id', 1)
+                    ->first();
+                $services = Service::whereIn('id', $order_services['selected'])->get();
+                $template = $this->template_prefix.'confirm_weighing';
+                $message_type_id = 11;
+
+                $price = ['sum' => 0, 'services' => []];
+                foreach ($services as $service) {
+                    $price['services'][$service->id] = [];
+                    $price['services'][$service->id]['amount'] = $order_services[$service->id];
+                    $price['services'][$service->id]['price'] = $price['services'][$service->id]['amount']*$service->price;
+                    $price['services'][$service->id]['title'] = $service->title;
+                    $price['sum'] += $price['services'][$service->id]['price'];
+                }
+
+                $response = $this->chat
+                    ->message(view($template, ['price' => $price]))
+                    ->reply($chat_order->message_id)
+                    ->send();
+            } else { // если ничего не было указано
+                $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id) // карточка со взвешиванием
+                    ->where('order_id', $order->id)
+                    ->where('message_type_id', 9)
+                    ->first();
+                $template = 'bot.notifications.selected_services_is_null';
+                $message_type_id = 3;
+                $response = $this->chat
+                    ->message(view($template))
+                    ->reply($chat_order->message_id)
+                    ->send();
+            }
+
+            ChatOrderPivot::create([
+                'telegraph_chat_id' => $this->chat->id,
+                'order_id' => $order->id,
+                'message_id' => $response->telegraphMessageId(),
+                'message_type_id' => $message_type_id
+            ]);
+        }
+    }
+
     public function weigh(): void
     {
         $flag = $this->data->get('weigh');
@@ -106,7 +166,8 @@ class Courier extends WebhookHandler
         }
 
         if(!isset($flag)) { // просьба взвешать вещи (тип сообщения=9)
-            $this->chat->storage()->set('selected_order', null); // обнуляем выбранные услуги
+            $this->delete_message_by_types([3, 5, 6, 7, 9, 10, 11]);
+            $this->chat->storage()->set('order_services', null); // обнуляем выбранные услуги
 
             $main_chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('order_id', $order->id)
@@ -123,6 +184,10 @@ class Courier extends WebhookHandler
                     ->param('choice', $service->id)
                     ->width(0.5);
             }
+
+            $keyboard->button($buttons_texts['accept'])
+                ->action('confirm_weighing')
+                ->param('order_id', $order->id);
 
             $keyboard->button($buttons_texts['reset'])
                 ->action('weigh')
@@ -306,6 +371,10 @@ class Courier extends WebhookHandler
                 ->width(0.5);
         }
 
+        $keyboard->button($buttons_texts['accept'])
+            ->action('confirm_weighing')
+            ->param('order_id', $order_id);
+
         $keyboard->button($buttons_texts['reset'])
             ->action('weigh')
             ->param('weight', 1)
@@ -318,6 +387,5 @@ class Courier extends WebhookHandler
             ->action('type_id', 9);
 
         $this->chat->replaceKeyboard($replaceable_message, $keyboard)->send();
-
     }
 }

@@ -125,6 +125,7 @@ return [
         'report' => 'Report',
 
         'weighing' => [
+            'accept' => 'Accept',
             'reset' => 'Reset',
             'cancel' => 'Cancel'
         ]
