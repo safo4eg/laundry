@@ -72,30 +72,48 @@ trait ChatsHelperTrait
     {
         $flag = $this->data->get('delete');
 
-        if (isset($flag)) { // значит прилетело с кнопки
-            $type_id = $this->data->get('type_id'); // тип сообщения
-            $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
-                ->where('message_type_id', $type_id)
-                ->first();
-
-            $this->chat->deleteMessage($chat_order->message_id)->send();
-            $chat_order->delete();
+        if(isset($flag)) { // будет разбивать строку в массив с типами (если в params указано так '3,10,12'
+            $type_id = $this->data->get('type_id');
+            $messages_types_ids = explode(',', $type_id);
         }
 
-        if (!isset($flag)) {
-            if (isset($messages_types_ids)) { // удаляет конкретные типы сообщения из чата
-                $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
-                    ->whereIn('message_type_id', $messages_types_ids)
-                    ->get();
+        if (isset($messages_types_ids)) { // удаляет конкретные типы сообщения из чата
+            $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
+                ->whereIn('message_type_id', $messages_types_ids)
+                ->get();
 
-                if ($chat_orders->isNotEmpty()) {
-                    foreach ($chat_orders as $chat_order) {
-                        $this->chat->deleteMessage($chat_order->message_id)->send();
-                        $chat_order->delete();
-                    }
+            if ($chat_orders->isNotEmpty()) {
+                foreach ($chat_orders as $chat_order) {
+                    $this->chat->deleteMessage($chat_order->message_id)->send();
+                    $chat_order->delete();
                 }
             }
         }
+
+//        if (isset($flag)) { // значит прилетело с кнопки
+//            $type_id = $this->data->get('type_id'); // тип сообщения
+//            $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
+//                ->where('message_type_id', $type_id)
+//                ->first();
+//
+//            $this->chat->deleteMessage($chat_order->message_id)->send();
+//            $chat_order->delete();
+//        }
+//
+//        if (!isset($flag)) {
+//            if (isset($messages_types_ids)) { // удаляет конкретные типы сообщения из чата
+//                $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
+//                    ->whereIn('message_type_id', $messages_types_ids)
+//                    ->get();
+//
+//                if ($chat_orders->isNotEmpty()) {
+//                    foreach ($chat_orders as $chat_order) {
+//                        $this->chat->deleteMessage($chat_order->message_id)->send();
+//                        $chat_order->delete();
+//                    }
+//                }
+//            }
+//        }
     }
 
     public function check_order_message_existence_in_chat(string|int $order_id): Order|null
