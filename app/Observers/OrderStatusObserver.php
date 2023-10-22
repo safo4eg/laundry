@@ -7,6 +7,7 @@ use App\Http\Webhooks\Handlers\Washer;
 use App\Models\Bot;
 use App\Models\Chat;
 use App\Models\Laundry;
+use App\Models\OrderServicePivot;
 use App\Models\OrderStatusPivot;
 use App\Models\ChatOrderPivot;
 use App\Http\Webhooks\Handlers\Manager;
@@ -43,7 +44,7 @@ class OrderStatusObserver
             }
         }
 
-        if($order->status_id === 3 OR $order->status_id === 9) { // отправка карточки заказа в чат курьеров
+        if($order->status_id === 3 OR $order->status_id === 9 OR $order->status_id === 10) { // отправка карточки заказа в чат курьеров
             $courier_chat = Chat::where('name', 'Courier')
                 ->where('laundry_id', $order->laundry_id)
                 ->first();
@@ -51,18 +52,37 @@ class OrderStatusObserver
             (new Courier())->handle($courier_chat_request, $bot);
         }
 
-        if($order->status_id === 5) { // отправка уведомления клиенту
-            $status = $order->statuses()->where('id', 5)->first();
-            $picked_time = (new Carbon($status->pivot->created_at))->format('Y-m-d H:i');
-            $user_chat_dataset = [
-                'order' => $order,
-                'picked_time' => $picked_time
-            ];
-            Helper::send_user_notification($order->user, 'order_pickuped', $user_chat_dataset);
+        if($order->status_id === 5 OR $order->status_id === 10) { // отправка уведомления клиенту
+            if($order->status_id === 5) {
+                $status = $order->statuses()->where('id', 5)->first();
+                $picked_time = (new Carbon($status->pivot->created_at))->format('Y-m-d H:i');
+                $user_chat_dataset = [
+                    'order' => $order,
+                    'picked_time' => $picked_time
+                ];
+                Helper::send_user_notification($order->user, 'order_pickuped', $user_chat_dataset);
+            }
+
+            if($order->status_id === 10) {
+                $order_services = OrderServicePivot::where('order_id', $order->id)->get();
+                $services_info = ['total_price' => 0, 'services' => []];
+
+                foreach ($order_services as $order_service) {
+                    $services_info['services'][$order_service->service->id] = [];
+                    $services_info['services'][$order_service->service->id]['title'] = $order_service->service->title;
+                    $services_info['services'][$order_service->service->id]['amount'] = $order_service->amount;
+                    $services_info['services'][$order_service->service->id]['price'] = $order_service->amount*$order_service->service->price;
+                    $services_info['total_price'] += $services_info['services'][$order_service->service->id]['price'];
+                }
+                Helper::send_user_notification(
+                    $order->user,
+                    'things_are_weighed',
+                    ['services_info' => $services_info]
+                );
+            }
         }
 
         if($order->status_id === 6) { // отправка в прачку
-            Log::debug('зашел в наблюдатель');
             $washer_chat = Chat::where('name', 'Washer')
                 ->where('laundry_id', $order->laundry_id)
                 ->first();

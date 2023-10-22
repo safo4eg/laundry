@@ -98,7 +98,8 @@ return [
         5 => 'In the Laundry',
         9 => 'Weigh', // отправлены на взвешивание
         10 => 'Photo on the scales', // курьер взвешал вещи
-        11 => 'Photos of delivered things', // курьер привез вещи клиенту
+        11 => 'Photos of delivered things', // курьер сделал фото вещей (готовы к отправке)
+        12 => 'Things have been delivered' // вещи доставлены
     ],
 
     'washer' => [

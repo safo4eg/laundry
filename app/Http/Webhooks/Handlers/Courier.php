@@ -30,7 +30,7 @@ class Courier extends WebhookHandler
 
     public function send_order_card(Order $order): void
     {
-        if(in_array($order->status_id, [3, 5, 9, 10])) {
+        if(in_array($order->status_id, [3, 5, 9, 10, 11])) {
             $keyboard = Keyboard::make();
 
             if($order->status_id === 9) { // взвешивание
@@ -171,7 +171,7 @@ class Courier extends WebhookHandler
                 }
                 $this->chat->storage()->set('order_services', $order_services);
 
-                if(isset($request_text)) { // значит выбрана услуга ранее не выбранная
+                if(isset($request_text)) { // значит выбраная услуга ранее не выбранная
                     $response = $this->chat
                         ->message($request_text)
                         ->reply($this->messageId)

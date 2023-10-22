@@ -71,10 +71,22 @@ class OrderStatuses extends Seeder
             ],
 
             [
-                'name' => 'weigh_things',
-                'en_desc' => 'Courier weighs things',
-                'ru_desc' => 'Курьер взвешивает вещи'
-            ]
+                'name' => 'things_are_weighed',
+                'en_desc' => 'The courier weighed the things',
+                'ru_desc' => 'Курьер взвешал вещи'
+            ],
+
+            [
+                'name' => 'ready_to_delivering',
+                'en_desc' => 'Things are ready for delivery',
+                'ru_desc' => 'Вещи готовы к отправке'
+            ],
+
+            [
+                'name' => 'delivered_to_client',
+                'en_desc' => 'The courier delivered the items to the client',
+                'ru_desc' => 'Курьер доставил вещи клиенту'
+            ],
         ]);
     }
 }
