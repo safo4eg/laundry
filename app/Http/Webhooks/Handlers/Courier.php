@@ -150,6 +150,12 @@ class Courier extends WebhookHandler
                     $response = $this->chat
                         ->message($request_text)
                         ->reply($this->messageId)
+                        ->keyboard(Keyboard::make()->buttons([
+                            Button::make($this->general_buttons['weighing']['cancel'])
+                                ->action('delete_message_by_types')
+                                ->param('delete', 1)
+                                ->param('type_id', 10)
+                        ]))
                         ->send();
 
                     ChatOrderPivot::create([
@@ -197,8 +203,8 @@ class Courier extends WebhookHandler
 
             $keyboard->button($buttons_texts['cancel'])
                 ->action('delete_message_by_types')
-                ->action('delete', 1)
-                ->action('type_id', 9);
+                ->param('delete', 1)
+                ->param('type_id', 9);
 
             $response = $this->chat->message(view($template))
                 ->reply($main_chat_order->message_id)
@@ -281,6 +287,12 @@ class Courier extends WebhookHandler
         $message_text = $this->message->text(); // обычный текст
 
         if(isset($message_text) AND $photos->isEmpty()) { // просто текст
+            ChatOrderPivot::create([
+                'telegraph_chat_id' => $this->chat->id,
+                'order_id' => null,
+                'message_id' => $this->messageId,
+                'message_type_id' => 12
+            ]);
             $text = $text->value();
 
             $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
@@ -300,7 +312,7 @@ class Courier extends WebhookHandler
                         ->first();
 
                     $this->replace_weighing_keyboard($chat_order->order->id, $chat_order->message_id);
-                    $this->delete_message_by_types([3, 10]);
+                    $this->delete_message_by_types([3, 10, 12]);
                 } else {
                     $response = $this->chat
                         ->message('Invalid value entered! Try again!')
