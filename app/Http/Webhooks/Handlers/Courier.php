@@ -6,6 +6,7 @@ use App\Models\Chat;
 use App\Models\ChatOrderPivot;
 use App\Models\Order;
 use App\Models\File;
+use App\Models\OrderServicePivot;
 use App\Models\Service;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
@@ -55,8 +56,22 @@ class Courier extends WebhookHandler
         $order_id = $this->data->get('order_id');
         $order = Order::where('id', $order_id)->first();
 
-        if(isset($flag)) {
+        if(isset($flag)) { // обработка кнопки YES
+            $order_services = $this->chat->storage()->get('order_services');
 
+            foreach ($order_services['selected'] as $service_id) { // добавление записи заказ_услуга_количество
+                OrderServicePivot::create([
+                    'order_id' => $order->id,
+                    'service_id' => $service_id,
+                    'amount' => $order_services[$service_id]
+                ]);
+            }
+
+            $order->update([
+                'status_id' => 10
+            ]);
+
+            // далее отправка будет в наблюдателе, тк создастся запись новая => запись в стэк-трейсе заказа
         }
 
         if(!isset($flag)) {
@@ -83,9 +98,20 @@ class Courier extends WebhookHandler
                     $price['sum'] += $price['services'][$service->id]['price'];
                 }
 
+                $keyboard = Keyboard::make()->buttons([
+                    Button::make($this->general_buttons['confirm_weighing']['yes'])
+                        ->action('confirm_weighing')
+                        ->param('confirm_weighing', 1)
+                        ->param('order_id', $order->id),
+                    Button::make($this->general_buttons['confirm_weighing']['no'])
+                        ->action('weigh')
+                        ->param('order_id', $order->id),
+                ]);
+
                 $response = $this->chat
                     ->message(view($template, ['price' => $price]))
                     ->reply($chat_order->message_id)
+                    ->keyboard($keyboard)
                     ->send();
             } else { // если ничего не было указано
                 $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id) // карточка со взвешиванием

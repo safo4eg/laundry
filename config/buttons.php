@@ -128,6 +128,11 @@ return [
             'accept' => 'Accept',
             'reset' => 'Reset',
             'cancel' => 'Cancel'
+        ],
+
+        'confirm_weighing' => [
+            'yes' => '✅YES',
+            'no' => '❌NO'
         ]
     ]
 ];
