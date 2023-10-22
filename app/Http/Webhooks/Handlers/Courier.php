@@ -151,7 +151,7 @@ class Courier extends WebhookHandler
                         ->message($request_text)
                         ->reply($this->messageId)
                         ->keyboard(Keyboard::make()->buttons([
-                            Button::make($this->general_buttons['weighing']['cancel'])
+                            Button::make($buttons_texts['cancel'])
                                 ->action('delete_message_by_types')
                                 ->param('delete', 1)
                                 ->param('type_id', 10)
@@ -167,7 +167,10 @@ class Courier extends WebhookHandler
                 } else {
                     $this->replace_weighing_keyboard($order->id, $this->messageId);
                 }
+            }
 
+            if(isset($reset)) {
+                $this->delete_message_by_types([]);
             }
         }
 
