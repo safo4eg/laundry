@@ -17,6 +17,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('id')->autoIncrement();
             $table->string('title');
             $table->unsignedBigInteger('price');
+            $table->text('request_text');
         });
     }
 

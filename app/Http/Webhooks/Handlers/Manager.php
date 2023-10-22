@@ -31,6 +31,14 @@ class Manager extends WebhookHandler
         parent::__construct();
     }
 
+    public function test(): void
+    {
+        $order = Order::where('id', 1)->first();
+        $manager_chat = $order->chats()->where('id', $this->chat->id)->first();
+
+        $this->chat->message('reply')->reply($manager_chat->pivot->message_id)->send();
+    }
+
     public function send_order_card(Order $order): void // распределение какую карточку отправить
     {
         $keyboard = Keyboard::make();

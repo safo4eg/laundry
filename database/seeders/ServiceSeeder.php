@@ -17,23 +17,27 @@ class ServiceSeeder extends Seeder
     {
         DB::table('services')->insert([
             [
-                'title' => 'clothes',
+                'title' => 'Clothes',
                 'price' => 80000,
+                'request_text' => 'Enter clothing weight'
             ],
 
             [
-                'title' => 'shoes',
+                'title' => 'A pair of shoes',
                 'price' => 120000,
+                'request_text' => 'Enter the number of pairs of shoes'
             ],
 
             [
-                'title' => 'bed_linen',
+                'title' => 'Bed linen or towels',
                 'price' => 50000,
+                'request_text' => 'Enter the weight of bed linen and/or towels'
             ],
 
             [
-                'title' => 'organic',
+                'title' => 'Organic wash',
                 'price' => 120000,
+                'request_text' => 'Enter weight Organic wash'
             ],
         ]);
     }

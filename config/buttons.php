@@ -122,6 +122,11 @@ return [
             'cancel' => 'Cancel'
         ],
 
-        'report' => 'Report'
+        'report' => 'Report',
+
+        'weighing' => [
+            'reset' => 'Reset',
+            'cancel' => 'Cancel'
+        ]
     ]
 ];
