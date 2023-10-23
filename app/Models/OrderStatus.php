@@ -12,14 +12,4 @@ class OrderStatus extends Model
     public $timestamps = false;
     protected $table = 'order_statuses';
     protected $guarded = [];
-
-//    public function orders()
-//    {
-//        return $this->belongsToMany(
-//            Order::class,
-//            'order_status',
-//            'status_id',
-//            'order_id'
-//        );
-//    }
 }
