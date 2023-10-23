@@ -28,22 +28,29 @@ class Washer extends WebhookHandler
     public function send_order_card(Order $order): void
     {
         if(in_array($order->status_id, [6, 7, 8])) {
-            $keyboard = Keyboard::make();
-            if($order->status_id === 8) {
-                $keyboard->button($this->buttons[$order->status_id])
-                    ->action('send_for_weighing')
-                    ->param('order_id', $order->id);
-            } else {
-                $keyboard->button($this->buttons[$order->status_id])
-                    ->action('show_card')
-                    ->param('show_card', 1)
-                    ->param('order_id', $order->id);
-            }
-
-            $keyboard->button($this->general_buttons['report'])
-                ->action('test');
+            $keyboard = $this->get_keyboard_order_card($order);
             $this->show_card($order, $keyboard);
         }
+    }
+
+    public function get_keyboard_order_card(Order $order = null): Keyboard
+    {
+        $buttons = [];
+        if($order->status_id === 8) { // взвешивание
+            $buttons[] = Button::make($this->buttons[$order->status_id])
+                ->action('send_for_weighing')
+                ->param('order_id', $order->id);
+        } else {
+            $buttons[] = Button::make($this->buttons[$order->status_id])
+                ->action('show_card')
+                ->param('show_card', 1)
+                ->param('order_id', $order->id);
+        }
+        $buttons[] = Button::make($this->general_buttons['report'])
+            ->action('order_report')
+            ->param('order_id', $order->id);
+
+        return Keyboard::make()->buttons($buttons);
     }
 
     /* без флагов т.к ничего не показывает только обрабатывает действие */

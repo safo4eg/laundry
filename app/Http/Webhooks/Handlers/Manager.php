@@ -26,43 +26,39 @@ class Manager extends WebhookHandler
 
     public function __construct()
     {
-        $this->config = config('buttons.manager');
+        $this->buttons = config('buttons.manager');
+        $this->general_buttons = config('buttons.chats');
         $this->template_prefix = 'bot.chats.';
         parent::__construct();
     }
 
-    public function test(): void
-    {
-        $order = Order::where('id', 1)->first();
-        $manager_chat = $order->chats()->where('id', $this->chat->id)->first();
-
-        $this->chat->message('reply')->reply($manager_chat->pivot->message_id)->send();
-    }
-
     public function send_order_card(Order $order): void // распределение какую карточку отправить
     {
-        $keyboard = Keyboard::make();
+        $keyboard = $this->get_keyboard_order_card($order);
+        if($order->status_id === 2) $this->distribute($order, $keyboard);
+        else $this->show_card($order, $keyboard);
+    }
+
+    public function get_keyboard_order_card(Order $order = null): Keyboard
+    {
+        $buttons = [];
         if($order->status_id === 2) {
-            $keyboard = Keyboard::make();
             $laundries = Laundry::all();
             foreach ($laundries as $laundry)
             {
-                $keyboard
-                    ->button($laundry->title)
+                $buttons[] = Button::make($laundry->title)
                     ->action('distribute')
                     ->param('distribute', 1)
                     ->param('laundry_id', $laundry->id)
                     ->param('order_id', $order->id);
             }
-
-            $this->distribute($order, $keyboard);
         } else {
-            $keyboard->buttons([
-                Button::make('тестовая кнопка 1')->action('show_card'),
-                Button::make('тестовая кнопка 2')->action('show_card')
-            ]);
-            $this->show_card($order, $keyboard);
+            $buttons[] = Button::make($this->general_buttons['report'])
+                ->action('order_report')
+                ->param('order_id', $order->id);
         }
+
+        return Keyboard::make()->buttons($buttons);
     }
 
     public function distribute(Order $order = null, Keyboard $keyboard = null): void

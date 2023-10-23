@@ -31,23 +31,29 @@ class Courier extends WebhookHandler
     public function send_order_card(Order $order): void
     {
         if(in_array($order->status_id, [3, 5, 9, 10, 11])) {
-            $keyboard = Keyboard::make();
-
-            if($order->status_id === 9) { // взвешивание
-                $keyboard->button($this->buttons[$order->status_id])
-                    ->action('weigh')
-                    ->param('order_id', $order->id);
-            } else {
-                $keyboard->button($this->buttons[$order->status_id])
-                    ->action('show_card')
-                    ->param('show_card', 1)
-                    ->param('order_id', $order->id);
-            }
-
-            $keyboard->button($this->general_buttons['report'])
-                ->action('test');
+            $keyboard = $this->get_keyboard_order_card($order);
             $this->show_card($order, $keyboard);
         }
+    }
+
+    public function get_keyboard_order_card(Order $order = null): Keyboard
+    {
+        $buttons = [];
+        if($order->status_id === 9) { // взвешивание
+            $buttons[] = Button::make($this->buttons[$order->status_id])
+                ->action('weigh')
+                ->param('order_id', $order->id);
+        } else {
+            $buttons[] = Button::make($this->buttons[$order->status_id])
+                ->action('show_card')
+                ->param('show_card', 1)
+                ->param('order_id', $order->id);
+        }
+        $buttons[] = Button::make($this->general_buttons['report'])
+            ->action('order_report')
+            ->param('order_id', $order->id);
+
+        return Keyboard::make()->buttons($buttons);
     }
 
     public function confirm_weighing(Order $order = null): void
