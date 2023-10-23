@@ -89,31 +89,6 @@ trait ChatsHelperTrait
                 }
             }
         }
-
-//        if (isset($flag)) { // значит прилетело с кнопки
-//            $type_id = $this->data->get('type_id'); // тип сообщения
-//            $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
-//                ->where('message_type_id', $type_id)
-//                ->first();
-//
-//            $this->chat->deleteMessage($chat_order->message_id)->send();
-//            $chat_order->delete();
-//        }
-//
-//        if (!isset($flag)) {
-//            if (isset($messages_types_ids)) { // удаляет конкретные типы сообщения из чата
-//                $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
-//                    ->whereIn('message_type_id', $messages_types_ids)
-//                    ->get();
-//
-//                if ($chat_orders->isNotEmpty()) {
-//                    foreach ($chat_orders as $chat_order) {
-//                        $this->chat->deleteMessage($chat_order->message_id)->send();
-//                        $chat_order->delete();
-//                    }
-//                }
-//            }
-//        }
     }
 
     public function check_order_message_existence_in_chat(string|int $order_id): Order|null
@@ -322,5 +297,45 @@ trait ChatsHelperTrait
         ]);
 
         $order->update(['status_id' => $status_id]);
+    }
+
+    /* ОБРАБОТКА КНОПКИ ORDER REPORT */
+    /* ОДИНАКОВЫЙ ДЛЯ ВСЕХ ЧАТОВ */
+
+    public function order_report(): void
+    {
+        $flag = $this->data->get('order_report');
+        $order_id = $this->data->get('order_id');
+        $order = Order::where('id', $order_id)->first();
+
+        if(isset($flag)) {
+            $back = $this->data->get('back');
+
+            if(isset($back)) {
+                $keyboard = $this->get_keyboard_order_card($order);
+                $this->chat->replaceKeyboard($this->messageId, $keyboard)->send();
+            }
+        }
+
+        if(!isset($flag)) { // редактируем текущую клаву
+            $files = File::where('order_id', $order->id)
+                ->where('file_type_id', 1) // фото
+                ->get();
+
+            $buttons = [];
+            if($files->isNotEmpty()) {
+                foreach ($files as $file) {
+                    $buttons[] = Button::make($file->status->signature_photo)
+                        ->url(Storage::url($file->path));
+                }
+            }
+            $buttons[] = Button::make('Back')
+                ->action('order_report')
+                ->param('order_report', 1)
+                ->param('back', 1)
+                ->param('order_id', $order->id);
+            $keyboard = Keyboard::make()->buttons($buttons);
+            $this->chat->replaceKeyboard($this->messageId, $keyboard)->send();
+        }
     }
 }

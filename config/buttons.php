@@ -98,7 +98,7 @@ return [
         5 => 'In the Laundry',
         9 => 'Weigh', // отправлены на взвешивание
         10 => 'Photo on the scales', // курьер взвешал вещи
-        11 => 'Photos of delivered things', // курьер сделал фото вещей (готовы к отправке)
+        11 => '📤Photos of delivered things', // курьер сделал фото вещей (готовы к отправке)
         12 => 'Things have been delivered' // вещи доставлены
     ],
 
@@ -123,7 +123,7 @@ return [
             'cancel' => 'Cancel'
         ],
 
-        'report' => 'Report',
+        'report' => 'ℹ️Order report',
 
         'weighing' => [
             'accept' => 'Accept',
