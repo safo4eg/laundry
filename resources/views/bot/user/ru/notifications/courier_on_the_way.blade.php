@@ -2,10 +2,10 @@
 Для связи с курьером используйте кнопку "Связаться с курьером".
 
 <b>Общий вес постиранных вещей:</b>
-@foreach($services_info['services'] as $service_info)
-    {{$service_info['title']}} <b>{{$service_info['amount']}}</b> - <b>{{$service_info['price']}}</b> рупий
+@foreach($order_services as $order_service)
+    {{$order_service->service->title}} <b>{{$order_service->amount}}</b> - <b>{{$order_service->amount*$order_service->service->price}}</b> рупий
 @endforeach
-<b>Сумма заказа {{$services_info['total_price']}}</b>
+<b>Сумма заказа {{$price}}</b>
 
 Как вам удобнее будет произвести оплату?
 

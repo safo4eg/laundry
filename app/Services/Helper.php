@@ -29,7 +29,7 @@ class Helper
         if (!$keyboard){
             $chat->message(view($template, $dataset))->send();
         } else {
-            $chat->message(view($template, $template_data))->keyboard($keyboard)->send();
+            $chat->message(view($template, $dataset))->keyboard($keyboard)->send();
         }
     }
 

@@ -85,8 +85,18 @@ return [
             'archive' => ['ru' => 'Архивные', 'en' => 'Archive']
         ],
         'back' => ['ru' => 'Назад', 'en' => 'Back'],
-        'tickets' => ['ru' => 'Проверить статус заявки', 'en' => 'Check application status' ]
-        // end
+        'tickets' => ['ru' => 'Проверить статус заявки', 'en' => 'Check application status' ],
+
+        'delivery' => [
+            'choose_payment' => ['ru' => 'Выбрать способ оплаты', 'en' => 'Choose payment method'],
+            'write_to_the_courier' => ['ru' => 'Написать курьеру', 'en' => 'Write to the courier']
+        ],
+
+        'payment_methods' => [
+            'pay_the_courier' => ['ru' => 'Оплатить курьеру', 'en' => 'Pay the courier'],
+            'pay_by_card' => ['ru' => 'Оплатить картой', 'en' => 'Pay by card'],
+            'pay_with_bonuses' => ['ru' => 'Оплатить бонусами', 'en' => 'Pay with bonuses'],
+        ]
     ],
 
     'manager' => [
@@ -97,9 +107,10 @@ return [
         3 => 'Pickup',
         5 => 'In the Laundry',
         9 => 'Weigh', // отправлены на взвешивание
-        10 => 'Photo on the scales', // курьер взвешал вещи
-        11 => '📤Photos of delivered things', // курьер сделал фото вещей (готовы к отправке)
-        12 => 'Things have been delivered' // вещи доставлены
+        10 => 'Photo on the scales',
+        11 => "Let's hit the road",
+        12 => '📤Photos of delivered things',
+        13 => 'Things have been delivered'
     ],
 
     'washer' => [

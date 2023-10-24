@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
             LaundrySeeder::class,
             TelegraphBotSeeder::class,
             TelegraphChatSeeder::class,
-            OrderStatuses::class,
+            OrderStatusSeeder::class,
             MessageTypeSeeder::class,
             ReasonSeeder::class,
             TicketStatusesSeeder::class,
