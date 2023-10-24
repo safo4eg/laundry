@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('geo', 255)->nullable();
             $table->string('address', 255)->nullable();
             $table->string('address_desc')->nullable();
+            $table->unsignedBigInteger('price')->nullable();
             $table->text('wishes')->nullable();
             $table->tinyInteger('status_id')->unsigned();
             $table->tinyInteger('laundry_id')->unsigned()->nullable();

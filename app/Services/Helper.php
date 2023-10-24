@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Chat;
 use App\Models\Order;
+use App\Models\Service;
 use App\Models\User;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 
@@ -31,4 +32,25 @@ class Helper
             $chat->message(view($template, $template_data))->keyboard($keyboard)->send();
         }
     }
+
+    public static function get_price(array $order_services): array|null
+    {
+        if(!isset($order_services)) return null;
+        else {
+            $services = Service::whereIn('id', $order_services['selected'])->get();
+            $price = ['sum' => 0, 'services' => []];
+            foreach ($services as $service) {
+                $price['services'][$service->id] = [];
+                $price['services'][$service->id]['amount'] = $order_services[$service->id];
+                $price['services'][$service->id]['price'] = $price['services'][$service->id]['amount']*$service->price;
+                $price['services'][$service->id]['title'] = $service->title;
+                $price['sum'] += $price['services'][$service->id]['price'];
+            }
+
+            if($price['sum'] < 240000) $price['sum'] = 240000;
+
+            return $price;
+        }
+    }
+
 }

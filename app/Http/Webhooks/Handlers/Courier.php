@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\File;
 use App\Models\OrderServicePivot;
 use App\Models\Service;
+use App\Services\Helper;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
@@ -205,7 +206,12 @@ class Courier extends WebhookHandler
                 $this->delete_message_by_types([3, 10, 12]);
                 $this->chat->storage()->set('order_services', null); // обнуляем выбранные услуги
                 $keyboard = $this->get_weighing_keyboard($order->id);
-                $this->chat->replaceKeyboard($this->messageId, $keyboard)->send();
+                $template = $this->template_prefix.'weighing';
+                $this->chat
+                    ->edit($this->messageId)
+                    ->message(view($template))
+                    ->keyboard($keyboard)
+                    ->send();
             }
         }
 
@@ -327,7 +333,13 @@ class Courier extends WebhookHandler
                         ->first();
 
                     $keyboard = $this->get_weighing_keyboard($chat_order->order->id);
-                    $this->chat->replaceKeyboard($chat_order->message_id, $keyboard)->send();
+                    $price = Helper::get_price($order_services);
+                    $template = $this->template_prefix.'weighing';
+                    $this->chat
+                        ->edit($chat_order->message_id)
+                        ->message(view($template, ['price' => $price]))
+                        ->keyboard($keyboard)
+                        ->send();
                     $this->delete_message_by_types([3, 10, 12]);
                 } else {
                     $response = $this->chat
