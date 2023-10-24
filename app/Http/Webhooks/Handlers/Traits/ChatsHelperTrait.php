@@ -282,7 +282,6 @@ trait ChatsHelperTrait
 
         $status_id = $order->status_id;
         if ($this->chat->name === 'Courier' and $order->status_id === 3) {
-            Log::debug('ашло сюда');
             $status_id = 5;
         } else {
             ++$status_id;

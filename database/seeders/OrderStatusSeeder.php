@@ -6,7 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-class OrderStatuses extends Seeder
+class OrderStatusSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -91,6 +91,13 @@ class OrderStatuses extends Seeder
                 'signature_photo' => 'Photo on the scales',
                 'en_desc' => 'Things are ready for delivery',
                 'ru_desc' => 'Вещи готовы к отправке'
+            ],
+
+            [
+                'name' => 'courier_on_the_way',
+                'signature_photo' => null,
+                'en_desc' => 'Courier on the way',
+                'ru_desc' => 'Курьер доставляет готовый заказ'
             ],
 
             [

@@ -31,7 +31,7 @@ class Courier extends WebhookHandler
 
     public function send_order_card(Order $order): void
     {
-        if(in_array($order->status_id, [3, 5, 9, 10, 11])) {
+        if(in_array($order->status_id, [3, 5, 9, 10, 11, 12])) {
             $keyboard = $this->get_keyboard_order_card($order);
             $this->show_card($order, $keyboard);
         }
@@ -44,6 +44,16 @@ class Courier extends WebhookHandler
             $buttons[] = Button::make($this->buttons[$order->status_id])
                 ->action('weigh')
                 ->param('order_id', $order->id);
+        } else if($order->status_id === 12) {
+            $buttons[] = Button::make($this->buttons[$order->status_id])
+                ->action('deliver')
+                ->param('photo', 1)
+                ->param('order_id', 1);
+
+            $buttons[] = Button::make('Dialogue')
+                ->action('deliver')
+                ->param('dialogue', 1)
+                ->param('order_id', 1);
         } else {
             $buttons[] = Button::make($this->buttons[$order->status_id])
                 ->action('show_card')
@@ -55,6 +65,29 @@ class Courier extends WebhookHandler
             ->param('order_id', $order->id);
 
         return Keyboard::make()->buttons($buttons);
+    }
+
+    public function deliver(): void // обработка последней карточки (всех кнопок на ней кроме order_report)
+    {
+        $order_id = $this->data->get('order_id');
+        $order = Order::where('id', $order_id)->first();
+
+        $photo = $this->data->get('photo');
+        $dialogue = $this->data->get('dialogue');
+        $back = $this->data->get('back');
+
+
+        if(isset($photo)) { // обработка кнопки с приложением фото
+
+        }
+
+        if(isset($dialogue)) { // обработка открытия диалога
+
+        }
+
+        if(isset($back)) { // возврат с диалога на основное меню карточки
+
+        }
     }
 
     public function weigh(): void
@@ -200,8 +233,16 @@ class Courier extends WebhookHandler
         $order = isset($order)? $order: Order::find($order_id);
 
         if(isset($flag)) {
-            $this->delete_message_by_types([5, 6, 7]);
-            $this->request_photo($order);
+            if($order->status_id === 11) {
+                $order->update([
+                    'status_id' => ++$order->status_id
+                ]);
+                /* В этот момент в наблюателе происходит отправка уведомление клиенту */
+                /* так же через наблюдатель происходит отправка новой карточки заказа */
+            } else {
+                $this->delete_message_by_types([5, 6, 7]);
+                $this->request_photo($order);
+            }
         }
 
         if(!isset($flag)) {
