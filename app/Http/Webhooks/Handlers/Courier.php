@@ -57,91 +57,6 @@ class Courier extends WebhookHandler
         return Keyboard::make()->buttons($buttons);
     }
 
-    public function confirm_weighing(Order $order = null): void
-    {
-        $flag = $this->data->get('confirm_weighing');
-        $order_id = $this->data->get('order_id');
-        $order = Order::where('id', $order_id)->first();
-
-        if(isset($flag)) { // обработка кнопки YES
-            $order_services = $this->chat->storage()->get('order_services');
-
-            foreach ($order_services['selected'] as $service_id) { // добавление записи заказ_услуга_количество
-                OrderServicePivot::create([
-                    'order_id' => $order->id,
-                    'service_id' => $service_id,
-                    'amount' => $order_services[$service_id]
-                ]);
-            }
-
-            $order->update([
-                'status_id' => 10
-            ]);
-
-            // далее отправка будет в наблюдателе, тк создастся запись новая => запись в стэк-трейсе заказа
-        }
-
-        if(!isset($flag)) {
-            $order_services = $this->chat->storage()->get('order_services');
-            $template = null;
-            $response = null;
-            $message_type_id = null;
-            if(isset($order_services['selected'])) { // если есть выбранные
-                $this->delete_message_by_types([9, 10]);
-                $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id) // главная карточка заказа
-                    ->where('order_id', $order->id)
-                    ->where('message_type_id', 1)
-                    ->first();
-                $services = Service::whereIn('id', $order_services['selected'])->get();
-                $template = $this->template_prefix.'confirm_weighing';
-                $message_type_id = 11;
-
-                $price = ['sum' => 0, 'services' => []];
-                foreach ($services as $service) {
-                    $price['services'][$service->id] = [];
-                    $price['services'][$service->id]['amount'] = $order_services[$service->id];
-                    $price['services'][$service->id]['price'] = $price['services'][$service->id]['amount']*$service->price;
-                    $price['services'][$service->id]['title'] = $service->title;
-                    $price['sum'] += $price['services'][$service->id]['price'];
-                }
-
-                $keyboard = Keyboard::make()->buttons([
-                    Button::make($this->general_buttons['confirm_weighing']['yes'])
-                        ->action('confirm_weighing')
-                        ->param('confirm_weighing', 1)
-                        ->param('order_id', $order->id),
-                    Button::make($this->general_buttons['confirm_weighing']['no'])
-                        ->action('weigh')
-                        ->param('order_id', $order->id),
-                ]);
-
-                $response = $this->chat
-                    ->message(view($template, ['price' => $price]))
-                    ->reply($chat_order->message_id)
-                    ->keyboard($keyboard)
-                    ->send();
-            } else { // если ничего не было указано
-                $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id) // карточка со взвешиванием
-                    ->where('order_id', $order->id)
-                    ->where('message_type_id', 9)
-                    ->first();
-                $template = 'bot.notifications.selected_services_is_null';
-                $message_type_id = 3;
-                $response = $this->chat
-                    ->message(view($template))
-                    ->reply($chat_order->message_id)
-                    ->send();
-            }
-
-            ChatOrderPivot::create([
-                'telegraph_chat_id' => $this->chat->id,
-                'order_id' => $order->id,
-                'message_id' => $response->telegraphMessageId(),
-                'message_type_id' => $message_type_id
-            ]);
-        }
-    }
-
     public function weigh(): void
     {
         $flag = $this->data->get('weigh');
@@ -153,6 +68,7 @@ class Courier extends WebhookHandler
             $this->delete_message_by_types([10]);
             $choice = $this->data->get('choice');
             $reset = $this->data->get('reset');
+            $accept = $this->data->get('accept');
 
             if($choice) {
                 $this->delete_message_by_types([3, 10]);
@@ -212,6 +128,42 @@ class Courier extends WebhookHandler
                     ->message(view($template))
                     ->keyboard($keyboard)
                     ->send();
+            }
+
+            if(isset($accept)) {
+                $order_services = $this->chat->storage()->get('order_services');
+
+                if(isset($order_services['selected'])) {
+                    $array_without_empty_values = array_diff($order_services['selected'], ['', null, false]);
+                    if(!empty($array_without_empty_values)) {
+                        $price = Helper::get_price($order_services);
+                        foreach($price['services'] as $key => $service) {
+                            OrderServicePivot::create([
+                                'order_id' => $order->id,
+                                'service_id' => $key,
+                                'amount' => $service['amount']
+                            ]);
+                        }
+                        $order->update([
+                            'price' => $price['sum'],
+                            'status_id' => 10
+                        ]);
+                    }
+                } else {
+                    $template = 'bot.notifications.selected_services_is_null';
+                    $response = $this->chat
+                        ->message(view($template))->reply($this->messageId)
+                        ->send();
+
+                    ChatOrderPivot::create([
+                        'telegraph_chat_id' => $this->chat->id,
+                        'order_id' => $order->id,
+                        'message_id' => $response->telegraphMessageId(),
+                        'message_type_id' => 3
+                    ]);
+                }
+
+                // далее отправка будет в наблюдателе, тк создастся запись новая => запись в стэк-трейсе заказа
             }
         }
 
@@ -402,7 +354,9 @@ class Courier extends WebhookHandler
         $buttons_texts = $this->general_buttons['weighing'];
 
         $accept_button = Button::make($buttons_texts['accept'])
-            ->action('confirm_weighing')
+            ->action('weigh')
+            ->param('weigh', 1)
+            ->param('accept', 1)
             ->param('order_id', $order_id);
 
         $reset_button = Button::make($buttons_texts['reset'])
