@@ -6,6 +6,7 @@ use App\Http\Webhooks\Handlers\Traits\UserCommandsFuncsTrait;
 use App\Http\Webhooks\Handlers\Traits\FirstAndSecondScenarioTrait;
 use App\Models\Chat;
 use App\Models\Order;
+use App\Models\OrderServicePivot;
 use App\Models\OrderStatusPivot;
 use App\Models\Referral;
 use App\Models\User as UserModel;
@@ -33,6 +34,42 @@ class User extends WebhookHandler
         $this->user = $user;
         $this->template_prefix = 'bot.user.';
         parent::__construct();
+    }
+
+    public function delivery_action(): void {
+        $flag = $this->data->get('delivery');
+        $order_id = $this->data->get('order_id');
+        $order = Order::where('id', $order_id)->first();
+
+        if(isset($flag)) { // обработка кнопок
+
+        }
+
+        if(!isset($flag)) { // показ
+            $buttons_texts = $this->config['delivery'];
+            $template = $this->template_prefix.$this->user->language_code.'.order.courier_on_the_way';
+            $keyboard = Keyboard::make()->buttons([
+                Button::make($buttons_texts['choose_payment'][$this->user->language_code])
+                    ->action('delivery')
+                    ->param('payment', 1)
+                    ->param('order_id', $order->id),
+
+                Button::make($buttons_texts['write_to_the_courier'][$this->user->language_code  ])
+                    ->action('delivery')
+                    ->param('dialogue', 1)
+                    ->param('order_id', $order->id),
+            ]);
+
+            $view_data = [
+                'order_services' => OrderServicePivot::where('order_id', $order->id)->get(),
+                'price' => $order->price
+            ];
+
+            $this->chat
+                ->message(view($template, $view_data))
+                ->keyboard($keyboard)
+                ->send();
+        }
     }
 
     public function referrals(): void

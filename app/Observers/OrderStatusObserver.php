@@ -3,13 +3,11 @@
 namespace App\Observers;
 
 use App\Http\Webhooks\Handlers\Courier;
+use App\Http\Webhooks\Handlers\User;
 use App\Http\Webhooks\Handlers\Washer;
 use App\Models\Bot;
 use App\Models\Chat;
-use App\Models\Laundry;
-use App\Models\OrderServicePivot;
 use App\Models\OrderStatusPivot;
-use App\Models\ChatOrderPivot;
 use App\Http\Webhooks\Handlers\Manager;
 use App\Services\FakeRequest;
 use App\Services\Helper;
@@ -17,7 +15,6 @@ use Carbon\Carbon;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use Illuminate\Support\Facades\Log;
-use function Webmozart\Assert\Tests\StaticAnalysis\null;
 
 class OrderStatusObserver
 {
@@ -69,32 +66,21 @@ class OrderStatusObserver
                 ];
                 Helper::send_user_notification($order->user, 'order_pickuped', $user_chat_dataset);
             } else if($order->status_id === 12) {
-                $buttons_texts = $user_config['delivery'];
-                $language_code = $order->user->language_code;
-
-                $user_chat_dataset = [
-                    'order_services' => OrderServicePivot::where('order_id', $order->id)->get(),
-                    'price' => $order->price
-                ];
-
-                $keyboard = Keyboard::make()->buttons([
-                    Button::make($buttons_texts['choose_payment'][$language_code])
-                        ->action('delivery')
-                        ->param('payment', 1)
-                        ->param('order_id', $order->id),
-
-                    Button::make($buttons_texts['write_to_the_courier'][$language_code])
-                        ->action('delivery')
-                        ->param('dialogue', 1)
-                        ->param('order_id', $order->id),
+                $chat = Chat::factory()->make([
+                    'chat_id' => $order->user->chat_id,
+                    'name' => 'User',
+                    'telegraph_bot_id' => 1
                 ]);
 
-                Helper::send_user_notification(
-                    $order->user,
-                    'courier_on_the_way',
-                    $user_chat_dataset,
-                    $keyboard
-                );
+                $fake_dataset = [
+                    'action' => 'delivery_action',
+                    'params' => [
+                        'order_id' => $order->id,
+                    ]
+                ];
+
+                $fake_request = FakeRequest::callback_query($chat, $bot, $fake_dataset);
+                (new User($order->user))->handle($fake_request, $bot);
             }
         }
 
