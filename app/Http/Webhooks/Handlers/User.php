@@ -36,16 +36,24 @@ class User extends WebhookHandler
         parent::__construct();
     }
 
+    public function test(): void
+    {
+        $user = $this->message->from();
+        $user->storage()->set('test', 'test');
+    }
+
     public function delivery_action(): void {
         $flag = $this->data->get('delivery');
         $order_id = $this->data->get('order_id');
-        $order = Order::where('id', $order_id)->first();
+        $order = isset($order_id)? Order::where('id', $order_id)->first(): $this->user->active_order;
 
         if(isset($flag)) { // обработка кнопок
-
+        #тут
         }
 
         if(!isset($flag)) { // показ
+            $this->terminate_active_page();
+
             $buttons_texts = $this->config['delivery'];
             $template = $this->template_prefix.$this->user->language_code.'.order.courier_on_the_way';
             $keyboard = Keyboard::make()->buttons([
@@ -54,7 +62,7 @@ class User extends WebhookHandler
                     ->param('payment', 1)
                     ->param('order_id', $order->id),
 
-                Button::make($buttons_texts['write_to_the_courier'][$this->user->language_code  ])
+                Button::make($buttons_texts['write_to_the_courier'][$this->user->language_code])
                     ->action('delivery')
                     ->param('dialogue', 1)
                     ->param('order_id', $order->id),
@@ -65,10 +73,17 @@ class User extends WebhookHandler
                 'price' => $order->price
             ];
 
-            $this->chat
+            $response = $this->chat
                 ->message(view($template, $view_data))
                 ->keyboard($keyboard)
                 ->send();
+
+            $this->user->update([
+                'page' => 'delivery',
+                'message_id' => $response->telegraphMessageId()
+            ]);
+
+            $order->update(['active' => 1]);
         }
     }
 
@@ -79,6 +94,8 @@ class User extends WebhookHandler
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
         if(!isset($flag)) {
+            $this->terminate_active_page();
+
             $buttons_texts = [
                 'recommend' => $this->config['referrals']['recommend'][$this->user->language_code],
                 'new_order' => $this->config['referrals']['new_order'][$this->user->language_code],
@@ -86,24 +103,6 @@ class User extends WebhookHandler
                 'info' => $this->config['referrals']['info'][$this->user->language_code]
             ];
             $template = $template_prefix_lang.'.referrals.main';
-
-            $page = $this->user->page;
-            $order = $this->user->active_order;
-            if (
-                $page === 'first_scenario' or
-                $page === 'second_scenario' or
-                $page === 'first_scenario_phone' or
-                $page === 'first_scenario_whatsapp'
-
-            ) {
-                $this->terminate_filling_order($order);
-            }
-
-            if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
-            {
-                $this->delete_active_page();
-            }
-
             $start_order_button = null;
             if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
                 $start_order_button = Button::make($buttons_texts['continue_order'])
@@ -224,18 +223,6 @@ class User extends WebhookHandler
                 'language' => $this->config['profile']['language'][$this->user->language_code],
             ];
             $template = $template_prefix_lang . '.profile.main';
-
-            $page = $this->user->page;
-            $order = $this->user->active_order;
-            if (
-                $page === 'first_scenario' or
-                $page === 'second_scenario' or
-                $page === 'first_scenario_phone' or
-                $page === 'first_scenario_whatsapp'
-            ) {
-                $this->terminate_filling_order($order);
-            }
-
             $start_order_button = null;
             if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
                 $start_order_button = Button::make($buttons_texts['continue_order'])
@@ -263,12 +250,7 @@ class User extends WebhookHandler
 
             $response = null;
             if (isset($this->message)) {
-
-                if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
-                {
-                    $this->delete_active_page();
-                }
-
+                $this->terminate_active_page();
                 $response = $this->chat
                     ->message(view($template, ['user' => $this->user]))
                     ->keyboard($keyboard)
@@ -356,7 +338,8 @@ class User extends WebhookHandler
                 ]);
 
                 if(isset($this->message)) {
-                    $this->delete_active_page();
+                    $this->terminate_active_page(false);
+
                     $response = $this->chat
                         ->message(view($template, [
                             'order' => $order,
@@ -419,22 +402,7 @@ class User extends WebhookHandler
         if (!isset($flag)) {
 
             if (isset($this->message)) {
-                $page = $this->user->page;
-                $order = $this->user->active_order;
-
-                if (
-                    $page === 'first_scenario' or
-                    $page === 'second_scenario' or
-                    $page === 'first_scenario_phone' or
-                    $page === 'first_scenario_whatsapp'
-                ) {
-                    $this->terminate_filling_order($order);
-                }
-
-                if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
-                {
-                    $this->delete_active_page();
-                }
+                $this->terminate_active_page();
             }
 
             $orders = Order::where('user_id', $this->user->id)
@@ -494,12 +462,6 @@ class User extends WebhookHandler
                         ->send();
                     return;
                 }
-            }
-
-            if (isset($order)) {
-                $order->update([
-                    'active' => false
-                ]);
             }
 
             $this->user->update([
@@ -583,27 +545,14 @@ class User extends WebhookHandler
     public function about(): void // можно попасть только с команды /about
     {
         if($this->check_for_language_code()) return;
+        $this->terminate_active_page();
+
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
-        $page = $this->user->page;
-        $order = $this->user->active_order;
         $buttons_text = [
             'new_order' => $this->config['about_us']['new_order'][$this->user->language_code],
             'continue_order' => $this->config['about_us']['continue_order'][$this->user->language_code],
         ];
 
-        if(
-            $page === 'first_scenario' or
-            $page === 'second_scenario' or
-            $page === 'first_scenario_phone' or
-            $page === 'first_scenario_whatsapp'
-        ) {
-            $this->terminate_filling_order($order);
-        }
-
-        if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
-        {
-            $this->delete_active_page();
-        }
 
         $start_order_button = null;
         if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
@@ -621,12 +570,6 @@ class User extends WebhookHandler
                 $start_order_button
             ]))
             ->send();
-
-        if (isset($order)) {
-            $order->update([
-                'active' => false
-            ]);
-        }
 
         $this->user->update([
             'page' => 'about_us',
@@ -652,18 +595,6 @@ class User extends WebhookHandler
                     'reviews' => $this->config['start']['reviews'][$this->user->language_code],
                 ];
 
-                $page = $this->user->page;
-                $order = $this->user->active_order;
-
-                if(
-                    $page === 'first_scenario' or
-                    $page === 'second_scenario' or
-                    $page === 'first_scenario_phone' or
-                    $page === 'first_scenario_whatsapp'
-                ) {
-                    $this->terminate_filling_order($order);
-                }
-
                 $start_order_button = null;
                 if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
                     $start_order_button = Button::make($buttons_text['continue_order'])
@@ -682,7 +613,7 @@ class User extends WebhookHandler
 
                 if (isset($this->user->message_id)) {
                     if (isset($this->message)) { // проверяем проинициализирована ли переменная, т.к сюда можно попасть и с кнопки
-                        $this->delete_active_page();
+                        $this->terminate_active_page();
                     } else { // если не с команды попало, тогда редактируем, т.к ничего не писали
                         $this->chat
                             ->edit($this->user->message_id)
@@ -713,7 +644,7 @@ class User extends WebhookHandler
                     'page' => 'start'
                 ]);
 
-            } else {
+            } else { // если юзер зашел первый раз
                 $chat_id = $this->message->from()->id();
                 $username = $this->message->from()->username();
 
@@ -897,7 +828,7 @@ class User extends WebhookHandler
                     $button_select_ru->param('page', 1),
                 ]);
 
-                $this->delete_active_page();
+                $this->terminate_active_page();
 
                 $response = $this->chat
                     ->message((string)view($template))
@@ -1211,17 +1142,7 @@ class User extends WebhookHandler
         } else if(!isset($flag)) {
 
             if(isset($this->message)) {
-                $page = $this->user->page;
-                $order = $this->user->active_order;
-
-                if ($page === 'first_scenario' or $page === 'second_scenario') {
-                    $this->terminate_filling_order($order);
-                }
-
-                if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
-                {
-                    $this->delete_active_page();
-                }
+                $this->terminate_active_page();
             }
 
             $this->support_start();
