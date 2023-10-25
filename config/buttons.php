@@ -96,6 +96,11 @@ return [
             'pay_the_courier' => ['ru' => 'Оплатить курьеру', 'en' => 'Pay the courier'],
             'pay_by_card' => ['ru' => 'Оплатить картой', 'en' => 'Pay by card'],
             'pay_with_bonuses' => ['ru' => 'Оплатить бонусами', 'en' => 'Pay with bonuses'],
+        ],
+
+        'order_dialogue' => [
+            'write' => ['ru' => 'Написать', 'en' => 'Write'],
+            'back' => ['ru' => 'Вернуться к заказу', 'en' => 'Back to order']
         ]
     ],
 

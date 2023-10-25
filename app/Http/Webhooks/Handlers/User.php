@@ -15,6 +15,7 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\Models\TelegraphChat;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
 use Illuminate\Database\Eloquent\Builder;
@@ -37,29 +38,90 @@ class User extends WebhookHandler
         parent::__construct();
     }
 
+    public function test()
+    {
+        Order::where('id', 2)->update(['active' => true]);
+    }
+
+    public function order_dialogue(): void
+    {
+        $flag = $this->data->get('dialogue');
+        $order = isset($order_id)? Order::where('id', $order_id)->first(): $this->user->active_order;
+
+        if(isset($flag)) {
+            $write = $this->data->get('write');
+
+            if(isset($write)) { // просьба написать сообщение
+
+            }
+        }
+
+        if(!isset($flag)) {
+            $order_messages = OrderMessage::where('order_id', $order->id)->get();
+
+            $template = $this->template_prefix.$this->user->language_code.'.order.dialogue';
+            $template_dataset = [
+                'order_messages' => $order_messages,
+                'current_chat_id' => $this->chat->chat_id,
+                'order' => $order
+            ];
+            $buttons_texts = [
+                'write' => $this->config['order_dialogue']['write'][$this->user->language_code],
+                'back' => $this->config['order_dialogue']['back'][$this->user->language_code],
+            ];
+            $keyboard = Keyboard::make()->buttons([
+                Button::make($buttons_texts['write'])
+                    ->action('order_dialogue')
+                    ->param('dialogue', 1)
+                    ->param('write', 1),
+                Button::make($buttons_texts['back'])
+                    ->action('delivery_action')
+                    ->param('back', 1)
+                    ->param('order_id', $order->id)
+
+            ]);
+
+            if(isset($this->callbackQuery)) { // значит прилетело с кнопки => редактируем пред.инлайн-пейдж
+                $response = $this->chat
+                    ->edit($this->messageId)
+                    ->message(view($template, $template_dataset))
+                    ->keyboard($keyboard)
+                    ->send();
+            } else { // значит зашел после ввода сообщения (при $this->message)
+                $response = $this->chat
+                    ->message(view($template, $template_dataset))
+                    ->keyboard($keyboard)
+                    ->send();
+            }
+
+            $this->user->update([
+                'page' => 'order_dialogue',
+                'message_id' => $response->telegraphMessageId()
+            ]);
+        }
+    }
+
     public function delivery_action(): void {
         $flag = $this->data->get('delivery');
         $order_id = $this->data->get('order_id');
         $order = isset($order_id)? Order::where('id', $order_id)->first(): $this->user->active_order;
 
         if(isset($flag)) { // обработка кнопок
-        #тут
+
         }
 
         if(!isset($flag)) { // показ
-            $this->terminate_active_page();
+            $back = $this->data->get('back');
 
             $buttons_texts = $this->config['delivery'];
             $template = $this->template_prefix.$this->user->language_code.'.order.courier_on_the_way';
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons_texts['choose_payment'][$this->user->language_code])
-                    ->action('delivery')
-                    ->param('payment', 1)
+                    ->action('order_payment')
                     ->param('order_id', $order->id),
 
                 Button::make($buttons_texts['write_to_the_courier'][$this->user->language_code])
-                    ->action('delivery')
-                    ->param('dialogue', 1)
+                    ->action('order_dialogue')
                     ->param('order_id', $order->id),
             ]);
 
@@ -68,17 +130,25 @@ class User extends WebhookHandler
                 'price' => $order->price
             ];
 
-            $response = $this->chat
-                ->message(view($template, $view_data))
-                ->keyboard($keyboard)
-                ->send();
+            if(isset($back)) { // если с кнопки назад значит редактируем инлайн-пейдж с которого вызвано
+                $response = $this->chat
+                    ->edit($this->messageId)
+                    ->message(view($template, $view_data))
+                    ->keyboard($keyboard)
+                    ->send();
+            } else {
+                $this->terminate_active_page();
+                $response = $this->chat
+                    ->message(view($template, $view_data))
+                    ->keyboard($keyboard)
+                    ->send();
+                $order->update(['active' => true]);
+            }
 
             $this->user->update([
                 'page' => 'delivery',
                 'message_id' => $response->telegraphMessageId()
             ]);
-
-            $order->update(['active' => 1]);
         }
     }
 
