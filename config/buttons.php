@@ -101,7 +101,9 @@ return [
         'order_dialogue' => [
             'write' => ['ru' => 'Написать', 'en' => 'Write'],
             'back' => ['ru' => 'Вернуться к заказу', 'en' => 'Back to order']
-        ]
+        ],
+
+        'request_order_message' => ['ru' => 'Отмена', 'en' => 'Cancel']
     ],
 
     'manager' => [

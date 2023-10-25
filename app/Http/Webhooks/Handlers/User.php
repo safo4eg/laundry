@@ -52,7 +52,19 @@ class User extends WebhookHandler
             $write = $this->data->get('write');
 
             if(isset($write)) { // просьба написать сообщение
+                $template = $this->template_prefix.$this->user->language_code.'.order.request_order_message';
+                $back_button = $this->config['request_order_message'][$this->user->language_code];
+                $keyboard = Keyboard::make()->button($back_button)
+                    ->action('order_dialogue')
+                    ->param('order_id', $order->id);
 
+                $this->chat
+                    ->edit($this->messageId)
+                    ->message(view($template, ['order' => $order]))
+                    ->keyboard($keyboard)
+                    ->send();
+
+                $this->user->update(['page' => 'request_order_message']);
             }
         }
 
@@ -73,7 +85,9 @@ class User extends WebhookHandler
                 Button::make($buttons_texts['write'])
                     ->action('order_dialogue')
                     ->param('dialogue', 1)
-                    ->param('write', 1),
+                    ->param('write', 1)
+                    ->param('order_id', $order->id),
+
                 Button::make($buttons_texts['back'])
                     ->action('delivery_action')
                     ->param('back', 1)
