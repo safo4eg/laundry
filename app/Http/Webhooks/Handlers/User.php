@@ -6,6 +6,7 @@ use App\Http\Webhooks\Handlers\Traits\UserCommandsFuncsTrait;
 use App\Http\Webhooks\Handlers\Traits\FirstAndSecondScenarioTrait;
 use App\Models\Chat;
 use App\Models\Order;
+use App\Models\OrderMessage;
 use App\Models\OrderServicePivot;
 use App\Models\OrderStatusPivot;
 use App\Models\Referral;
@@ -34,12 +35,6 @@ class User extends WebhookHandler
         $this->user = $user;
         $this->template_prefix = 'bot.user.';
         parent::__construct();
-    }
-
-    public function test(): void
-    {
-        $user = $this->message->from();
-        $user->storage()->set('test', 'test');
     }
 
     public function delivery_action(): void {

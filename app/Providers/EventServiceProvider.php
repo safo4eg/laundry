@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Models\Order;
+use App\Models\OrderMessage;
 use App\Models\OrderStatusPivot;
+use App\Observers\OrderMessageObserver;
 use App\Observers\OrderObserver;
 use App\Observers\OrderStatusObserver;
 use Illuminate\Auth\Events\Registered;
@@ -33,6 +35,7 @@ class EventServiceProvider extends ServiceProvider
     {
         Order::observe(OrderObserver::class);
         OrderStatusPivot::observe(OrderStatusObserver::class);
+        OrderMessage::observe(OrderMessageObserver::class);
     }
 
     /**
