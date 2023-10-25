@@ -4,6 +4,8 @@ namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\FirstAndSecondScenarioTrait;
 use App\Http\Webhooks\Handlers\Traits\UserCommandsFuncsTrait;
+use App\Http\Webhooks\Handlers\Traits\UserMessageTrait;
+use App\Models\Chat;
 use App\Models\Order;
 use App\Models\OrderStatusPivot;
 use App\Models\Referral;
@@ -12,6 +14,7 @@ use App\Services\QR;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use DefStudio\Telegraph\Models\TelegraphChat;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
@@ -1152,6 +1155,7 @@ class User extends WebhookHandler
 
     use Traits\SupportUserTrait;
     use Traits\ChatsHelperTrait;
+    use Traits\UserMessageTrait;
 
     public function support(): void
     {
@@ -1212,6 +1216,7 @@ class User extends WebhookHandler
                 case 'profile_change_whatsapp':
                     $this->profile_change_handler();
                     break;
+                case 'add_ticket':
                 case 'ticket_creation':
                     $this->handle_ticket();
                     break;

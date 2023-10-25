@@ -1,10 +1,10 @@
-Обращение #{{ $ticket->id }}
+<b>Обращение #{{ $ticket->id }}</b> 📝
 
 @foreach($messages as $message)
-    @if($message->chat_id !== \App\Models\Chat::where('name', 'Support')->first()->id)
-        <b>You</b> <i>{{ $message->time }}</i>
+    @if($message->chat_id !== \App\Models\Chat::where('name', 'Support')->first()->chat_id)
+        <b>Вы</b>: {{ $message->time }}
     @else
-        <b>Support</b> <i>{{ $message->time }}</i>
+        <b>Поддержка</b>: {{ $message->time }}
     @endif
     {{ $message->text }}
     @if($message->file)

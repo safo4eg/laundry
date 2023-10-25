@@ -3,22 +3,25 @@
 namespace App\Http\Webhooks\Handlers\Traits;
 
 use App\Models\Chat;
+use App\Models\User;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 
 trait UserMessageTrait
 {
-    public function send_message_to_user(int $chat_id, string $template, Keyboard $keyboard = null): void
+    public function send_message_to_user(User $user, string $template, Keyboard $keyboard = null): \DefStudio\Telegraph\Client\TelegraphResponse
     {
         $chat = Chat::factory()->make([
-            'chat_id' => $chat_id,
+            'chat_id' => $user->chat_id,
             'name' => 'Temp',
             'telegraph_bot_id' => 1
         ]);
 
         if (!$keyboard){
-            $chat->message($template)->send();
+            $response = $chat->edit($user->message_id)->message($template)->send();
         } else {
-            $chat->message($template)->keyboard($keyboard)->send();
+            $response = $chat->edit($user->message_id)->message($template)->keyboard($keyboard)->send();
         }
+
+        return $response;
     }
 }

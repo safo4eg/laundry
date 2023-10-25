@@ -5,12 +5,41 @@ namespace App\Http\Webhooks\Handlers\Traits;
 use App\Models\ChatOrder;
 use App\Models\Ticket;
 use App\Models\TicketItem;
-use App\Models\User;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 
 trait SupportTrait
 {
+    public function send_user_answer(): void
+    {
+        $ticket_id = $this->data->get('ticket_id');
+        $ticket = Ticket::where('id', $ticket_id)->first();
+        $ticket_item = TicketItem::where('ticket_id',$ticket_id)
+            ->orderByDesc('time')
+            ->first();
+
+        $user = $ticket->user;
+        $view = view('bot.support.send_user_answer', [
+            'text' => $ticket_item->text,
+            'ticket_id' => $ticket_id
+        ]);
+        // TODO: Доделать вид карточки для юзера + кнопки
+        $keyboard = Keyboard::make()->buttons([
+            Button::make('У меня остались еще вопросы')
+                ->action('add_ticket')
+                ->param('ticket_id', $ticket->id),
+            Button::make('Вопросов нет')
+                ->action('close_ticket')
+                ->param('ticket_id', $ticket->id)
+        ]);
+
+        $response = $this->send_message_to_user($user, $view, $keyboard);
+        $ticket->user->update([
+            'message_id' => $response->telegraphMessageId()
+        ]);
+    }
+
+
     public function confirm_answer($text = null, Ticket $ticket = null): void
     {
         $flag = $this->data->get('choice');
@@ -32,27 +61,13 @@ trait SupportTrait
                     $this->send_ticket_card($this->chat, $ticket);
                 }
                 $this->delete_message_by_types([12]);
-
-                $user = $ticket->user;
-                $view = view('bot.support.send_user_answer', [
-                    'text' => $ticket_item->text,
-                    'ticket_id' => $ticket_id
-                ]);
-                // TODO: Доделать вид карточки для юзера + кнопки
-                $keyboard = Keyboard::make()->buttons([
-                    Button::make('У меня остались еще вопросы')
-                        ->action('add_ticket')
-                        ->param('ticket_id', $ticket->id),
-                    Button::make('Вопросов нет')
-                        ->action('close_ticket')
-                        ->param('ticket_id', $ticket->id)
-                ]);
-                $this->send_message_to_user($user->chat_id, $view, $keyboard);
+                $this->send_user_answer();
             } elseif ($flag == 2) {
                 $this->delete_message_by_types([10, 11, 12]);
                 $this->answer();
             }
         } else {
+            $this->delete_message_by_types([10, 11, 12]);
             $response = $this->chat->message(view('bot.support.confirm_ticket', [
                 'ticket_id' => $ticket->id,
                 'text' => $text
@@ -84,26 +99,8 @@ trait SupportTrait
             'baseUrl' => url()
         ]);
 
-        $buttons = [
-            Button::make('Answer')
-                ->action('answer')
-                ->param('ticket_id', $ticket->id)
-                ->width(0.5),
-            Button::make('Reject')
-                ->action('reject')
-                ->param('ticket_id', $ticket->id)
-                ->width(0.5)
-        ];
-
-        if ($ticket->status_id == 3) {
-            $buttons[] = Button::make('Close')
-                ->action('close')
-                ->param('ticket_id', $ticket->id)
-                ->width(0.5);
-        }
-        $keyboard = Keyboard::make()->buttons($buttons);
         $response = $chat->message(preg_replace('#^\s+#m', '', $view))
-            ->keyboard($keyboard)
+            ->keyboard($this->update_ticket_keyboard_by_status($ticket))
             ->send();
 
         ChatOrder::create([
@@ -113,6 +110,52 @@ trait SupportTrait
             'message_type_id' => 9
         ]);
     }
+
+    public function update_ticket_keyboard_by_status(Ticket $ticket): Keyboard
+    {
+        $buttons = [];
+
+        switch ($ticket->status_id) {
+            case 2:
+                $buttons = [
+                    Button::make('Answer')
+                        ->action('answer')
+                        ->param('ticket_id', $ticket->id)
+                        ->width(0.5),
+                    Button::make('Reject')
+                        ->action('reject')
+                        ->param('ticket_id', $ticket->id)
+                        ->width(0.5)
+                ];
+                break;
+            case 3:
+                $buttons = [
+                    Button::make('Answer')
+                        ->action('answer')
+                        ->param('ticket_id', $ticket->id)
+                        ->width(0.5),
+                    Button::make('Reject')
+                        ->action('reject')
+                        ->param('ticket_id', $ticket->id)
+                        ->width(0.5),
+                    $buttons[] = Button::make('Close')
+                        ->action('close')
+                        ->param('ticket_id', $ticket->id)
+                ];
+                break;
+            case 4:
+            case 5:
+            $buttons = [
+                Button::make('Return')
+                    ->action('return_ticket')
+                    ->param('ticket_id', $ticket->id)
+                    ->width(0.5),
+            ];
+        }
+
+        return Keyboard::make()->buttons($buttons);
+    }
+
 
     public function delete_ticket_card($chat, Ticket $ticket): void
     {

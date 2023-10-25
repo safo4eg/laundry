@@ -2,24 +2,51 @@
 
 namespace App\Http\Webhooks\Handlers\Traits;
 
+use App\Models\Chat;
 use App\Models\File;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 
 trait SupportUserTrait
 {
     use SupportTrait;
+
     public function close_ticket(): void
     {
         $ticket = Ticket::where('id', $this->data->get('ticket_id'))->first();
         $ticket->update([
             'status_id' => 4
         ]);
-        $this->delete_ticket_card($this->chat, $ticket);
+
+        $support_chat = Chat::where('name', 'Support')->first();
+        $this->delete_ticket_card($support_chat, $ticket);
+        $this->chat->edit($this->user->message_id)
+            ->message('Спасибо, что обратились в чат поддержки LaundryBot, оцените работу поддержки!')
+            ->keyboard(Keyboard::make()->buttons([
+                Button::make('5')->action('evaluation_support_work')->param('mark', 5)->param('ticket_id', $ticket->id),
+                Button::make('4')->action('evaluation_support_work')->param('mark', 4)->param('ticket_id', $ticket->id),
+                Button::make('3')->action('evaluation_support_work')->param('mark', 3)->param('ticket_id', $ticket->id),
+                Button::make('2')->action('evaluation_support_work')->param('mark', 2)->param('ticket_id', $ticket->id),
+                Button::make('1')->action('evaluation_support_work')->param('mark', 1)->param('ticket_id', $ticket->id),
+            ]))
+            ->send();
+    }
+
+    public function evaluation_support_work(): void
+    {
+        $ticket = Ticket::where('id', $this->data->get('ticket_id'))->first();
+        $ticket->update([
+            'mark' => $this->data->get('mark')
+        ]);
+
+        $this->chat->edit($this->user->message_id)
+            ->message('Спасибо, что оценили нашу работу!')
+            ->send();
     }
 
     public function support_start(): void
@@ -51,11 +78,21 @@ trait SupportUserTrait
     {
         $template = "{$this->template_prefix}{$this->user->language_code}.support.create_ticket_text";
         $button = $this->config['support']['back'][$this->user->language_code];
+
+        if ($this->bot->storage()->get('current_ticket_id')) {
+            $ticket_id = $this->bot->storage()->get('current_ticket_id');
+            $buttons = [
+                Button::make($button)->action('send_user_answer')->param('ticket_id', $ticket_id),
+            ];
+        } else {
+            $buttons = [
+                Button::make($button)->action('support'),
+            ];
+        }
+
         $response = $this->chat->edit($this->user->message_id)
             ->message(view($template))
-            ->keyboard(Keyboard::make()->buttons([
-                Button::make($button)->action('support'),
-            ]))
+            ->keyboard(Keyboard::make()->buttons($buttons))
             ->send();
 
         $this->user->update([
@@ -73,21 +110,28 @@ trait SupportUserTrait
         }
 
         if ($this->message) {
-            $ticket = Ticket::create([
-                'user_id' => $this->user->id,
-                'status_id' => 1
-            ]);
+            if ($this->bot->storage()->get('current_ticket_id')) {
+                $ticket_text = $this->message->text();
+                TicketItem::create([
+                    'text' => $ticket_text,
+                    'ticket_id' => $this->bot->storage()->get('current_ticket_id'),
+                    'chat_id' => $this->message->from()->id()
+                ]);
+            } else {
+                $ticket = Ticket::create([
+                    'user_id' => $this->user->id,
+                    'status_id' => 1
+                ]);
+                $this->bot->storage()->set('current_ticket_id', $ticket->id);
 
-            $this->bot->storage()->set('current_ticket_id', $ticket->id);
+                $ticket_text = $this->message->text();
+                TicketItem::create([
+                    'text' => $ticket_text,
+                    'ticket_id' => $ticket->id,
+                    'chat_id' => $this->message->from()->id()
+                ]);
 
-            $ticket_text = $this->message->text();
-
-            TicketItem::create([
-                'text' => $ticket_text,
-                'ticket_id' => $ticket->id,
-                'chat_id' => $this->message->from()->id()
-            ]);
-
+            }
             $this->user->update([
                 "step" => 3,
             ]);
@@ -161,16 +205,15 @@ trait SupportUserTrait
         }
 
         $flag = $this->data->get('confirm');
-        $current_ticket = Ticket::where('user_id', $this->user->id)
-            ->orderByDesc('time_start')
-            ->first();
-        $ticket_item = TicketItem::where('ticket_id', $current_ticket->id)
-            ->orderByDesc('time')
-            ->first();
+        $current_ticket = $this->bot->storage()->get('current_ticket_id');
+        $ticket_item = TicketItem::where('ticket_id', $current_ticket)->first();
 
         if ($flag) {
             $dir = "ticket/ticket_item_{$ticket_item->id}";
+
+            $this->bot->storage()->set('photo_id', $this->user->id);
             $photo_id = $this->bot->storage()->get('photo_id');
+
             $file_name = "$photo_id.jpg";
 
             $current_ticket->update([
@@ -199,6 +242,7 @@ trait SupportUserTrait
 
         if ($flag) {
             $ticket_id = $this->bot->storage()->get('current_ticket_id');
+            $this->bot->storage()->forget('current_ticket_id');
             $ticket = Ticket::where('id', $ticket_id)->first();
 
             $ticket->update([
@@ -258,46 +302,12 @@ trait SupportUserTrait
         if (isset($type)) {
             if ($type == 'archive') {
                 $archive_tickets = $tickets->whereNotNull('time_end')->get();
-                $template = "{$this->template_prefix}{$this->user->language_code}.support.lc.archive";
-                $view = view($template, [
-                    'tickets' => $archive_tickets
-                ]);
-
-                $buttons = [];
-                foreach ($archive_tickets as $archive_ticket) {
-                    $buttons[] = Button::make("#{$archive_ticket->id}")->action('check_user_tickets')
-                        ->param('id', $archive_ticket->id)->param('check_user_tickets', 'ticket_info')->width(0.5);
-                }
-                $buttons[] = Button::make($button)->action('check_user_tickets');
-
-                $this->chat->edit($this->messageId)
-                    ->message(preg_replace('#^[^\n]\s+#m', '', $view))
-                    ->keyboard(Keyboard::make()
-                        ->buttons($buttons))->send();
+                $this->ticket_list($archive_tickets, 'archive');
             }
-
             if ($type == 'active') {
                 $active_tickets = $tickets->whereNull('time_end')->get();
-                $template = "{$this->template_prefix}{$this->user->language_code}.support.lc.active";
-                $view = view($template, [
-                    'tickets' => $active_tickets
-                ]);
-
-                $buttons = [];
-                foreach ($active_tickets as $active_ticket) {
-                    $buttons[] = Button::make("#{$active_ticket->id}")->action('check_user_tickets')
-                        ->param('id', $active_ticket->id)
-                        ->param('check_user_tickets', 'ticket_info')
-                        ->width(0.5);
-                }
-                $buttons[] = Button::make($button)->action('check_user_tickets');
-
-                $this->chat->edit($this->messageId)
-                    ->message(preg_replace('#^[^\n]\s+#m', '', $view))
-                    ->keyboard(Keyboard::make()
-                        ->buttons($buttons))->send();
+                $this->ticket_list($active_tickets, 'active');
             }
-
             if ($type == 'ticket_info') {
                 $template = "{$this->template_prefix}{$this->user->language_code}.support.lc.ticket_info";
                 $ticket_id = $this->data->get('id');
@@ -313,10 +323,50 @@ trait SupportUserTrait
                 $this->chat->edit($this->messageId)
                     ->message(preg_replace('#^\s+#m', '', $view))->keyboard(Keyboard::make()
                         ->buttons([
-                            Button::make($button)->action('check_user_tickets')
+                            Button::make($button)->action('check_user_tickets'),
+                            Button::make('Написать сообщение')
+                                ->action('add_ticket')
+                                ->param('ticket_id', $ticket_id)
                         ]))
                     ->send();
             }
         }
+    }
+
+
+    public function ticket_list($tickets, string $type): void
+    {
+        $button = $this->config['support']['back'][$this->user->language_code];
+        $template = "{$this->template_prefix}{$this->user->language_code}.support.lc.$type";
+        $view = view($template, [
+            'tickets' => $tickets
+        ]);
+
+        $buttons = [];
+        foreach ($tickets as $active_ticket) {
+            $buttons[] = Button::make("#{$active_ticket->id}")->action('check_user_tickets')
+                ->param('id', $active_ticket->id)
+                ->param('check_user_tickets', 'ticket_info')
+                ->width(0.5);
+        }
+        $buttons[] = Button::make($button)->action('check_user_tickets');
+
+        $this->chat->edit($this->messageId)
+            ->message(preg_replace('#^[^\n]\s+#m', '', $view))
+            ->keyboard(Keyboard::make()
+                ->buttons($buttons))->send();
+    }
+
+
+    public function add_ticket(): void
+    {
+        $ticket_id = $this->data->get('ticket_id');
+        $this->bot->storage()->set('current_ticket_id', $ticket_id);
+        $this->user->update([
+            'page' => 'add_ticket',
+            'step' => 1
+        ]);
+
+        $this->handle_ticket();
     }
 }

@@ -85,7 +85,7 @@ class Support extends WebhookHandler
             ChatOrder::create([
                 'telegraph_chat_id' => $this->chat->id,
                 'message_id' => $response->telegraphMessageId(),
-                'message_type_id' => 15,
+                'message_type_id' => 14,
                 'ticket_id' => $ticket->id
             ]);
         }
@@ -100,6 +100,7 @@ class Support extends WebhookHandler
         $ticket->update([
             'status_id' => 4
         ]);
+
         $this->delete_ticket_card($this->chat, $ticket);
     }
 
@@ -126,6 +127,7 @@ class Support extends WebhookHandler
                 $this->delete_message_by_types([11, 10]);
                 $this->confirm_answer($text, $ticket);
             }
+
         }
     }
 }

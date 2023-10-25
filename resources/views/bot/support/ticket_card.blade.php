@@ -9,7 +9,7 @@
     {{ $message->text }}
     @if($message->file)
         @foreach($message->file as $file)
-            хуй
+            Вложение
         @endforeach
     @endif
 @endforeach

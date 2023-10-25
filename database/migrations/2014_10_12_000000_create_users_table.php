@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('page', 64)->nullable();
             $table->tinyInteger('step')->unsigned()->index()->nullable();
             $table->unsignedBigInteger('message_id')->nullable();
+            $table->string('storage')->nullable();
         });
     }
 
