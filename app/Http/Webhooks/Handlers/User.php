@@ -94,14 +94,15 @@ class User extends WebhookHandler
                     ->param('order_id', $order->id)
 
             ]);
-
+            #тут1
             if(isset($this->callbackQuery)) { // значит прилетело с кнопки => редактируем пред.инлайн-пейдж
                 $response = $this->chat
                     ->edit($this->messageId)
                     ->message(view($template, $template_dataset))
                     ->keyboard($keyboard)
                     ->send();
-            } else { // значит зашел после ввода сообщения (при $this->message)
+            } else { // значит зашел после ввода сообщения (при $this->message) нужно удалить активное окно
+                $this->terminate_active_page(false);
                 $response = $this->chat
                     ->message(view($template, $template_dataset))
                     ->keyboard($keyboard)
@@ -1230,26 +1231,43 @@ class User extends WebhookHandler
 
     protected function handleChatMessage(Stringable $text): void
     {
+        $photos = $this->message->photos();
+        $text = $this->message->text();
         $page = $this->user->page;
-        if (isset($page)) {
-            switch ($page) {
-                case 'first_scenario':
-                case 'second_scenario':
-                case 'first_scenario_whatsapp':
-                case 'first_scenario_phone':
-                    $this->handle_scenario_response();
-                    break;
-                case 'order_wishes':
-                    $this->write_order_wishes();
-                    break;
-                case 'profile_change_phone_number':
-                case 'profile_change_whatsapp':
-                    $this->profile_change_handler();
-                    break;
-                case 'support':
-                    $this->support();
-                    break;
+
+        if(isset($text) AND $photos->isEmpty()) {
+            if (isset($page)) {
+                switch ($page) {
+                    case 'first_scenario':
+                    case 'second_scenario':
+                    case 'first_scenario_whatsapp':
+                    case 'first_scenario_phone':
+                        $this->handle_scenario_response();
+                        break;
+                    case 'order_wishes':
+                        $this->write_order_wishes();
+                        break;
+                    case 'profile_change_phone_number':
+                    case 'profile_change_whatsapp':
+                        $this->profile_change_handler();
+                        break;
+                    case 'support':
+                        $this->support();
+                        break;
+                }
+
+                if($page === 'request_order_message') {
+                    $order = $this->user->active_order;
+                    OrderMessage::create([
+                        'order_id' => $order->id,
+                        'sender_chat_id' => $this->user->chat_id,
+                        'text' => $text
+                    ]);
+                    $this->order_dialogue();
+
+                    /* После создания сообщения в БД будет отправка уведомления курьеру через наблюдатель */
+                }
             }
-        } // end if(isset($page))
+        }
     }
 }

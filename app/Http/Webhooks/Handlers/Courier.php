@@ -298,16 +298,15 @@ class Courier extends WebhookHandler
     protected function handleChatMessage(Stringable $text): void
     {
         $photos = $this->message->photos();
-        $message_text = $this->message->text(); // обычный текст
+        $text = $this->message->text(); // обычный текст
 
-        if(isset($message_text) AND $photos->isEmpty()) { // просто текст
+        if(isset($text) AND $photos->isEmpty()) { // просто текст
             ChatOrderPivot::create([
                 'telegraph_chat_id' => $this->chat->id,
                 'order_id' => null,
                 'message_id' => $this->messageId,
                 'message_type_id' => 12
             ]);
-            $text = $text->value();
 
             $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('message_type_id', 10) // отправка килограмммм
