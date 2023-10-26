@@ -104,7 +104,7 @@ class Courier extends WebhookHandler
         }
 
         if(!isset($flag)) {
-            $this->delete_order_card_messages($order);
+            $edit = $this->data->get('edit'); // прилетело с кнопки,но с параметром редактировать
             $order_messages = OrderMessage::where('order_id', $order->id)->get();
             $template_dataset = [
                 'order_messages' => $order_messages,
@@ -125,12 +125,25 @@ class Courier extends WebhookHandler
                     ->param('delete', 1)
                     ->param('type_id', '12,13,14')
             ]);
+            if(isset($this->message) OR isset($edit)) { // редактируем
+                $dialogue_chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
+                    ->where('order_id', $order->id)
+                    ->where('message_type_id', 13)
+                    ->first();
 
-            $response = $this->chat
-                ->message(view($template, $template_dataset))
-                ->reply($main_chat_order->message_id)
-                ->keyboard($keyboard)
-                ->send();
+                $response = $this->chat->message(view($template, $template_dataset))
+                    ->edit($dialogue_chat_order->message_id)
+                    ->keyboard($keyboard)
+                    ->send();
+
+            } else { // очищаем и отправляем заново
+                $this->delete_order_card_messages($order);
+                $response = $this->chat
+                    ->message(view($template, $template_dataset))
+                    ->reply($main_chat_order->message_id)
+                    ->keyboard($keyboard)
+                    ->send();
+            }
 
             ChatOrderPivot::create([
                 'telegraph_chat_id' => $this->chat->id,
@@ -360,41 +373,51 @@ class Courier extends WebhookHandler
             ]);
 
             $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
-                ->where('message_type_id', 10) // отправка килограмммм
+                ->whereIn('message_type_id', [10, 14]) // запрос кг или сообщения в диалог
                 ->first();
 
             if(isset($chat_order)) {
-                if(preg_match('#^[0-9]+$#', $text)) {
-                    $order_services = $this->chat->storage()->get('order_services');
-                    if(isset($order_services['selected'])) $order_services['selected'][] = $order_services['current'];
-                    else $order_services['selected'] = [$order_services['current']];
-                    $order_services[$order_services['current']] = $text;
-                    $this->chat->storage()->set('order_services', $order_services);
+                if($chat_order->message_type_id === 10) { // обработка запроса кг
+                    if(preg_match('#^[0-9]+$#', $text)) {
+                        $order_services = $this->chat->storage()->get('order_services');
+                        if(isset($order_services['selected'])) $order_services['selected'][] = $order_services['current'];
+                        else $order_services['selected'] = [$order_services['current']];
+                        $order_services[$order_services['current']] = $text;
+                        $this->chat->storage()->set('order_services', $order_services);
 
-                    $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
-                        ->where('message_type_id', 9)
-                        ->first();
+                        $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
+                            ->where('message_type_id', 9)
+                            ->first();
 
-                    $keyboard = $this->get_weighing_keyboard($chat_order->order->id);
-                    $price = Helper::get_price($order_services);
-                    $template = $this->template_prefix.'weighing';
-                    $this->chat
-                        ->edit($chat_order->message_id)
-                        ->message(view($template, ['price' => $price]))
-                        ->keyboard($keyboard)
-                        ->send();
-                    $this->delete_message_by_types([3, 10, 12]);
-                } else {
-                    $response = $this->chat
-                        ->message('Invalid value entered! Try again!')
-                        ->send();
+                        $keyboard = $this->get_weighing_keyboard($chat_order->order->id);
+                        $price = Helper::get_price($order_services);
+                        $template = $this->template_prefix.'weighing';
+                        $this->chat
+                            ->edit($chat_order->message_id)
+                            ->message(view($template, ['price' => $price]))
+                            ->keyboard($keyboard)
+                            ->send();
+                        $this->delete_message_by_types([3, 10, 12]);
+                    } else {
+                        $response = $this->chat
+                            ->message('Invalid value entered! Try again!')
+                            ->send();
 
-                    ChatOrderPivot::create([
-                        'telegraph_chat_id' => $this->chat->id,
+                        ChatOrderPivot::create([
+                            'telegraph_chat_id' => $this->chat->id,
+                            'order_id' => $chat_order->order->id,
+                            'message_id' => $response->telegraphMessageId(),
+                            'message_type_id' => 3
+                        ]);
+                    }
+                } else if($chat_order->message_type_id === 14) { // обработка сообщения клиенту
+                    $this->delete_message_by_types([12, 14]);
+                    OrderMessage::create([
                         'order_id' => $chat_order->order->id,
-                        'message_id' => $response->telegraphMessageId(),
-                        'message_type_id' => 3
+                        'sender_chat_id' => $this->chat->chat_id,
+                        'text' => $text
                     ]);
+                    $this->order_dialogue($chat_order->order);
                 }
             }
         }
