@@ -65,9 +65,21 @@ class User extends WebhookHandler
             if(isset($write)) { // просьба написать сообщение
                 $template = $this->template_prefix.$this->user->language_code.'.order.request_order_message';
                 $back_button = $this->config['request_order_message'][$this->user->language_code];
-                $keyboard = Keyboard::make()->button($back_button)
-                    ->action('order_dialogue')
-                    ->param('order_id', $order->id);
+
+                $keyboard = null;
+                if($this->user->page === 'message_from_courier') { // возврат на сообщение курьера
+                    $keyboard = Keyboard::make()->button($back_button)
+                        ->action('order_dialogue')
+                        ->param('dialogue', 1)
+                        ->param('get', 1)
+                        ->param('order_id', $order->id);
+                }
+
+                if($this->user->page === 'order_dialogue') { // возврат на общение с курьером
+                    $keyboard = Keyboard::make()->button($back_button)
+                        ->action('order_dialogue')
+                        ->param('order_id', $order->id);
+                }
 
                 $this->chat
                     ->edit($this->messageId)
@@ -89,7 +101,10 @@ class User extends WebhookHandler
                 $buttons = [];
 
                 $buttons[] = Button::make($buttons_texts['reply'])
-                    ->action('act')
+                    ->action('order_dialogue')
+                    ->param('dialogue', 1)
+                    ->param('write', 1)
+                    ->param('order_id', $order->id)
                     ->width(0.5);
 
                 $buttons[] = Button::make($buttons_texts['close'])
@@ -97,7 +112,8 @@ class User extends WebhookHandler
                     ->width(0.5);
 
                 $buttons[] = Button::make($buttons_texts['open'])
-                    ->action('act')
+                    ->action('order_dialogue')
+                    ->param('order_id', $order->id)
                     ->width(0.5);
 
                 if(!$payment_status) { // если заказ не оплачен тогда кнопка оплатить
@@ -123,6 +139,8 @@ class User extends WebhookHandler
                     'page' => 'message_from_courier',
                     'message_id' => $response->telegraphMessageId()
                 ]);
+
+                $order->update(['active' => true]);
             }
         }
 
