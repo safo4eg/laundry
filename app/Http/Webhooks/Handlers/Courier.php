@@ -81,7 +81,25 @@ class Courier extends WebhookHandler
             $write = $this->data->get('write');
 
             if(isset($write)) { // запрос сообщения
+                $template = $this->template_prefix.'request_dialogue_message';
+                $keyboard = Keyboard::make()->buttons([
+                    Button::make('Cancel')->action('delete_message_by_types')
+                        ->param('delete', 1)
+                        ->param('type_id', '14')
+                ]);
 
+                $response = $this->chat
+                    ->message(view($template))
+                    ->reply($main_chat_order->message_id)
+                    ->keyboard($keyboard)
+                    ->send();
+
+                ChatOrderPivot::create([
+                    'telegraph_chat_id' => $this->chat->id,
+                    'order_id' => $order->id,
+                    'message_id' => $response->telegraphMessageId(),
+                    'message_type_id' => 14
+                ]);
             }
         }
 
