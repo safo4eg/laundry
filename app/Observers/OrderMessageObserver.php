@@ -18,4 +18,11 @@ class OrderMessageObserver
         $orderMessage->created_at = Carbon::now();
     }
 
+    public function created(OrderMessage $orderMessage)
+    {
+        $order = $orderMessage->order;
+        /* Отправка сообщения в чат курьеру */
+
+    }
+
 }

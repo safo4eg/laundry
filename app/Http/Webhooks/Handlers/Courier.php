@@ -6,6 +6,7 @@ use App\Models\Chat;
 use App\Models\ChatOrderPivot;
 use App\Models\Order;
 use App\Models\File;
+use App\Models\OrderMessage;
 use App\Models\OrderServicePivot;
 use App\Models\Service;
 use App\Services\Helper;
@@ -46,13 +47,12 @@ class Courier extends WebhookHandler
                 ->param('order_id', $order->id);
         } else if($order->status_id === 12) {
             $buttons[] = Button::make($this->buttons[$order->status_id])
-                ->action('deliver')
-                ->param('photo', 1)
-                ->param('order_id', 1);
+                ->action('show_card')
+                ->param('show_card', 1)
+                ->param('order_id', $order->id);
 
             $buttons[] = Button::make('Dialogue')
-                ->action('deliver')
-                ->param('dialogue', 1)
+                ->action('order_dialogue')
                 ->param('order_id', 1);
         } else {
             $buttons[] = Button::make($this->buttons[$order->status_id])
@@ -67,26 +67,59 @@ class Courier extends WebhookHandler
         return Keyboard::make()->buttons($buttons);
     }
 
-    public function deliver(): void // обработка последней карточки (всех кнопок на ней кроме order_report)
+    public function order_dialogue(Order $order = null): void // обработка диалога с пользователем
     {
+        $flag = $this->data->get('dialogue');
         $order_id = $this->data->get('order_id');
-        $order = Order::where('id', $order_id)->first();
+        $order = isset($order)? $order: Order::where('id', $order_id)->first();
+        $main_chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
+                ->where('order_id', $order->id)
+                ->where('message_type_id', 1)
+                ->first();
 
-        $photo = $this->data->get('photo');
-        $dialogue = $this->data->get('dialogue');
-        $back = $this->data->get('back');
+        if(isset($flag)) {
+            $write = $this->data->get('write');
 
+            if(isset($write)) { // запрос сообщения
 
-        if(isset($photo)) { // обработка кнопки с приложением фото
-
+            }
         }
 
-        if(isset($dialogue)) { // обработка открытия диалога
+        if(!isset($flag)) {
+            $this->delete_order_card_messages($order);
+            $order_messages = OrderMessage::where('order_id', $order->id)->get();
+            $template_dataset = [
+                'order_messages' => $order_messages,
+                'current_chat_id' => $this->chat->chat_id,
+                'order' => $order
+            ];
+            $template = $this->template_prefix.'courier_dialogue';
+            $buttons_texts = $this->general_buttons['courier_dialogue'];
+            $keyboard = Keyboard::make()->buttons([
+                Button::make($buttons_texts['write'])
+                    ->action('order_dialogue')
+                    ->param('dialogue', 1)
+                    ->param('write', 1)
+                    ->param('order_id', $order->id),
 
-        }
+                Button::make($buttons_texts['close'])
+                    ->action('delete_message_by_types')
+                    ->param('delete', 1)
+                    ->param('type_id', '12,13,14')
+            ]);
 
-        if(isset($back)) { // возврат с диалога на основное меню карточки
+            $response = $this->chat
+                ->message(view($template, $template_dataset))
+                ->reply($main_chat_order->message_id)
+                ->keyboard($keyboard)
+                ->send();
 
+            ChatOrderPivot::create([
+                'telegraph_chat_id' => $this->chat->id,
+                'order_id' => $order->id,
+                'message_id' => $response->telegraphMessageId(),
+                'message_type_id' => 13
+            ]);
         }
     }
 

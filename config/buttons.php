@@ -152,6 +152,11 @@ return [
         'confirm_weighing' => [
             'yes' => '✅YES',
             'no' => '❌NO'
+        ],
+
+        'courier_dialogue' => [
+            'write' => 'Write',
+            'close' => 'Close dialogue'
         ]
     ]
 ];

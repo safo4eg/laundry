@@ -94,7 +94,7 @@ class User extends WebhookHandler
                     ->param('order_id', $order->id)
 
             ]);
-            #тут1
+
             if(isset($this->callbackQuery)) { // значит прилетело с кнопки => редактируем пред.инлайн-пейдж
                 $response = $this->chat
                     ->edit($this->messageId)

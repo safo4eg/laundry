@@ -28,6 +28,8 @@ class MessageTypeSeeder extends Seeder
             ['title' => 'request_amount'],
             ['title' => 'confirm_weighing'],
             ['title' => 'text'],
+            ['title' => 'dialogue'],
+            ['title' => 'request_dialogue_message']
         ]);
     }
 }
