@@ -9,7 +9,9 @@ use App\Models\File;
 use App\Models\OrderMessage;
 use App\Models\OrderServicePivot;
 use App\Models\Service;
+use App\Services\FakeRequest;
 use App\Services\Helper;
+use DefStudio\Telegraph\DTO\Photo;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
@@ -76,9 +78,11 @@ class Courier extends WebhookHandler
                 ->where('order_id', $order->id)
                 ->where('message_type_id', 1)
                 ->first();
+        $buttons_texts = $this->general_buttons['courier_dialogue'];
 
         if(isset($flag)) {
             $write = $this->data->get('write');
+            $get_message = $this->data->get('get');
 
             if(isset($write)) { // запрос сообщения
                 $template = $this->template_prefix.'request_dialogue_message';
@@ -101,6 +105,66 @@ class Courier extends WebhookHandler
                     'message_type_id' => 14
                 ]);
             }
+
+            if(isset($get_message)) { // получить сообщение клиента
+                $new_order_message = OrderMessage::where('order_id', $order->id)
+                    ->orderBy('created_at', 'desc')
+                    ->first(); // получаем последнее сообщение
+                $template = $this->template_prefix.'client_order_message';
+                $template_dataset = [
+                    'order' => $order,
+                    'order_message' => $new_order_message
+                ];
+
+                $dialogue_chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
+                    ->where('order_id', $order->id)
+                    ->where('message_type_id', 13)
+                    ->first();
+
+                /* Если диалог открыт, тогда у уведомления с новым сообщением от клиента не будет кнопки ответить */
+                /* так же редактируем открытый диалог */
+                $buttons = [];
+                if(isset($dialogue_chat_order)) {
+                    $fake_dataset = [
+                        'action' => 'order_dialogue',
+                        'params' => [
+                            'order_id' => $order->id,
+                            'edit' => 1
+                        ]
+                    ];
+
+                    $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
+                    (new self())->handle($fake_request, $this->bot);
+                } else {
+                    $buttons[] = Button::make($buttons_texts['reply_to_message'])
+                        ->action('order_dialogue')
+                        ->param('dialogue', 1)
+                        ->param('write', 1)
+                        ->param('order_id', $order->id);
+                }
+
+                $buttons[] = Button::make($buttons_texts['close_message'])
+                    ->action('delete_message_by_types')
+                    ->param('delete', 1)
+                    ->param('type_id', '15')
+                    ->param('order_id', $order->id);
+
+                $keyboard = Keyboard::make()->buttons($buttons);
+
+                $response = $this
+                    ->chat
+                    ->message(view($template, $template_dataset))
+                    ->reply($main_chat_order->message_id)
+                    ->keyboard($keyboard)
+                    ->send();
+
+                ChatOrderPivot::create([
+                    'telegraph_chat_id' => $this->chat->id,
+                    'order_id' => $order->id,
+                    'message_id' => $response->telegraphMessageId(),
+                    'message_type_id' => 15
+                ]);
+            }
         }
 
         if(!isset($flag)) {
@@ -112,7 +176,6 @@ class Courier extends WebhookHandler
                 'order' => $order
             ];
             $template = $this->template_prefix.'courier_dialogue';
-            $buttons_texts = $this->general_buttons['courier_dialogue'];
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons_texts['write'])
                     ->action('order_dialogue')
@@ -131,10 +194,19 @@ class Courier extends WebhookHandler
                     ->where('message_type_id', 13)
                     ->first();
 
-                $response = $this->chat->message(view($template, $template_dataset))
-                    ->edit($dialogue_chat_order->message_id)
-                    ->keyboard($keyboard)
-                    ->send();
+                if(isset($dialogue_chat_order)) {
+                    $response = $this->chat->message(view($template, $template_dataset))
+                        ->edit($dialogue_chat_order->message_id)
+                        ->keyboard($keyboard)
+                        ->send();
+
+                    ChatOrderPivot::create([
+                        'telegraph_chat_id' => $this->chat->id,
+                        'order_id' => $order->id,
+                        'message_id' => $response->telegraphMessageId(),
+                        'message_type_id' => 13
+                    ]);
+                }
 
             } else { // очищаем и отправляем заново
                 $this->delete_order_card_messages($order);
@@ -143,14 +215,15 @@ class Courier extends WebhookHandler
                     ->reply($main_chat_order->message_id)
                     ->keyboard($keyboard)
                     ->send();
+
+                ChatOrderPivot::create([
+                    'telegraph_chat_id' => $this->chat->id,
+                    'order_id' => $order->id,
+                    'message_id' => $response->telegraphMessageId(),
+                    'message_type_id' => 13
+                ]);
             }
 
-            ChatOrderPivot::create([
-                'telegraph_chat_id' => $this->chat->id,
-                'order_id' => $order->id,
-                'message_id' => $response->telegraphMessageId(),
-                'message_type_id' => 13
-            ]);
         }
     }
 
@@ -411,6 +484,15 @@ class Courier extends WebhookHandler
                         ]);
                     }
                 } else if($chat_order->message_type_id === 14) { // обработка сообщения клиенту
+                    $message_from_client_chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
+                        ->where('order_id', $chat_order->order->id)
+                        ->where('message_type_id', 15)
+                        ->first();
+
+                    if(isset($message_from_client_chat_order)) {
+                        $this->delete_message_by_types([15], $chat_order->order);
+                    }
+
                     $this->delete_message_by_types([12, 14]);
                     OrderMessage::create([
                         'order_id' => $chat_order->order->id,

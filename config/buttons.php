@@ -160,7 +160,9 @@ return [
 
         'courier_dialogue' => [
             'write' => 'Write',
-            'close' => 'Close dialogue'
+            'close' => 'Close dialogue',
+            'close_message' => 'Close',
+            'reply_to_message' => 'Reply'
         ]
     ]
 ];
