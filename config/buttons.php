@@ -103,6 +103,7 @@ return [
             'back' => ['ru' => 'Вернуться к заказу', 'en' => 'Back to order'],
             'pay' => ['ru' => 'Оплатить заказ', 'en' => 'Pay for the order'],
             'reply' => ['ru' => 'Ответить', 'en' => 'Reply'],
+            'open' => ['ru' => 'Открыть диалог', 'en' => 'Open dialogue'],
             'close' => ['ru' => 'Закрыть', 'en' => 'Close']
         ],
 

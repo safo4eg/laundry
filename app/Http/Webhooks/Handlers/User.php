@@ -54,7 +54,8 @@ class User extends WebhookHandler
             'back' => $this->config['order_dialogue']['back'][$this->user->language_code],
             'pay' => $this->config['order_dialogue']['pay'][$this->user->language_code],
             'reply' => $this->config['order_dialogue']['reply'][$this->user->language_code],
-            'close' => $this->config['order_dialogue']['close'][$this->user->language_code]
+            'close' => $this->config['order_dialogue']['close'][$this->user->language_code],
+            'open' => $this->config['order_dialogue']['open'][$this->user->language_code]
         ];
 
         if(isset($flag)) {
@@ -93,6 +94,10 @@ class User extends WebhookHandler
 
                 $buttons[] = Button::make($buttons_texts['close'])
                     ->action('start')
+                    ->width(0.5);
+
+                $buttons[] = Button::make($buttons_texts['open'])
+                    ->action('act')
                     ->width(0.5);
 
                 if(!$payment_status) { // если заказ не оплачен тогда кнопка оплатить
