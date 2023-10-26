@@ -53,7 +53,7 @@ class Courier extends WebhookHandler
 
             $buttons[] = Button::make('Dialogue')
                 ->action('order_dialogue')
-                ->param('order_id', 1);
+                ->param('order_id', $order->id);
         } else {
             $buttons[] = Button::make($this->buttons[$order->status_id])
                 ->action('show_card')
