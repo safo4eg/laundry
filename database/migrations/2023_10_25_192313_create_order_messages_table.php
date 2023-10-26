@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('order_messages', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('order_id');
-            $table->unsignedBigInteger('sender_chat_id');
+            $table->bigInteger('sender_chat_id');
             $table->text('text');
             $table->timestamp('created_at');
 
