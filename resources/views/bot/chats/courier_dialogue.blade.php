@@ -9,7 +9,7 @@ Chat with the order client <b>#{{$order->id}}</b>
         @if($order_message->sender_chat_id == $current_chat_id)
             <b>You:</b>
         @else
-            <b>Courier:</b>
+            <b>Client:</b>
         @endif
         {{$order_message->text}} <i>{{$order_message->created_at}}</i>
     @endforeach
