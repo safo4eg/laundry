@@ -4,6 +4,7 @@ namespace App\Http\Webhooks\Handlers\Traits;
 
 use App\Models\Order;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use Illuminate\Support\Facades\Log;
 
 trait UserCommandsFuncsTrait
 {

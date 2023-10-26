@@ -46,10 +46,20 @@ class User extends WebhookHandler
     public function order_dialogue(): void
     {
         $flag = $this->data->get('dialogue');
+        $order_id = $this->data->get('order_id');
         $order = isset($order_id)? Order::where('id', $order_id)->first(): $this->user->active_order;
+
+        $buttons_texts = [
+            'write' => $this->config['order_dialogue']['write'][$this->user->language_code],
+            'back' => $this->config['order_dialogue']['back'][$this->user->language_code],
+            'pay' => $this->config['order_dialogue']['pay'][$this->user->language_code],
+            'reply' => $this->config['order_dialogue']['reply'][$this->user->language_code],
+            'close' => $this->config['order_dialogue']['close'][$this->user->language_code]
+        ];
 
         if(isset($flag)) {
             $write = $this->data->get('write');
+            $get_message = $this->data->get('get');
 
             if(isset($write)) { // просьба написать сообщение
                 $template = $this->template_prefix.$this->user->language_code.'.order.request_order_message';
@@ -66,6 +76,49 @@ class User extends WebhookHandler
 
                 $this->user->update(['page' => 'request_order_message']);
             }
+
+            if(isset($get_message)) { // если прилетел фейк запрос через наблюдатель когда курьер отправил сообщение
+                $payment_status = false; // оплаты не было(имитация)
+
+                $new_order_message = OrderMessage::where('order_id', $order->id)
+                    ->orderBy('created_at', 'desc')
+                    ->first(); // получаем последнее сообщение
+
+                $template = $this->template_prefix.$this->user->language_code.'.notifications.received_order_message';
+                $buttons = [];
+
+                $buttons[] = Button::make($buttons_texts['reply'])
+                    ->action('act')
+                    ->width(0.5);
+
+                $buttons[] = Button::make($buttons_texts['close'])
+                    ->action('start')
+                    ->width(0.5);
+
+                if(!$payment_status) { // если заказ не оплачен тогда кнопка оплатить
+                    $buttons[] = Button::make($buttons_texts['pay'])
+                        ->action('act');
+                }
+
+
+                $keyboard = Keyboard::make()->buttons($buttons);
+
+                $this->terminate_active_page();
+
+                $response = $this->chat
+                    ->message(view($template, [
+                        'order' => $order,
+                        'order_message' => $new_order_message,
+                        'payment_status' => $payment_status
+                    ]))
+                    ->keyboard($keyboard)
+                    ->send();
+
+                $this->user->update([
+                    'page' => 'message_from_courier',
+                    'message_id' => $response->telegraphMessageId()
+                ]);
+            }
         }
 
         if(!isset($flag)) {
@@ -76,10 +129,6 @@ class User extends WebhookHandler
                 'order_messages' => $order_messages,
                 'current_chat_id' => $this->chat->chat_id,
                 'order' => $order
-            ];
-            $buttons_texts = [
-                'write' => $this->config['order_dialogue']['write'][$this->user->language_code],
-                'back' => $this->config['order_dialogue']['back'][$this->user->language_code],
             ];
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons_texts['write'])

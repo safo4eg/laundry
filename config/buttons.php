@@ -100,7 +100,10 @@ return [
 
         'order_dialogue' => [
             'write' => ['ru' => 'Написать', 'en' => 'Write'],
-            'back' => ['ru' => 'Вернуться к заказу', 'en' => 'Back to order']
+            'back' => ['ru' => 'Вернуться к заказу', 'en' => 'Back to order'],
+            'pay' => ['ru' => 'Оплатить заказ', 'en' => 'Pay for the order'],
+            'reply' => ['ru' => 'Ответить', 'en' => 'Reply'],
+            'close' => ['ru' => 'Закрыть', 'en' => 'Close']
         ],
 
         'request_order_message' => ['ru' => 'Отмена', 'en' => 'Cancel']
