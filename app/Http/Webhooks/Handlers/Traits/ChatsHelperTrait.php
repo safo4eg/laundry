@@ -68,7 +68,7 @@ trait ChatsHelperTrait
         }
     }
 
-    public function delete_message_by_types(array $messages_types_ids = null): void // массив типа [1,2,3], где значения - тайп_ид
+    public function delete_message_by_types(array $messages_types_ids = null, Order $order = null): void // массив типа [1,2,3], где значения - тайп_ид
     {
         $flag = $this->data->get('delete');
 
@@ -78,9 +78,20 @@ trait ChatsHelperTrait
         }
 
         if (isset($messages_types_ids)) { // удаляет конкретные типы сообщения из чата
-            $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
-                ->whereIn('message_type_id', $messages_types_ids)
-                ->get();
+            $order_id = $this->data->get('order_id'); // если указан ордер_ид тогда удалятся конкретные типы сообщений, связанные с ним
+            $chat_orders = collect();
+
+            if(isset($order_id) OR isset($order)) {
+                $order_id = isset($order_id)? $order_id: $order->id;
+                $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
+                    ->where('order_id', $order_id)
+                    ->whereIn('message_type_id', $messages_types_ids)
+                    ->get();
+            } else {
+                $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
+                    ->whereIn('message_type_id', $messages_types_ids)
+                    ->get();
+            }
 
             if ($chat_orders->isNotEmpty()) {
                 foreach ($chat_orders as $chat_order) {
