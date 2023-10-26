@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Bot;
 use App\Models\Chat;
 use Carbon\Carbon;
+use DefStudio\Telegraph\Models\TelegraphBot;
+use DefStudio\Telegraph\Models\TelegraphChat;
 use Illuminate\Http\Request;
 
 class FakeRequest
@@ -49,7 +51,7 @@ class FakeRequest
         $payload['text'] = 'fake_request';
         return request()->replace($payload);
     }
-    public static function callback_query(Chat $chat, Bot $bot, array $dataset)
+    public static function callback_query(Chat|TelegraphChat $chat, Bot|TelegraphBot $bot, array $dataset)
     {
         $payload = [];
 

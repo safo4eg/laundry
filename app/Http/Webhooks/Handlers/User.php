@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
 use Illuminate\Database\Eloquent\Builder;
 use App\Services\QR;
+use App\Services\FakeRequest;
 
 
 class User extends WebhookHandler
@@ -1335,8 +1336,8 @@ class User extends WebhookHandler
                         'sender_chat_id' => $this->user->chat_id,
                         'text' => $text
                     ]);
-                    $this->order_dialogue();
 
+                    $this->order_dialogue();
                     /* После создания сообщения в БД будет отправка уведомления курьеру через наблюдатель */
                 }
             }
