@@ -10,13 +10,59 @@ use Illuminate\Http\Request;
 class FakeRequest
 {
     // в dataset должен быть action и params = ['name' => value ...];
+    public static function message(Chat $chat, string $text)
+    {
+        $payload = ['message' => []];
+
+        $update_id = request()->input('update_id');
+
+        $message_from = null;
+        if(request()->has('message')) { // если сообщение
+            $message = request()->input('message');
+            $message_from = $message['from'];
+        }
+
+        if(request()->has('callback_query')) { // если нажатие на кнопку
+            $callback_query = request()->input('callback_query');
+            $message_from = $callback_query['from'];
+        }
+
+        /* проверяем тип чата взависимости в какой чат отправляем */
+        $chat_type = null;
+        if(Chat::where('chat_id', $chat->chat_id)->first()) {
+            $chat_type = 'group';
+        } else {
+            $chat_type = 'private';
+        }
+        /* ----------------------------------------- */
+
+        $message_chat = [
+            'id' => $chat->chat_id,
+            'type' => $chat_type
+        ];
+
+        $payload['update_id'] = $update_id;
+        $payload['message']['message_id'] = 0;
+        $payload['message']['from'] = $message_from;
+        $payload['message']['chat'] = $message_chat;
+        $payload['date'] = (Carbon::now())->timestamp;
+        $payload['text'] = 'fake_request';
+        return request()->replace($payload);
+    }
     public static function callback_query(Chat $chat, Bot $bot, array $dataset)
     {
         $payload = [];
 
+        $chat_type = null;
+        if(Chat::where('chat_id', $chat->chat_id)->first()) {
+            $chat_type = 'group';
+        } else {
+            $chat_type = 'private';
+        }
+
         $message_chat = [
             'id' => $chat->chat_id,
-            'type' => 'group'
+            'type' => $chat_type
         ];
 
         $message_from = [
