@@ -9,6 +9,8 @@ use App\Models\Order;
 use App\Models\OrderMessage;
 use App\Models\OrderServicePivot;
 use App\Models\OrderStatusPivot;
+use App\Models\Payment;
+use App\Models\PaymentMethod;
 use App\Models\Referral;
 use App\Models\User as UserModel;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
@@ -39,9 +41,57 @@ class User extends WebhookHandler
         parent::__construct();
     }
 
-    public function test()
+    // когда сюда попадает все актуальный оред_эктив стоит
+    // можно попасть только с кнопки!
+    public function select_payment(): void
     {
-        Order::where('id', 2)->update(['active' => true]);
+        $flag = $this->data->get('select');
+        $order_id = $this->data->get('order_id');
+        $order = isset($order_id)? Order::where('id', $order_id)->first(): $this->user->active_order;
+        $payment = Payment::where('order_id', $order->id)->first();
+
+        if(isset($flag)) {
+            $choice = $this->data->get('choice');
+
+            if(isset($choice)) {
+                // обработка метода оплаты
+                // редактирование сообщения
+            }
+
+        }
+
+        if(!isset($flag)) {
+            $payment_methods = PaymentMethod::all();
+            $template = $this->template_prefix.$this->user->language_code.'.order.select_payment';
+            $buttons = [];
+
+            foreach ($payment_methods as $method) {
+                if (!isset($payment->method_id)) {
+                    if($payment->method_id !== $method->id) {
+                        $desc_property = "{$this->user->language_code}_desc";
+                        $buttons[] = Button::make($method->$desc_property)
+                            ->action('select_payment')
+                            ->param('choice', $method->id)
+                            ->param('order_id', $order->id);
+                    }
+                }
+            } // end foreach
+
+            $buttons[] = Button::make($this->config['back'][$this->user->language_code])
+                ->action('delivery_action')
+                ->param('back', 1)
+                ->param('order_id', $order->id);
+
+            $keyboard = Keyboard::make()->buttons($buttons);
+
+            $this->chat
+                ->edit($this->messageId)
+                ->message(view($template))
+                ->keyboard($keyboard)
+                ->send();
+
+            $this->user->update(['page' => 'select_payment']);
+        }
     }
 
     public function order_dialogue(): void
@@ -161,7 +211,7 @@ class User extends WebhookHandler
                     ->param('write', 1)
                     ->param('order_id', $order->id),
 
-                Button::make($buttons_texts['back'])
+                Button::make($this->config['back'][$this->user->language_code])
                     ->action('delivery_action')
                     ->param('back', 1)
                     ->param('order_id', $order->id)
@@ -204,8 +254,8 @@ class User extends WebhookHandler
             $buttons_texts = $this->config['delivery'];
             $template = $this->template_prefix.$this->user->language_code.'.order.courier_on_the_way';
             $keyboard = Keyboard::make()->buttons([
-                Button::make($buttons_texts['choose_payment'][$this->user->language_code])
-                    ->action('order_payment')
+                Button::make($buttons_texts['select_payment'][$this->user->language_code])
+                    ->action('select_payment')
                     ->param('order_id', $order->id),
 
                 Button::make($buttons_texts['write_to_the_courier'][$this->user->language_code])
