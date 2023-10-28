@@ -116,7 +116,7 @@ return [
         10 => 'Photo on the scales',
         11 => "Let's hit the road",
         12 => '📤Photos of delivered things',
-        13 => 'Things have been delivered'
+        13 => '💵Photo of money'
     ],
 
     'washer' => [

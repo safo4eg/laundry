@@ -34,7 +34,7 @@ class Courier extends WebhookHandler
 
     public function send_order_card(Order $order): void
     {
-        if(in_array($order->status_id, [3, 5, 9, 10, 11, 12])) {
+        if(in_array($order->status_id, [3, 5, 9, 10, 11, 12, 13])) {
             $keyboard = $this->get_keyboard_order_card($order);
             $this->show_card($order, $keyboard);
         }
@@ -47,20 +47,21 @@ class Courier extends WebhookHandler
             $buttons[] = Button::make($this->buttons[$order->status_id])
                 ->action('weigh')
                 ->param('order_id', $order->id);
-        } else if($order->status_id === 12) {
-            $buttons[] = Button::make($this->buttons[$order->status_id])
-                ->action('show_card')
-                ->param('show_card', 1)
-                ->param('order_id', $order->id);
-
-            $buttons[] = Button::make('Dialogue')
-                ->action('order_dialogue')
-                ->param('order_id', $order->id);
         } else {
             $buttons[] = Button::make($this->buttons[$order->status_id])
                 ->action('show_card')
                 ->param('show_card', 1)
                 ->param('order_id', $order->id);
+
+            if($order->status_id === 12) {
+                $buttons[] = Button::make('Dialogue')
+                    ->action('order_dialogue')
+                    ->param('order_id', $order->id);
+            } else if($order->status_id === 13) {
+                $buttons[] = Button::make("Didn't receive money")
+                    ->action('any')
+                    ->param('order_id', $order->id);
+            }
         }
         $buttons[] = Button::make($this->general_buttons['report'])
             ->action('order_report')
