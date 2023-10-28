@@ -9,6 +9,7 @@ use App\Models\Bot;
 use App\Models\Chat;
 use App\Models\OrderStatusPivot;
 use App\Http\Webhooks\Handlers\Manager;
+use App\Models\Payment;
 use App\Services\FakeRequest;
 use App\Services\Helper;
 use Carbon\Carbon;
@@ -47,6 +48,11 @@ class OrderStatusObserver
             $order->status_id === 10 OR
             $order->status_id === 12
         ) { // отправка карточки заказа в чат курьеров
+
+            if($order->status_id === 12) { // создание записи в payments
+                Payment::create(['order_id' => 1]);
+            }
+
             $courier_chat = Chat::where('name', 'Courier')
                 ->where('laundry_id', $order->laundry_id)
                 ->first();
