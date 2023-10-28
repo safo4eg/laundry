@@ -50,7 +50,7 @@ class OrderStatusObserver
         ) { // отправка карточки заказа в чат курьеров
 
             if($order->status_id === 12) { // создание записи в payments
-                Payment::create(['order_id' => 1]);
+                Payment::create(['order_id' => $order->id]);
             }
 
             $courier_chat = Chat::where('name', 'Courier')
