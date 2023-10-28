@@ -34,7 +34,10 @@ class Courier extends WebhookHandler
 
     public function send_order_card(Order $order): void
     {
-        if(in_array($order->status_id, [3, 5, 9, 10, 11, 12, 13])) {
+        if(in_array($order->status_id, [3, 5, 9, 10, 11, 12])) {
+            $keyboard = $this->get_keyboard_order_card($order);
+            $this->show_card($order, $keyboard);
+        } else if($order->status_id === 13 AND $order->payment->method_id === 1) {
             $keyboard = $this->get_keyboard_order_card($order);
             $this->show_card($order, $keyboard);
         }

@@ -81,7 +81,7 @@ trait ChatsHelperTrait
             $order_id = $this->data->get('order_id'); // если указан ордер_ид тогда удалятся конкретные типы сообщений, связанные с ним
             $chat_orders = collect();
 
-            if(isset($order_id) OR isset($order)) {
+            if((isset($order_id) AND isset($type_id)) OR isset($order)) {
                 $order_id = isset($order_id)? $order_id: $order->id;
                 $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                     ->where('order_id', $order_id)
@@ -293,12 +293,11 @@ trait ChatsHelperTrait
 
         $status_id = $order->status_id;
 
+        /* Здесь перед добавлением тк на статус ид 3 не должно быть фото */
+        /* потому что этот статус обозначает отправлен курьеру, а след статус, когда пикап уже = 5 */
         if($this->chat->name === 'Courier' AND $order->status_id === 3) {
             $status_id = 5;
-        } else if($this->chat->name === 'Courier' AND $order->status_id === 12) {
-            if($order->payment->method_id === 1) $status_id = 13;
-            else $status_id = 14;
-        } else $status_id = ++$status_id;
+        } else ++$status_id;
 
         File::create([
             'order_id' => $order->id,
