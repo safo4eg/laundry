@@ -47,33 +47,41 @@ class User extends WebhookHandler
     {
         $flag = $this->data->get('select');
         $order_id = $this->data->get('order_id');
-        $order = isset($order_id)? Order::where('id', $order_id)->first(): $this->user->active_order;
-        $payment = Payment::where('order_id', $order->id)->first();
+        $order = isset($order_id) ? Order::where('id', $order_id)->first() : $this->user->active_order;
 
-        if(isset($flag)) {
+        if (isset($flag)) {
             $choice = $this->data->get('choice');
 
-            if(isset($choice)) {
-                // обработка метода оплаты
-                // редактирование сообщения
+            if (isset($choice)) {
+                $order->payment->update(['method_id' => $choice]);
+                // на бонусах нужно оплачивать сразу здесь
+                /* отправка назад к инфе о идушем заказе */
+                $fake_dataset = [
+                    'action' => 'delivery_action',
+                    'params' => [
+                        'back' => 1,
+                        'order_id' => $order->id
+                    ]
+                ];
+                $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
+                (new User($this->user))->handle($fake_request, $this->bot);
             }
 
         }
 
-        if(!isset($flag)) {
+        if (!isset($flag)) {
             $payment_methods = PaymentMethod::all();
-            $template = $this->template_prefix.$this->user->language_code.'.order.select_payment';
+            $template = $this->template_prefix . $this->user->language_code . '.order.select_payment';
             $buttons = [];
 
             foreach ($payment_methods as $method) {
-                if (!isset($payment->method_id)) {
-                    if($payment->method_id !== $method->id) {
-                        $desc_property = "{$this->user->language_code}_desc";
-                        $buttons[] = Button::make($method->$desc_property)
-                            ->action('select_payment')
-                            ->param('choice', $method->id)
-                            ->param('order_id', $order->id);
-                    }
+                if ($order->payment->method_id !== $method->id) {
+                    $desc_property = "{$this->user->language_code}_desc";
+                    $buttons[] = Button::make($method->$desc_property)
+                        ->action('select_payment')
+                        ->param('select', 1)
+                        ->param('choice', $method->id)
+                        ->param('order_id', $order->id);
                 }
             } // end foreach
 
@@ -98,27 +106,26 @@ class User extends WebhookHandler
     {
         $flag = $this->data->get('dialogue');
         $order_id = $this->data->get('order_id');
-        $order = isset($order_id)? Order::where('id', $order_id)->first(): $this->user->active_order;
+        $order = isset($order_id) ? Order::where('id', $order_id)->first() : $this->user->active_order;
 
         $buttons_texts = [
             'write' => $this->config['order_dialogue']['write'][$this->user->language_code],
-            'back' => $this->config['order_dialogue']['back'][$this->user->language_code],
             'pay' => $this->config['order_dialogue']['pay'][$this->user->language_code],
             'reply' => $this->config['order_dialogue']['reply'][$this->user->language_code],
             'close' => $this->config['order_dialogue']['close'][$this->user->language_code],
             'open' => $this->config['order_dialogue']['open'][$this->user->language_code]
         ];
 
-        if(isset($flag)) {
+        if (isset($flag)) {
             $write = $this->data->get('write');
             $get_message = $this->data->get('get');
 
-            if(isset($write)) { // просьба написать сообщение
-                $template = $this->template_prefix.$this->user->language_code.'.order.request_order_message';
+            if (isset($write)) { // просьба написать сообщение
+                $template = $this->template_prefix . $this->user->language_code . '.order.request_order_message';
                 $back_button = $this->config['request_order_message'][$this->user->language_code];
 
                 $keyboard = null;
-                if($this->user->page === 'message_from_courier') { // возврат на сообщение курьера
+                if ($this->user->page === 'message_from_courier') { // возврат на сообщение курьера
                     $keyboard = Keyboard::make()->button($back_button)
                         ->action('order_dialogue')
                         ->param('dialogue', 1)
@@ -126,7 +133,7 @@ class User extends WebhookHandler
                         ->param('order_id', $order->id);
                 }
 
-                if($this->user->page === 'order_dialogue') { // возврат на общение с курьером
+                if ($this->user->page === 'order_dialogue') { // возврат на общение с курьером
                     $keyboard = Keyboard::make()->button($back_button)
                         ->action('order_dialogue')
                         ->param('order_id', $order->id);
@@ -141,14 +148,14 @@ class User extends WebhookHandler
                 $this->user->update(['page' => 'request_order_message']);
             }
 
-            if(isset($get_message)) { // если прилетел фейк запрос через наблюдатель когда курьер отправил сообщение
+            if (isset($get_message)) { // если прилетел фейк запрос через наблюдатель когда курьер отправил сообщение
                 $payment_status = false; // оплаты не было(имитация)
 
                 $new_order_message = OrderMessage::where('order_id', $order->id)
                     ->orderBy('created_at', 'desc')
                     ->first(); // получаем последнее сообщение
 
-                $template = $this->template_prefix.$this->user->language_code.'.notifications.received_order_message';
+                $template = $this->template_prefix . $this->user->language_code . '.notifications.received_order_message';
                 $buttons = [];
 
                 $buttons[] = Button::make($buttons_texts['reply'])
@@ -167,7 +174,7 @@ class User extends WebhookHandler
                     ->param('order_id', $order->id)
                     ->width(0.5);
 
-                if(!$payment_status) { // если заказ не оплачен тогда кнопка оплатить
+                if (!$payment_status) { // если заказ не оплачен тогда кнопка оплатить
                     $buttons[] = Button::make($buttons_texts['pay'])
                         ->action('act');
                 }
@@ -195,10 +202,10 @@ class User extends WebhookHandler
             }
         }
 
-        if(!isset($flag)) {
+        if (!isset($flag)) {
             $order_messages = OrderMessage::where('order_id', $order->id)->get();
 
-            $template = $this->template_prefix.$this->user->language_code.'.order.dialogue';
+            $template = $this->template_prefix . $this->user->language_code . '.order.dialogue';
             $template_dataset = [
                 'order_messages' => $order_messages,
                 'current_chat_id' => $this->chat->chat_id,
@@ -218,7 +225,7 @@ class User extends WebhookHandler
 
             ]);
 
-            if(isset($this->callbackQuery)) { // значит прилетело с кнопки => редактируем пред.инлайн-пейдж
+            if (isset($this->callbackQuery)) { // значит прилетело с кнопки => редактируем пред.инлайн-пейдж
                 $response = $this->chat
                     ->edit($this->messageId)
                     ->message(view($template, $template_dataset))
@@ -239,20 +246,21 @@ class User extends WebhookHandler
         }
     }
 
-    public function delivery_action(): void {
+    public function delivery_action(): void
+    {
         $flag = $this->data->get('delivery');
         $order_id = $this->data->get('order_id');
-        $order = isset($order_id)? Order::where('id', $order_id)->first(): $this->user->active_order;
+        $order = isset($order_id) ? Order::where('id', $order_id)->first() : $this->user->active_order;
 
-        if(isset($flag)) { // обработка кнопок
+        if (isset($flag)) { // обработка кнопок
 
         }
 
-        if(!isset($flag)) { // показ
+        if (!isset($flag)) { // показ
             $back = $this->data->get('back');
 
             $buttons_texts = $this->config['delivery'];
-            $template = $this->template_prefix.$this->user->language_code.'.order.courier_on_the_way';
+            $template = $this->template_prefix . $this->user->language_code . '.order.courier_on_the_way';
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons_texts['select_payment'][$this->user->language_code])
                     ->action('select_payment')
@@ -268,9 +276,9 @@ class User extends WebhookHandler
                 'price' => $order->price
             ];
 
-            if(isset($back)) { // если с кнопки назад значит редактируем инлайн-пейдж с которого вызвано
+            if (isset($back)) { // если с кнопки назад значит редактируем инлайн-пейдж с которого вызвано
                 $response = $this->chat
-                    ->edit($this->messageId)
+                    ->edit($this->user->message_id)
                     ->message(view($template, $view_data))
                     ->keyboard($keyboard)
                     ->send();
@@ -292,11 +300,11 @@ class User extends WebhookHandler
 
     public function referrals(): void
     {
-        if($this->check_for_language_code()) return;
+        if ($this->check_for_language_code()) return;
         $flag = $this->data->get('referrals');
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
-        if(!isset($flag)) {
+        if (!isset($flag)) {
             $this->terminate_active_page();
 
             $buttons_texts = [
@@ -305,9 +313,9 @@ class User extends WebhookHandler
                 'continue_order' => $this->config['referrals']['continue_order'][$this->user->language_code],
                 'info' => $this->config['referrals']['info'][$this->user->language_code]
             ];
-            $template = $template_prefix_lang.'.referrals.main';
+            $template = $template_prefix_lang . '.referrals.main';
             $start_order_button = null;
-            if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
+            if ($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
                 $start_order_button = Button::make($buttons_texts['continue_order'])
                     ->action('start')
                     ->param('start', 1);
@@ -326,7 +334,7 @@ class User extends WebhookHandler
             ]);
 
             $response = null;
-            if(isset($this->message)) {
+            if (isset($this->message)) {
                 $response = $this->chat
                     ->photo(Storage::path("user/qr_code_{$this->user->id}.png"))
                     ->html(view($template, ['user' => $this->user]))
@@ -346,13 +354,13 @@ class User extends WebhookHandler
             ]);
         }
 
-        if(isset($flag)) {
+        if (isset($flag)) {
             $info = $this->data->get('info');
             $back_button_text = $this->config['referrals']['back'][$this->user->language_code];
             $back_button = Button::make($back_button_text)->action('referrals');
 
-            $template = $template_prefix_lang.'.referrals.info';
-            if(isset($info)) {
+            $template = $template_prefix_lang . '.referrals.info';
+            if (isset($info)) {
                 $referrals_amount = $this->user->referrals()->count();
                 $bonuses = $this->user->referrals()->sum('bonuses');
 
@@ -381,7 +389,7 @@ class User extends WebhookHandler
     public function profile_change_handler(): void
     {
         $page = $this->user->page;
-        if($page === 'profile_change_phone_number') {
+        if ($page === 'profile_change_phone_number') {
             $phone_number = $this->message->text();
 
             if (mb_strlen($phone_number) >= 32) {
@@ -413,7 +421,7 @@ class User extends WebhookHandler
 
     public function profile(): void
     {
-        if($this->check_for_language_code()) return;
+        if ($this->check_for_language_code()) return;
         $flag = $this->data->get('profile');
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
@@ -427,7 +435,7 @@ class User extends WebhookHandler
             ];
             $template = $template_prefix_lang . '.profile.main';
             $start_order_button = null;
-            if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
+            if ($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
                 $start_order_button = Button::make($buttons_texts['continue_order'])
                     ->action('start')
                     ->param('start', 1);
@@ -540,14 +548,14 @@ class User extends WebhookHandler
                     $back_button
                 ]);
 
-                if(isset($this->message)) {
+                if (isset($this->message)) {
                     $this->terminate_active_page(false);
 
                     $response = $this->chat
                         ->message(view($template, [
                             'order' => $order,
                             'status_1' => $status_1
-                    ]))
+                        ]))
                         ->keyboard($keyboard)
                         ->send();
 
@@ -588,7 +596,7 @@ class User extends WebhookHandler
 
     public function orders(): void
     {
-        if($this->check_for_language_code()) return;
+        if ($this->check_for_language_code()) return;
         $flag = $this->data->get('orders');
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
@@ -615,14 +623,14 @@ class User extends WebhookHandler
                         ->whereNot('reason_id', 5);
                 })
                 ->orderBy(OrderStatusPivot::select('created_at')
-                ->whereColumn('order_id', 'orders.id')
-                ->where('status_id', 1)
-                ->limit(1)
-                , 'desc')->get();
+                    ->whereColumn('order_id', 'orders.id')
+                    ->where('status_id', 1)
+                    ->limit(1)
+                    , 'desc')->get();
 
 
             $response = null;
-            if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
+            if ($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
                 $start_order_button = Button::make($buttons_text['continue_order'])
                     ->action('start')
                     ->param('start', 1);
@@ -747,7 +755,7 @@ class User extends WebhookHandler
 
     public function about(): void // можно попасть только с команды /about
     {
-        if($this->check_for_language_code()) return;
+        if ($this->check_for_language_code()) return;
         $this->terminate_active_page();
 
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
@@ -758,7 +766,7 @@ class User extends WebhookHandler
 
 
         $start_order_button = null;
-        if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
+        if ($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
             $start_order_button = Button::make($buttons_text['continue_order'])
                 ->action('start')
                 ->param('start', 1);
@@ -782,10 +790,10 @@ class User extends WebhookHandler
 
     public function start(string $ref = null): void
     {
-        if($this->check_for_language_code()) return;
+        if ($this->check_for_language_code()) return;
         $flag = $this->data->get('start');
         $ref_flag = false;
-        if(isset($ref) and $ref !== '/start') $ref_flag = true;
+        if (isset($ref) and $ref !== '/start') $ref_flag = true;
 
         if (!isset($flag)) {
             if (isset($this->user)) {
@@ -799,7 +807,7 @@ class User extends WebhookHandler
                 ];
 
                 $start_order_button = null;
-                if($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
+                if ($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
                     $start_order_button = Button::make($buttons_text['continue_order'])
                         ->action('start')
                         ->param('start', 1);
@@ -858,7 +866,7 @@ class User extends WebhookHandler
 
                 QR::generate_referrals_qr($this->user);
 
-                if($ref_flag) {
+                if ($ref_flag) {
                     $inviter_id = trim(str_replace('ref', '', $ref));
                     $invited_id = $this->user->id;
 
@@ -904,30 +912,27 @@ class User extends WebhookHandler
             $orders_amount = Order::where('user_id', $this->user->id)->count();
             $phone_number = isset($this->user->phone_number);
             $whatsapp = isset($this->user->whatsapp);
-            if($orders_amount === 1) {
+            if ($orders_amount === 1) {
                 switch ($step) {
                     case 1:
                     case 2:
-                        if($phone_number and $whatsapp) $scenario = 'second_scenario';
+                        if ($phone_number and $whatsapp) $scenario = 'second_scenario';
                         else if ($phone_number and !$whatsapp) $scenario = 'first_scenario_whatsapp';
-                        else if(!$phone_number and $whatsapp) $scenario = 'first_scenario_phone';
-                        else if(!$phone_number and !$whatsapp) $scenario = 'first_scenario';
+                        else if (!$phone_number and $whatsapp) $scenario = 'first_scenario_phone';
+                        else if (!$phone_number and !$whatsapp) $scenario = 'first_scenario';
                         break;
                     case 3:
                     case 4:
                     case 5:
-                        if($phone_number and $whatsapp) {
+                        if ($phone_number and $whatsapp) {
                             $scenario = 'first_scenario';
                             $step = 5;
                             break;
-                        }
-                        else if($phone_number and !$whatsapp) {
+                        } else if ($phone_number and !$whatsapp) {
                             $scenario = 'first_scenario_whatsapp';
-                        }
-                        else if(!$phone_number and $whatsapp) {
+                        } else if (!$phone_number and $whatsapp) {
                             $scenario = 'first_scenario_phone';
-                        }
-                        else if(!$phone_number and !$whatsapp) {
+                        } else if (!$phone_number and !$whatsapp) {
                             $scenario = 'first_scenario';
                         }
                         $step = 3;
@@ -938,12 +943,12 @@ class User extends WebhookHandler
                     case 1:
                     case 2:
                     case 3:
-                        if($phone_number) $scenario = 'second_scenario';
-                        else if(!$phone_number) $scenario = 'first_scenario_phone';
+                        if ($phone_number) $scenario = 'second_scenario';
+                        else if (!$phone_number) $scenario = 'first_scenario_phone';
                         break;
                     case 4:
-                        if($phone_number) $scenario = 'first_scenario_phone';
-                        else if(!$phone_number) {
+                        if ($phone_number) $scenario = 'first_scenario_phone';
+                        else if (!$phone_number) {
                             $scenario = 'first_scenario_phone';
                             $step = 3;
                         }
@@ -1025,7 +1030,7 @@ class User extends WebhookHandler
                     ->keyboard($keyboard)
                     ->send();
 
-            } else if(isset($page) and $page === 'select_language') {
+            } else if (isset($page) and $page === 'select_language') {
                 $keyboard = Keyboard::make()->buttons([
                     $button_select_en->param('page', 1),
                     $button_select_ru->param('page', 1),
@@ -1072,7 +1077,7 @@ class User extends WebhookHandler
             $this->chat->deleteMessage($this->user->message_id)->send();
         }
 
-        if($page === 'first_scenario') {
+        if ($page === 'first_scenario') {
             $steps_amount = 5;
             switch ($step) {
                 case 1:
@@ -1104,7 +1109,7 @@ class User extends WebhookHandler
                     $this->request_accepted_order($step, $steps_amount);
                     break;
             }
-        } else if($page === 'first_scenario_phone' or $page === 'first_scenario_whatsapp') {
+        } else if ($page === 'first_scenario_phone' or $page === 'first_scenario_whatsapp') {
             $steps_amount = 4;
             switch ($step) {
                 case 1:
@@ -1114,8 +1119,8 @@ class User extends WebhookHandler
                     $this->request_address_desc($step, $steps_amount);
                     break;
                 case 3:
-                    if($page === 'first_scenario_phone') $this->request_contact($step, $steps_amount);
-                    else if($page === 'first_scenario_whatsapp') $this->request_whatsapp($step, $steps_amount);
+                    if ($page === 'first_scenario_phone') $this->request_contact($step, $steps_amount);
+                    else if ($page === 'first_scenario_whatsapp') $this->request_whatsapp($step, $steps_amount);
                     break;
                 case 4:
                     $this->request_accepted_order($step, $steps_amount);
@@ -1155,7 +1160,7 @@ class User extends WebhookHandler
                     break;
             }
 
-        } else if($page === 'first_scenario_phone' or $page === 'first_scenario_whatsapp') {
+        } else if ($page === 'first_scenario_phone' or $page === 'first_scenario_whatsapp') {
             $steps_amount = 4;
             switch ($step) {
                 case 1:
@@ -1165,8 +1170,8 @@ class User extends WebhookHandler
                     $this->address_desc_handler();
                     break;
                 case 3:
-                    if($page === 'first_scenario_phone') $this->contact_handler();
-                    else if($page === 'first_scenario_whatsapp') $this->whatsapp_handler();
+                    if ($page === 'first_scenario_phone') $this->contact_handler();
+                    else if ($page === 'first_scenario_whatsapp') $this->whatsapp_handler();
                     break;
             }
         }
@@ -1330,11 +1335,11 @@ class User extends WebhookHandler
 
     public function support()
     {
-        if($this->check_for_language_code()) return;
+        if ($this->check_for_language_code()) return;
         $step = $this->user->step;
         $flag = $this->data->get("support");
 
-        if(isset($flag) or $step === 2) {
+        if (isset($flag) or $step === 2) {
             switch ($step) {
                 case 1:
                     $this->create_ticket();
@@ -1342,9 +1347,9 @@ class User extends WebhookHandler
                 case 2:
                     $this->ticket_created();
             }
-        } else if(!isset($flag)) {
+        } else if (!isset($flag)) {
 
-            if(isset($this->message)) {
+            if (isset($this->message)) {
                 $this->terminate_active_page();
             }
 
@@ -1358,7 +1363,7 @@ class User extends WebhookHandler
         $text = $this->message->text();
         $page = $this->user->page;
 
-        if(isset($text) AND $photos->isEmpty()) {
+        if (isset($text) and $photos->isEmpty()) {
             if (isset($page)) {
                 switch ($page) {
                     case 'first_scenario':
@@ -1379,7 +1384,7 @@ class User extends WebhookHandler
                         break;
                 }
 
-                if($page === 'request_order_message') {
+                if ($page === 'request_order_message') {
                     $order = $this->user->active_order;
                     OrderMessage::create([
                         'order_id' => $order->id,
