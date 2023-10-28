@@ -292,11 +292,13 @@ trait ChatsHelperTrait
         $photo_id = $this->chat->storage()->get('photo_id');
 
         $status_id = $order->status_id;
-        if ($this->chat->name === 'Courier' and $order->status_id === 3) {
+
+        if($this->chat->name === 'Courier' AND $order->status_id === 3) {
             $status_id = 5;
-        } else {
-            ++$status_id;
-        }
+        } else if($this->chat->name === 'Courier' AND $order->status_id === 12) {
+            if($order->payment->method_id === 1) $status_id = 13;
+            else $status_id = 14;
+        } else $status_id = ++$status_id;
 
         File::create([
             'order_id' => $order->id,
