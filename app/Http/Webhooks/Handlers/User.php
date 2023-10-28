@@ -261,20 +261,40 @@ class User extends WebhookHandler
 
             $buttons_texts = $this->config['delivery'];
             $template = $this->template_prefix . $this->user->language_code . '.order.courier_on_the_way';
-            $keyboard = Keyboard::make()->buttons([
-                Button::make($buttons_texts['select_payment'][$this->user->language_code])
-                    ->action('select_payment')
-                    ->param('order_id', $order->id),
-
-                Button::make($buttons_texts['write_to_the_courier'][$this->user->language_code])
-                    ->action('order_dialogue')
-                    ->param('order_id', $order->id),
-            ]);
-
             $view_data = [
                 'order_services' => OrderServicePivot::where('order_id', $order->id)->get(),
-                'price' => $order->price
+                'price' => $order->price,
+                'payment' => null,
+                'price_in_rubles' => null,
             ];
+            $buttons = [];
+
+            $select_payment_button = $buttons_texts['select_payment'][$this->user->language_code];
+            if(!is_null($order->payment->method_id)) {
+                $view_data['payment'] = [];
+
+                $payment_desc = "{$this->user->language_code}_desc";
+                $view_data['payment']['desc'] = $order->payment->method->$payment_desc;
+                $view_data['payment']['id'] = $order->payment->method_id;
+                $select_payment_button = $buttons_texts['change_payment'][$this->user->language_code];
+                if($order->payment->method_id === 2 OR $order->payment->method_id === 3) {
+                    if($order->payment->method_id === 3) {
+                        $view_data['price_in_rubles'] = 'цена переведенная в рубли';
+                    }
+                    $buttons[] = Button::make($buttons_texts['request_photo'][$this->user->language_code])
+                        ->action('act');
+                }
+            }
+
+            $buttons[] = Button::make($select_payment_button)
+                ->action('select_payment')
+                ->param('order_id', $order->id);
+
+            $buttons[] = Button::make($buttons_texts['write_to_the_courier'][$this->user->language_code])
+                ->action('order_dialogue')
+                ->param('order_id', $order->id);
+
+            $keyboard = Keyboard::make()->buttons($buttons);
 
             if (isset($back)) { // если с кнопки назад значит редактируем инлайн-пейдж с которого вызвано
                 $response = $this->chat

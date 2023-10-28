@@ -15,7 +15,6 @@ return new class extends Migration
     {
         Schema::create('payment_methods', function (Blueprint $table) {
             $table->unsignedTinyInteger('id')->autoIncrement();
-            $table->string('title');
             $table->text('ru_desc');
             $table->text('en_desc');
         });

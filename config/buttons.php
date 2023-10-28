@@ -89,7 +89,9 @@ return [
 
         'delivery' => [
             'select_payment' => ['ru' => 'Выбрать способ оплаты', 'en' => 'Choose payment method'],
-            'write_to_the_courier' => ['ru' => 'Написать курьеру', 'en' => 'Write to the courier']
+            'change_payment' => ['ru' => 'Изменить способ оплаты', 'en' => 'Change payment method'],
+            'write_to_the_courier' => ['ru' => 'Написать курьеру', 'en' => 'Write to the courier'],
+            'request_photo' => ['ru' => 'Отправить фото оплаты', 'en' => 'Send photo of payment']
         ],
 
         'order_dialogue' => [
