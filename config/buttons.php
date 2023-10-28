@@ -88,14 +88,8 @@ return [
         'tickets' => ['ru' => 'Проверить статус заявки', 'en' => 'Check application status' ],
 
         'delivery' => [
-            'choose_payment' => ['ru' => 'Выбрать способ оплаты', 'en' => 'Choose payment method'],
+            'select_payment' => ['ru' => 'Выбрать способ оплаты', 'en' => 'Choose payment method'],
             'write_to_the_courier' => ['ru' => 'Написать курьеру', 'en' => 'Write to the courier']
-        ],
-
-        'payment_methods' => [
-            'pay_the_courier' => ['ru' => 'Оплатить курьеру', 'en' => 'Pay the courier'],
-            'pay_by_card' => ['ru' => 'Оплатить картой', 'en' => 'Pay by card'],
-            'pay_with_bonuses' => ['ru' => 'Оплатить бонусами', 'en' => 'Pay with bonuses'],
         ],
 
         'order_dialogue' => [

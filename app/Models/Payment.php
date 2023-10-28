@@ -13,4 +13,9 @@ class Payment extends Model
     protected $table = 'payments';
     protected $primaryKey = 'id';
     protected $guarded = [];
+
+    public function method()
+    {
+        return $this->belongsTo(PaymentMethod::class, 'method_id', 'id');
+    }
 }
