@@ -19,6 +19,8 @@ return new class extends Migration
             $table->unsignedTinyInteger('method_id')->nullable();
             $table->unsignedTinyInteger('status_id')->nullable();
             $table->foreignId('file_id')->nullable()->constrained();
+
+            $table->foreign('method_id')->references('id')->on('payment_methods');
         });
     }
 
