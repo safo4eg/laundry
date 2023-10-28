@@ -17,25 +17,21 @@ class PaymentMethodSeeder extends Seeder
     {
         DB::table('payment_methods')->insert([
             [
-                'title' => 'pay_the_courier',
                 'ru_desc' => 'Оплатить курьеру',
                 'en_desc' => 'Pay the courier',
             ],
 
             [
-                'title' => 'transfer_rupees',
                 'ru_desc' => 'Перевод на BRI в рупиях',
                 'en_desc' => 'Transfer to BRI in rupees',
             ],
 
             [
-                'title' => 'transfer_rubles',
                 'ru_desc' => 'Перевод на Тинькофф в рублях',
                 'en_desc' => 'Transfer to Tinkoff in rubles',
             ],
 
             [
-                'title' => 'pay_with_bonuses',
                 'ru_desc' => 'Оплатить бонусами',
                 'en_desc' => 'Pay with bonuses',
             ],
