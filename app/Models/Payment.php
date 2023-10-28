@@ -18,4 +18,9 @@ class Payment extends Model
     {
         return $this->belongsTo(PaymentMethod::class, 'method_id', 'id');
     }
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class, 'order_id', 'id');
+    }
 }
