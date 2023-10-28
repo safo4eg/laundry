@@ -39,6 +39,10 @@ class Order extends Model
         )->withPivot('message_id', 'message_type_id');
     }
 
+    public function payment() {
+        return $this->hasOne(Payment::class, 'order_id', 'id');
+    }
+
     public function reason() {
         return $this->belongsTo(Reason::class);
     }
