@@ -62,7 +62,7 @@ class Courier extends WebhookHandler
                     ->param('order_id', $order->id);
             } else if($order->status_id === 13) {
                 $buttons[] = Button::make("Didn't receive money")
-                    ->action('any')
+                    ->action('decline_payment')
                     ->param('order_id', $order->id);
             }
         }
@@ -71,6 +71,19 @@ class Courier extends WebhookHandler
             ->param('order_id', $order->id);
 
         return Keyboard::make()->buttons($buttons);
+    }
+
+    public function decline_payment(): void
+    {
+        $order_id = $this->data->get('order_id');
+        $order = Order::where('id', $order_id)->first();
+
+        $this->delete_message_by_types([1], $order);
+        $order->payment->update([
+            'method_id' => null,
+        ]);
+
+        /* происходит обновление страницы с оплатой у пользователя через наблюдатель */
     }
 
     public function order_dialogue(Order $order = null): void // обработка диалога с пользователем
