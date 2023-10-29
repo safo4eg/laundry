@@ -71,22 +71,6 @@ class OrderStatusObserver
                     'picked_time' => $picked_time
                 ];
                 Helper::send_user_notification($order->user, 'order_pickuped', $user_chat_dataset);
-            } else if($order->status_id === 12) {
-                $chat = Chat::factory()->make([
-                    'chat_id' => $order->user->chat_id,
-                    'name' => 'User',
-                    'telegraph_bot_id' => 1
-                ]);
-
-                $fake_dataset = [
-                    'action' => 'payment_page',
-                    'params' => [
-                        'order_id' => $order->id,
-                    ]
-                ];
-
-                $fake_request = FakeRequest::callback_query($chat, $bot, $fake_dataset);
-                (new User($order->user))->handle($fake_request, $bot);
             }
         }
 
