@@ -4,7 +4,6 @@ namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\UserCommandsFuncsTrait;
 use App\Http\Webhooks\Handlers\Traits\FirstAndSecondScenarioTrait;
-use App\Models\Chat;
 use App\Models\Order;
 use App\Models\OrderMessage;
 use App\Models\OrderServicePivot;
@@ -16,11 +15,11 @@ use App\Models\User as UserModel;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use DefStudio\Telegraph\Models\TelegraphChat;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use App\Services\QR;
 use App\Services\FakeRequest;
 
@@ -39,6 +38,103 @@ class User extends WebhookHandler
         $this->user = $user;
         $this->template_prefix = 'bot.user.';
         parent::__construct();
+    }
+
+    public function test(): void
+    {
+        Log::debug($this->unpaid_orders_page());
+    }
+
+    /* Должен вызываться только через фейк-запросы */
+    /* и свою кнопку "Продолжить" */
+    public function unpaid_orders(): bool
+    {
+        $flag = $this->data->get('flag');
+
+        if(isset($flag)) {
+            $command = $this->data->get('page');
+            $page = $this->data->get('page');
+
+            if(isset($page)) {
+                $this->chat->message($page)->send();
+            }
+
+            if(isset($command)) {
+                $this->chat->message($command)->send();
+            }
+        }
+
+        if(!isset($flag)) {
+            /* получаем неоплаченные заказы */
+            $payments = Payment::where('status_id', 1)
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('orders')
+                        ->where('orders.user_id', $this->user->id);
+                })->get();
+
+            if($payments->isEmpty()) return false;
+            else {
+                $template = $this->template_prefix.$this->user->language_code.'.orders.unpaids';
+                $template_dataset = [
+                    'payments' => $payments,
+                    'is_one' => false
+                ];
+
+                $buttons_texts = $this->config['unpaid_orders'];
+                $buttons = [];
+
+                if($payments->count() === 1) {
+                    $template_dataset['is_one'] = true;
+                    $buttons[] = Button::make($buttons_texts['pay'][$this->user->language_code])
+                        ->action('payment_page')
+                        ->param('order_id', ($payments->first())->order->id);
+                } else {
+                    foreach ($payments as $payment) {
+                        $buttons[] = Button::make("#{$payment->order->id}")
+                            ->action('payment_page')
+                            ->param('order_id', $payment->order->id);
+                    }
+                }
+
+                /* Если метод отрабатывает через фейк-реквест, тогда проверяется текущая страница */
+                /* Если не через фейк реквест, а через команду был вызван обработчик, где вызвался текущи метод*/
+                /* Тогда будет браться текст команды */
+                $fake = $this->data->get('fake');
+
+                if(isset($fake)) {
+                    $page = $this->user->page;
+                    $buttons[] = Button::make($buttons_texts['continue'][$this->user->language_code])
+                        ->action('unpaid_orders')
+                        ->param('page', $page)
+                        ->param('flag', 1);
+                }
+
+                if(!isset($fake)) {
+                    $command = $this->message->text();
+                    $buttons[] = Button::make($buttons_texts['continue'][$this->user->language_code])
+                        ->action('unpaid_orders')
+                        ->param('command', $command)
+                        ->param('flag', 1);
+                }
+
+                $this->terminate_active_page();
+
+                $keyboard = Keyboard::make()->buttons($buttons);
+                $response = $this->chat
+                    ->message(view($template, $template_dataset))
+                    ->keyboard($keyboard)
+                    ->send();
+
+                $this->user->update([
+                    'page' => 'unpaid_orders',
+                    'message_id' => $response->telegraphMessageId()
+                ]);
+
+                return true;
+            }
+        }
+
     }
 
     /* Обработки своих кнопок не будет => без флага */
@@ -72,7 +168,7 @@ class User extends WebhookHandler
             if($method_id === 2 OR $method_id === 3) {
                 switch ($method_id) {
                     case 3:
-                        $template_data['ru_price'] = 'переведено в рублики';
+                        $template_data['payment']['ru_price'] = 'переведено в рублики';
                     case 2:
                         $buttons[] = Button::make($buttons_texts['request_photo'][$this->user->language_code])
                             ->action('hz');
@@ -819,6 +915,11 @@ class User extends WebhookHandler
 
         if (!isset($flag)) {
             if (isset($this->user)) {
+
+                if(isset($this->message)) {
+                    if($this->unpaid_orders()) return;
+                }
+
                 $template_prefix_lang = $this->template_prefix . $this->user->language_code;
                 $template_start = $template_prefix_lang . '.start';
 

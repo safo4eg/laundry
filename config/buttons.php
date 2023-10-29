@@ -102,7 +102,12 @@ return [
             'close' => ['ru' => 'Закрыть', 'en' => 'Close']
         ],
 
-        'request_order_message' => ['ru' => 'Отмена', 'en' => 'Cancel']
+        'request_order_message' => ['ru' => 'Отмена', 'en' => 'Cancel'],
+
+        'unpaid_orders' => [
+            'pay' => ['ru' => 'Оплатить', 'en' => 'Pay'],
+            'continue' => ['ru' => 'Продолжить', 'en' => 'Сontinue']
+        ]
     ],
 
     'manager' => [
