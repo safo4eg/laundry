@@ -41,7 +41,81 @@ class User extends WebhookHandler
         parent::__construct();
     }
 
-    // когда сюда попадает все актуальный оред_эктив стоит
+    /* Обработки своих кнопок не будет => без флага */
+    public function payment_page(): void
+    {
+        /* Для возврата с други страниц используется флаг back */
+        /* нужен чтобы знать когда редактировать пейдж */
+        $back = $this->data->get('back');
+        $order_id = $this->data->get('order_id');
+        $order = isset($order_id) ? Order::where('id', $order_id)->first() : $this->user->active_order;
+
+        $template = $this->template_prefix.$this->user->language_code.".order.payment_after_delivered";
+        $template_data = [
+            'order_services' => OrderServicePivot::where('order_id', $order->id)->get(),
+            'price' => $order->price,
+            'payment' => null,
+        ];
+        $buttons_texts = $this->config['payment'];
+        $buttons = [];
+
+        $selection_button_text = $buttons_texts['select'][$this->user->language_code];
+        if(!is_null($order->payment->method_id)) {
+            $method_id = $order->payment->method_id;
+            $template_data['payment'] = [];
+
+            $payment_desc_key = "{$this->user->language_code}_desc";
+            $template_data['payment']['desc'] = $order->payment->method->$payment_desc_key;
+            $template_data['payment']['id'] = $order->payment->method_id;
+            $selection_button_text = $buttons_texts['change'][$this->user->language_code];
+
+            if($method_id === 2 OR $method_id === 3) {
+                switch ($method_id) {
+                    case 3:
+                        $template_data['ru_price'] = 'переведено в рублики';
+                    case 2:
+                        $buttons[] = Button::make($buttons_texts['request_photo'][$this->user->language_code])
+                            ->action('hz');
+                        break;
+                }
+            }
+        }
+
+        $buttons[] = Button::make($selection_button_text)
+            ->action('select_payment')
+            ->param('order_id', $order->id);
+
+        if($order->status_id === 12) { // пока кура доставляет заказ
+            $template = $this->template_prefix.$this->user->language_code.".order.payment_before_delivered";
+            $buttons[] = Button::make($buttons_texts['dialogue'][$this->user->language_code])
+                ->action('order_dialogue')
+                ->param('order_id', $order->id);
+        }
+
+        $keyboard = Keyboard::make()->buttons($buttons);
+
+        if (isset($back)) { // если с кнопки назад значит редактируем инлайн-пейдж с которого вызвано
+            $response = $this->chat
+                ->edit($this->user->message_id)
+                ->message(view($template, $template_data))
+                ->keyboard($keyboard)
+                ->send();
+        } else {
+            $this->terminate_active_page();
+            $response = $this->chat
+                ->message(view($template, $template_data))
+                ->keyboard($keyboard)
+                ->send();
+            $order->update(['active' => true]);
+        }
+
+        $this->user->update([
+            'page' => 'payment',
+            'message_id' => $response->telegraphMessageId()
+        ]);
+    }
+
+    // когда сюда попадает всегда актуальный оред_эктив стоит
     // можно попасть только с кнопки!
     public function select_payment(): void
     {
@@ -241,78 +315,6 @@ class User extends WebhookHandler
 
             $this->user->update([
                 'page' => 'order_dialogue',
-                'message_id' => $response->telegraphMessageId()
-            ]);
-        }
-    }
-
-    public function delivery_action(): void
-    {
-        $flag = $this->data->get('delivery');
-        $order_id = $this->data->get('order_id');
-        $order = isset($order_id) ? Order::where('id', $order_id)->first() : $this->user->active_order;
-
-        if (isset($flag)) { // обработка кнопок
-
-        }
-
-        if (!isset($flag)) { // показ
-            $back = $this->data->get('back');
-
-            $buttons_texts = $this->config['delivery'];
-            $template = $this->template_prefix . $this->user->language_code . '.order.courier_on_the_way';
-            $view_data = [
-                'order_services' => OrderServicePivot::where('order_id', $order->id)->get(),
-                'price' => $order->price,
-                'payment' => null,
-                'price_in_rubles' => null,
-            ];
-            $buttons = [];
-
-            $select_payment_button = $buttons_texts['select_payment'][$this->user->language_code];
-            if(!is_null($order->payment->method_id)) {
-                $view_data['payment'] = [];
-
-                $payment_desc = "{$this->user->language_code}_desc";
-                $view_data['payment']['desc'] = $order->payment->method->$payment_desc;
-                $view_data['payment']['id'] = $order->payment->method_id;
-                $select_payment_button = $buttons_texts['change_payment'][$this->user->language_code];
-                if($order->payment->method_id === 2 OR $order->payment->method_id === 3) {
-                    if($order->payment->method_id === 3) {
-                        $view_data['price_in_rubles'] = 'цена переведенная в рубли';
-                    }
-                    $buttons[] = Button::make($buttons_texts['request_photo'][$this->user->language_code])
-                        ->action('act');
-                }
-            }
-
-            $buttons[] = Button::make($select_payment_button)
-                ->action('select_payment')
-                ->param('order_id', $order->id);
-
-            $buttons[] = Button::make($buttons_texts['write_to_the_courier'][$this->user->language_code])
-                ->action('order_dialogue')
-                ->param('order_id', $order->id);
-
-            $keyboard = Keyboard::make()->buttons($buttons);
-
-            if (isset($back)) { // если с кнопки назад значит редактируем инлайн-пейдж с которого вызвано
-                $response = $this->chat
-                    ->edit($this->user->message_id)
-                    ->message(view($template, $view_data))
-                    ->keyboard($keyboard)
-                    ->send();
-            } else {
-                $this->terminate_active_page();
-                $response = $this->chat
-                    ->message(view($template, $view_data))
-                    ->keyboard($keyboard)
-                    ->send();
-                $order->update(['active' => true]);
-            }
-
-            $this->user->update([
-                'page' => 'delivery',
                 'message_id' => $response->telegraphMessageId()
             ]);
         }
