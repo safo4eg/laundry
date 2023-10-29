@@ -1,10 +1,9 @@
-🎉Your things are clean and orderly, the courier is already on its way to you.
-To contact the courier, use the "Contact the courier" button.
+Payment for the order <b>#{{($order_services->first())->order->id}}</b>
 
 <b>Total weight of washed items:</b>
 
 @foreach($order_services as $order_service)
-    {{$order_service->service->title}} <b>{{$order_service->amount}}</b> - <b>{{$order_service->amount*$order_service->service->price}}</b> IDR
+    {{$order_service->service->title}} <b>{{$order_service->amount}}</b> - <b>{{$order_service->amount*$order_service->service->price}}</b> рупий
 @endforeach
 
 <b>Order price: {{$price}}</b>
@@ -27,21 +26,19 @@ To contact the courier, use the "Contact the courier" button.
                 <b>2200 7007 7932 1818</b>
                 <b>Olga G.</b>
 
-                <b>Amount to pay in rubles: {{$price_in_rubles}}</b>
+                <b>Amount to pay in rubles: {{$payment['ru_price']}}</b>
             @endif
 
             🧾 After you translate, click the button <b>"Send photo of payment"</b> and send a screenshot of the translation.
         @endif
 
-        To change the payment method, click the button <b>"Change payment method"</b>.
+        To change the payment method, click the  <b>Change payment method</b>.
 
-        ‼️ The courier will leave the items only after payment.
+        ‼️The courier will leave the items only after payment.
     @else
-        ✅ Paid with bonuses.
+        ✅Paid with bonuses
     @endif
 @else
     To select a payment method, click the button <b>"Select payment method"</b>.
-
-    ‼️ The courier will leave the items only after payment.
 @endif
 
