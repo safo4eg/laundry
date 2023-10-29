@@ -131,7 +131,7 @@ class User extends WebhookHandler
                 // на бонусах нужно оплачивать сразу здесь
                 /* отправка назад к инфе о идушем заказе */
                 $fake_dataset = [
-                    'action' => 'delivery_action',
+                    'action' => 'payment_page',
                     'params' => [
                         'back' => 1,
                         'order_id' => $order->id
@@ -160,7 +160,7 @@ class User extends WebhookHandler
             } // end foreach
 
             $buttons[] = Button::make($this->config['back'][$this->user->language_code])
-                ->action('delivery_action')
+                ->action('payment_page')
                 ->param('back', 1)
                 ->param('order_id', $order->id);
 
@@ -293,7 +293,7 @@ class User extends WebhookHandler
                     ->param('order_id', $order->id),
 
                 Button::make($this->config['back'][$this->user->language_code])
-                    ->action('delivery_action')
+                    ->action('payment_page')
                     ->param('back', 1)
                     ->param('order_id', $order->id)
 
