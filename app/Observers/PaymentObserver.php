@@ -48,26 +48,44 @@ class PaymentObserver
         $attributes = $payment->getDirty();
 
         if (isset($attributes['method_id'])) {
-
             if ($order->status_id === 13) {
-                if (isset($attributes['method_id'])) {
-                    $courier_chat = Chat::where('name', 'Courier')
-                        ->where('laundry_id', $order->laundry_id)
-                        ->first();
+                $courier_chat = Chat::where('name', 'Courier')
+                    ->where('laundry_id', $order->laundry_id)
+                    ->first();
 
-                    $fake_callback_dataset = [
-                        'action' => 'update_order_card',
-                        'params' => [
-                            'update_order_card' => 1,
-                            'order_id' => $order->id
-                        ]
-                    ];
+                $fake_callback_dataset = [
+                    'action' => 'update_order_card',
+                    'params' => [
+                        'update_order_card' => 1,
+                        'order_id' => $order->id
+                    ]
+                ];
 
-                    $fake_request = FakeRequest::callback_query($courier_chat, $bot, $fake_callback_dataset);
+                $fake_request = FakeRequest::callback_query($courier_chat, $bot, $fake_callback_dataset);
 
-                    (new Courier())->handle($fake_request, $bot);
-                }
+                (new Courier())->handle($fake_request, $bot);
             }
+        }
+
+        /* Если оплата не прошла проверку: */
+        /* Отменил курьер или Администратор не подтвердил */
+        if (!isset($attributes['method_id'])) {
+            Log::debug('зашло сюда');
+            $chat = Chat::factory()->make([
+                'chat_id' => $order->user->chat_id,
+                'name' => 'User',
+                'telegraph_bot_id' => 1
+            ]);
+
+            $fake_dataset = [
+                'action' => 'unpaid_orders',
+                'params' => [
+                    'fake' => 1
+                ]
+            ];
+
+            $fake_request = FakeRequest::callback_query($chat, $bot, $fake_dataset);
+            (new User($order->user))->handle($fake_request, $bot);
         }
     }
 }
