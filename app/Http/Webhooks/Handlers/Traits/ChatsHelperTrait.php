@@ -298,7 +298,9 @@ trait ChatsHelperTrait
         /* потому что этот статус обозначает отправлен курьеру, а след статус, когда пикап уже = 5 */
         if($this->chat->name === 'Courier' AND $order->status_id === 3) {
             $status_id = 5;
-        } else ++$status_id;
+        } else  ++$status_id;
+
+        if($status_id === 14) $order->payment->update(['status_id' => 3]); // ставим статус оплачено
 
         File::create([
             'order_id' => $order->id,
