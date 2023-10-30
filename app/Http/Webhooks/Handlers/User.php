@@ -15,6 +15,7 @@ use App\Models\User as UserModel;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use DefStudio\Telegraph\Models\TelegraphBot;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
@@ -44,6 +45,37 @@ class User extends WebhookHandler
 //    {
 //        Log::debug($this->unpaid_orders_page());
 //    }
+
+    public function payment_photo(): void
+    {
+        $order_id = $this->data->get('order_id');
+        $order = Order::where('id', $order_id)->first();
+        $request = $this->data->get('request');
+        $request = $this->data->get('confirm');
+
+        /* запрос фото оплаты, может быть вызвано ток через кнопку! */
+        if(isset($request)) {
+            $template = $this->template_prefix.$this->user->language_code.'.order.request_payment_photo';
+            $keyboard = Keyboard::make()->buttons([
+                Button::make($this->config['back'][$this->user->language_code])
+                    ->action('payment_page')
+                    ->param('back', 1)
+                    ->param('order_id', $order->id)
+            ]);
+
+            $this->chat
+                ->message(view($template, ['order' => $order]))
+                ->edit($this->messageId)
+                ->keyboard($keyboard)
+                ->send();
+
+            $this->user->update(['page' => 'payment_photo']);
+        }
+
+        if(isset($confim)) {
+
+        }
+    }
 
     public function request_rating(): void
     {
@@ -284,7 +316,9 @@ class User extends WebhookHandler
                         $template_data['payment']['ru_price'] = 'переведено в рублики';
                     case 2:
                         $buttons[] = Button::make($buttons_texts['request_photo'][$this->user->language_code])
-                            ->action('hz');
+                            ->action('payment_photo')
+                            ->param('request', 1)
+                            ->param('order_id', 1);
                         break;
                 }
             }
@@ -1660,6 +1694,21 @@ class User extends WebhookHandler
                     $this->order_dialogue();
                     /* После создания сообщения в БД будет отправка уведомления курьеру через наблюдатель */
                 }
+            }
+        }
+
+        if(isset($photos) AND $photos->isNotEmpty()) {
+            if($page === 'payment_photo') {
+                $from = $this->message->from();
+                $order = $this->user->active_order;
+
+                $message_timestamp = $this->message->date()->timestamp;
+                $last_message_timestamp = $from->storage()->get('payment_photo_timestamp');
+                if($message_timestamp !== $last_message_timestamp) {
+                    $photo = $this->save_photo($photos, $order);
+                    $from->storage()->set('photo_id', $photo->id());
+                }
+                $from->storage()->set('payment_photo_timestamp', $message_timestamp);
             }
         }
     }

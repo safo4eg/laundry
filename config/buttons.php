@@ -113,7 +113,12 @@ return [
         'request_rating' => [
             'recommend' => ['ru' => 'Рассказать друзьям', 'en' => 'Recommend to friends'],
             'start' => ['ru' => 'Заказать стирку', 'en' => 'Order laundry']
-        ]
+        ],
+
+        'payment_photo' => [
+            'yes' => ['ru' => 'Да', 'en' => 'Yes'],
+            'no' => ['ru' => 'Нет', 'en' => 'No']
+        ],
     ],
 
     'manager' => [
