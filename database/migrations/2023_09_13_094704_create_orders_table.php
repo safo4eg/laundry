@@ -25,6 +25,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('reason_id')->nullable();
             $table->boolean('active')->default(false);
             $table->unsignedTinyInteger('last_step')->nullable();
+            $table->unsignedTinyInteger('rating')->nullable();
 
             $table->foreignId('user_id')->references('id')->on('users');
             $table->foreign('status_id')->references('id')->on('order_statuses');

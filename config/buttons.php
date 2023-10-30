@@ -108,6 +108,11 @@ return [
         'unpaid_orders' => [
             'pay' => ['ru' => 'Оплатить', 'en' => 'Pay'],
             'continue' => ['ru' => 'Продолжить', 'en' => 'Сontinue']
+        ],
+
+        'request_rating' => [
+            'recommend' => ['ru' => 'Рассказать друзьям', 'en' => 'Recommend to friends'],
+            'start' => ['ru' => 'Заказать стирку', 'en' => 'Order laundry']
         ]
     ],
 

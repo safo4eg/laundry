@@ -45,6 +45,63 @@ class User extends WebhookHandler
 //        Log::debug($this->unpaid_orders_page());
 //    }
 
+    public function request_rating(): void
+    {
+        $flag = $this->data->get('rating');
+        $order_id = $this->data->get('order_id');
+        $order = Order::where('id', $order_id)->first();
+
+        $template = $this->template_prefix.$this->user->language_code.'.order.request_rating';
+        $buttons_texts = [
+            'recommend' => $this->config['request_rating']['recommend'][$this->user->language_code],
+            'start' => $this->config['request_rating']['start'][$this->user->language_code],
+        ];
+
+        $recommend_button = Button::make($buttons_texts['recommend'])
+            ->url("https://t.me/share/url?url=https://t.me/rastan_telegraph_bot?start=ref{$this->user->id}");
+        $start_button = Button::make($buttons_texts['start'])
+            ->action('start');
+
+
+        if(isset($flag)) {
+            $choice = $this->data->get('choice');
+            if(isset($choice)) {
+                $keyboard = Keyboard::make()->buttons([$recommend_button, $start_button]);
+                $order->update(['rating' => $choice]);
+                $this->chat
+                    ->message(view($template, ['order' => $order]))
+                    ->edit($this->messageId)
+                    ->keyboard($keyboard)
+                    ->send();
+                // не меняется ни страница, ни месседж_ид
+            }
+        }
+
+        if(!isset($flag)) {
+            $keyboard = Keyboard::make();
+            for($i = 1; $i < 6; $i++) {
+                $keyboard->button($i)
+                    ->action('request_rating')
+                    ->param('rating', 1)
+                    ->param('choice', $i)
+                    ->param('order_id', $order->id)
+                    ->width(0.2);
+            }
+            $keyboard->buttons([$recommend_button, $start_button]);
+
+            $this->terminate_active_page();
+            $response = $this->chat
+                ->message(view($template, ['order' => $order]))
+                ->keyboard($keyboard)
+                ->send();
+            $this->user->update([
+                'page' => 'request_rating',
+                'message_id' => $response->telegraphMessageId()
+            ]);
+        }
+
+    }
+
     /* Должен вызываться только через фейк-запросы */
     /* и свою кнопку "Продолжить" */
     public function unpaid_orders(): bool
