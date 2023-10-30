@@ -150,7 +150,9 @@ trait SupportUserTrait
 
     public function ticket_add_photo(): void
     {
-        $this->chat->deleteMessage($this->user->message_id)->send();
+        if ($this->user->message_id) {
+            $this->chat->deleteMessage($this->user->message_id)->send();
+        }
 
         $template = "{$this->template_prefix}{$this->user->language_code}.support.create_ticket_photo";
         $button = $this->config['support']['skip'][$this->user->language_code];
