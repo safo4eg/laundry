@@ -108,10 +108,10 @@ class OrderStatusSeeder extends Seeder
             ],
 
             [
-                'name' => 'courier_received_payment',
-                'signature_photo' => "💵Photo of money",
-                'en_desc' => 'Courier received payment',
-                'ru_desc' => 'Курьер получил оплату'
+                'name' => 'payment',
+                'signature_photo' => "💵Payment",
+                'en_desc' => 'Order has been paid',
+                'ru_desc' => 'Заказ оплачен'
             ],
         ]);
     }

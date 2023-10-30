@@ -164,7 +164,7 @@ trait ChatsHelperTrait
             $choice = $this->data->get('choice');
             if (isset($choice)) {
                 if ($choice == 1) { // YES
-                    $this->push_photo_to_db($order);
+                    $this->push_photo_to_db_with_card($order);
                     $this->update_order_card($order);
                 } else if ($choice == 2) { // NO
                     $this->delete_message_by_types([6]);
@@ -221,7 +221,7 @@ trait ChatsHelperTrait
             $new_path = $this->chat->name . "/order_{$order->id}" . "/{$photo_id}.jpg";
             Storage::move($old_path, $new_path);
 
-            $this->push_photo_to_db($order);
+            $this->push_photo_to_db_with_card($order);
             $this->update_order_card($order);
         }
 
@@ -287,7 +287,8 @@ trait ChatsHelperTrait
         return $photo;
     }
 
-    public function push_photo_to_db(Order $order = null): void
+    /* сохранение фото с карточек заказа */
+    public function push_photo_to_db_with_card(Order $order = null): void
     {
         $photo_id = $this->chat->storage()->get('photo_id');
 
