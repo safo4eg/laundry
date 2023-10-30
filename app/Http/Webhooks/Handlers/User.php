@@ -4,6 +4,7 @@ namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\UserCommandsFuncsTrait;
 use App\Http\Webhooks\Handlers\Traits\FirstAndSecondScenarioTrait;
+use App\Models\File;
 use App\Models\Order;
 use App\Models\OrderMessage;
 use App\Models\OrderServicePivot;
@@ -67,8 +68,8 @@ class User extends WebhookHandler
             ]);
 
             if(isset($photo)) {
-                $response = $this->chat->deleteMessage($this->user->message_id)->send();
-                $this->chat
+                $this->chat->deleteMessage($this->user->message_id)->send();
+                $response = $this->chat
                     ->message(view($template, ['order' => $order]))
                     ->keyboard($keyboard)
                     ->send();
@@ -95,7 +96,20 @@ class User extends WebhookHandler
 
             if(isset($yes) OR isset($no)) {
                 if(isset($yes)) {
-                    //
+                    File::create([
+                        'order_id' => $order->id,
+                        'file_type_id' => 1,
+                        'path' => $photo_path
+                    ]);
+
+                    $order->payment->update(['status_id' => 2]);
+
+                    $fake_data = [
+                        'action' => 'payment_page',
+                        'params' => [
+                            'order_id' => $order->id,
+                        ]
+                    ];
                 }
 
                 if(isset($no)) {
@@ -108,10 +122,10 @@ class User extends WebhookHandler
                             'photo' => 1
                         ]
                     ];
-
-                    $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_data);
-                    (new self($this->user))->handle($fake_request, $this->bot);
                 }
+
+                $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_data);
+                (new self($this->user))->handle($fake_request, $this->bot);
             }
 
             if(!isset($yes) AND !isset($no)) {
@@ -121,7 +135,9 @@ class User extends WebhookHandler
                     'no' => $this->config['payment_photo']['no'][$this->user->language_code]
                 ];
 
-                $this->chat->deleteMessage($this->messageId)->send(); // удаляем текущее сообщение
+                $this->chat
+                    ->deleteMessage($this->user->message_id)
+                    ->send(); // удаляем текущее сообщение
 
                 $keyboard = Keyboard::make()->buttons([
                     Button::make($buttons_texts['yes'])
@@ -367,38 +383,45 @@ class User extends WebhookHandler
         $template_data = [
             'order_services' => OrderServicePivot::where('order_id', $order->id)->get(),
             'price' => $order->price,
-            'payment' => null,
+            'payment' => [],
         ];
         $buttons_texts = $this->config['payment'];
         $buttons = [];
 
-        $selection_button_text = $buttons_texts['select'][$this->user->language_code];
-        if(!is_null($order->payment->method_id)) {
-            $method_id = $order->payment->method_id;
-            $template_data['payment'] = [];
+        $method_id = $order->payment->method_id;
+        $status_id = $order->payment->status_id;
 
-            $payment_desc_key = "{$this->user->language_code}_desc";
-            $template_data['payment']['desc'] = $order->payment->method->$payment_desc_key;
-            $template_data['payment']['id'] = $order->payment->method_id;
-            $selection_button_text = $buttons_texts['change'][$this->user->language_code];
+        $payment_desc_key = "{$this->user->language_code}_desc";
+        $template_data['payment']['method_id'] = $method_id;
+        $template_data['payment']['status_id'] = $status_id;
 
-            if($method_id === 2 OR $method_id === 3) {
-                switch ($method_id) {
-                    case 3:
-                        $template_data['payment']['ru_price'] = 'переведено в рублики';
-                    case 2:
-                        $buttons[] = Button::make($buttons_texts['request_photo'][$this->user->language_code])
-                            ->action('payment_photo')
-                            ->param('request', 1)
-                            ->param('order_id', 1);
-                        break;
+        if(isset($method_id)) $template_data['payment']['desc'] = $order->payment->method->$payment_desc_key;
+
+        /* Если заказ еще ожидает оплаты ИЛИ оплата выбрана курьеру */
+        if($status_id === 1 OR $method_id === 1) {
+            $selection_button_text = $buttons_texts['select'][$this->user->language_code];
+
+            if(!is_null($method_id)) {
+                $selection_button_text = $buttons_texts['change'][$this->user->language_code];
+                if($method_id === 2 OR $method_id === 3) {
+                    switch ($method_id) {
+                        case 3:
+                            $template_data['payment']['ru_price'] = 'переведено в рублики';
+                        case 2:
+                            $buttons[] = Button::make($buttons_texts['request_photo'][$this->user->language_code])
+                                ->action('payment_photo')
+                                ->param('request', 1)
+                                ->param('order_id', $order->id);
+                            break;
+                    }
                 }
             }
-        }
 
-        $buttons[] = Button::make($selection_button_text)
-            ->action('select_payment')
-            ->param('order_id', $order->id);
+            $buttons[] = Button::make($selection_button_text)
+                ->action('select_payment')
+                ->param('order_id', $order->id);
+
+        }
 
         if($order->status_id === 12) { // пока кура доставляет заказ
             $template = $this->template_prefix.$this->user->language_code.".order.payment_before_delivered";
@@ -450,6 +473,7 @@ class User extends WebhookHandler
                 } else if($choice == 2 OR $choice == 3) {
                     $order->payment->update([
                         'method_id' => $choice,
+                        'status_id' => 1
                     ]);
                 } else if($choice == 4) { // оплата бонусами
                     $order->payment->update([
