@@ -87,7 +87,11 @@ return [
             ],
             'back' => ['ru' => 'Назад', 'en' => 'Back'],
             'tickets' => ['ru' => 'Проверить статус заявки', 'en' => 'Check application status'],
-            'skip' => ['ru' => 'Пропустить', 'en' => 'Skip']
+            'skip' => ['ru' => 'Пропустить', 'en' => 'Skip'],
+            'get_answer' =>[
+                'have_questions' => ['ru' => 'У меня еще остались вопросы', 'en' => 'I still have questions'],
+                'have_not_questions' => ['ru' => 'Нет вопросов', 'en' => 'I not have any questions']
+            ]
         ]
     ],
 

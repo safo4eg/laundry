@@ -15,7 +15,34 @@ use Illuminate\Support\Facades\Storage;
 trait SupportUserTrait
 {
     use SupportTrait;
+    use UserCommandsFuncsTrait;
 
+    public function get_support_answer(): void
+    {
+        $ticket_item_id = $this->data->get('ticket_item_id');
+        $ticket_item = TicketItem::where('id', $ticket_item_id)->first();
+
+        $view = view('bot.support.send_user_answer', [
+            'text' => $ticket_item->text,
+            'ticket_id' => $ticket_item->ticket_id
+        ]);
+        $buttons = config('buttons.user')['support']['get_answer'];
+        $keyboard = Keyboard::make()->buttons([
+            Button::make($buttons['have_questions'][$this->user->language_code])
+                ->action('add_ticket')
+                ->param('ticket_id', $ticket_item->ticket_id),
+            Button::make($buttons['have_not_questions'][$this->user->language_code])
+                ->action('close_ticket')
+                ->param('ticket_id', $ticket_item->ticket_id)
+        ]);
+
+        $response = $this->chat->message($view)->keyboard($keyboard)->send();
+        $this->user->update([
+            'message_id' => $response->telegraphMessageId()
+        ]);
+    }
+
+    // TODO: кнопки!!!!!!!!
     public function close_ticket(): void
     {
         $ticket = Ticket::where('id', $this->data->get('ticket_id'))->first();
@@ -25,27 +52,16 @@ trait SupportUserTrait
 
         $support_chat = Chat::where('name', 'Support')->first();
         $this->delete_ticket_card($support_chat, $ticket);
-        $this->chat->edit($this->user->message_id)
-            ->message('Спасибо, что обратились в чат поддержки LaundryBot, оцените работу поддержки!')
-            ->keyboard(Keyboard::make()->buttons([
-                Button::make('5')->action('evaluation_support_work')->param('mark', 5)->param('ticket_id', $ticket->id),
-                Button::make('4')->action('evaluation_support_work')->param('mark', 4)->param('ticket_id', $ticket->id),
-                Button::make('3')->action('evaluation_support_work')->param('mark', 3)->param('ticket_id', $ticket->id),
-                Button::make('2')->action('evaluation_support_work')->param('mark', 2)->param('ticket_id', $ticket->id),
-                Button::make('1')->action('evaluation_support_work')->param('mark', 1)->param('ticket_id', $ticket->id),
-            ]))
-            ->send();
-    }
 
-    public function evaluation_support_work(): void
-    {
-        $ticket = Ticket::where('id', $this->data->get('ticket_id'))->first();
-        $ticket->update([
-            'mark' => $this->data->get('mark')
-        ]);
+        $view = "bot.user.{$ticket->user->language_code}.support.rate";
+        $buttons = [
+            Button::make('Сделать заказ')->action('start'),
+            Button::make('Написать новое обращение')->action('support')
+        ];
 
         $this->chat->edit($this->user->message_id)
-            ->message('Спасибо, что оценили нашу работу!')
+            ->message(view($view))
+            ->keyboard(Keyboard::make()->buttons($buttons))
             ->send();
     }
 
@@ -55,17 +71,12 @@ trait SupportUserTrait
         $buttons = $this->config['support']['support'][$this->user->language_code];
         $button = $this->config['support']['tickets'][$this->user->language_code];
 
-        if (!$this->user->message_id) {
-            $response = $this->chat->message(view($template))->keyboard(Keyboard::make()->buttons([
-                Button::make($buttons)->action("create_ticket"),
-                Button::make($button)->action("check_user_tickets")
-            ]))->send();
-        } else {
-            $response = $this->chat->edit($this->user->message_id)->message(view($template))->keyboard(Keyboard::make()->buttons([
-                Button::make($buttons)->action("create_ticket"),
-                Button::make($button)->action("check_user_tickets")
-            ]))->send();
-        }
+
+        $response = $this->chat->message(view($template))->keyboard(Keyboard::make()->buttons([
+            Button::make($buttons)->action("create_ticket"),
+            Button::make($button)->action("check_user_tickets")
+        ]))->send();
+
 
         $this->user->update([
             "page" => "support",
@@ -76,19 +87,17 @@ trait SupportUserTrait
 
     public function create_ticket(): void
     {
+        $flag = $this->data->get('choice');
+        if (!$flag) {
+            if ($this->check_incomplete_tickets()) return;
+        }
+
         $template = "{$this->template_prefix}{$this->user->language_code}.support.create_ticket_text";
         $button = $this->config['support']['back'][$this->user->language_code];
 
-        if ($this->bot->storage()->get('current_ticket_id')) {
-            $ticket_id = $this->bot->storage()->get('current_ticket_id');
-            $buttons = [
-                Button::make($button)->action('send_user_answer')->param('ticket_id', $ticket_id),
-            ];
-        } else {
-            $buttons = [
-                Button::make($button)->action('support'),
-            ];
-        }
+        $buttons = [
+            Button::make($button)->action('support'),
+        ];
 
         $response = $this->chat->edit($this->user->message_id)
             ->message(view($template))
@@ -96,7 +105,6 @@ trait SupportUserTrait
             ->send();
 
         $this->user->update([
-            "step" => 2,
             "message_id" => $response->telegraphMessageId(),
             "page" => "ticket_creation"
         ]);
@@ -106,7 +114,7 @@ trait SupportUserTrait
     {
         if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
         {
-            $this->delete_active_page();
+            $this->delete_active_page_message();
         }
 
         if ($this->message) {
@@ -133,15 +141,17 @@ trait SupportUserTrait
 
             }
             $this->user->update([
-                "step" => 3,
+                "step" => 2,
             ]);
         }
 
-        $this->handle_ticket();
+        $this->handle_ticket_request();
     }
 
     public function ticket_add_photo(): void
     {
+        $this->chat->deleteMessage($this->user->message_id)->send();
+
         $template = "{$this->template_prefix}{$this->user->language_code}.support.create_ticket_photo";
         $button = $this->config['support']['skip'][$this->user->language_code];
         $response = $this->chat->message(view($template))->keyboard(Keyboard::make()->buttons([
@@ -149,11 +159,8 @@ trait SupportUserTrait
         ]))->send();
 
         $this->user->update([
-            "step" => 4,
             "message_id" => $response->telegraphMessageId()
         ]);
-
-        $this->handle_ticket();
     }
 
     public function ticket_add_photo_handler(): void
@@ -168,15 +175,22 @@ trait SupportUserTrait
         if (isset($this->message)) {
             if ($this->message->photos() !== null && $this->message->photos()->isNotEmpty()) {
                 if (isset($this->user->message_id)) {
-                    $this->delete_active_page();
+                    $this->delete_active_page_message();
                 }
 
                 $photos = $this->message->photos();
-                $dir = "Ticket/ticket_item_{$ticket_item->id}";
-                $photo = $this->save_ticket_photo($photos, $ticket_item);
-                $file_name = "{$photo->id()}.jpg";
+                $message_timestamp = $this->message->date()->timestamp; // время отправки прилетевшего фото
+                $last_message_timestamp = $this->bot->storage()->get('photo_message_timestamp'); // timestamp предыдущего прилетевшего фото
 
-                $this->bot->storage()->set('photo_id', $photo->id());
+                if($message_timestamp !== $last_message_timestamp) {
+                    $photo = $this->save_ticket_photo($photos, $ticket_item);
+                    $this->bot->storage()->set('photo_id', $photo->id());
+                }
+
+                $this->bot->storage()->set('photo_message_timestamp', $message_timestamp);
+
+                $dir = "Ticket/ticket_item_{$ticket_item->id}";
+                $file_name = "{$photo->id()}.jpg";
 
                 $confirmation_buttons = $this->config['support']['confirm'];
                 $response = $this->chat->photo(Storage::path("{$dir}/{$file_name}"))
@@ -201,22 +215,23 @@ trait SupportUserTrait
     {
         if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
         {
-            $this->delete_active_page();
+            $this->delete_active_page_message();
         }
 
         $flag = $this->data->get('confirm');
         $current_ticket = $this->bot->storage()->get('current_ticket_id');
+        $this->bot->storage()->forget('current_ticket_id');
         $ticket_item = TicketItem::where('ticket_id', $current_ticket)->first();
 
         if ($flag) {
             $dir = "ticket/ticket_item_{$ticket_item->id}";
 
-            $this->bot->storage()->set('photo_id', $this->user->id);
             $photo_id = $this->bot->storage()->get('photo_id');
 
             $file_name = "$photo_id.jpg";
 
-            $current_ticket->update([
+            $ticket = Ticket::where('id', $current_ticket)->first();
+            $ticket->update([
                 'status_id' => 2
             ]);
             File::create([
@@ -224,15 +239,15 @@ trait SupportUserTrait
                 'ticket_item_id' => $ticket_item->id,
             ]);
             $this->user->update([
-                'step' => 5
+                'step' => null
             ]);
+
+            $this->ticket_created();
         } else {
             $this->user->update([
-                "step" => 3,
+                "step" => 2,
             ]);
         }
-
-        $this->handle_ticket();
     }
 
 
@@ -252,7 +267,7 @@ trait SupportUserTrait
 
         if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
         {
-            $this->delete_active_page();
+            $this->delete_active_page_message();
         }
 
         $template = "{$this->template_prefix}{$this->user->language_code}.support.wait_answer";
@@ -270,7 +285,7 @@ trait SupportUserTrait
         ]);
     }
 
-// Просмотр тикетов пользователя
+    // Просмотр тикетов пользователя
     public function check_user_tickets(): void
     {
         $tickets = $this->user->ticket();
@@ -367,6 +382,39 @@ trait SupportUserTrait
             'step' => 1
         ]);
 
-        $this->handle_ticket();
+        $this->handle_ticket_request();
+    }
+
+    public function check_incomplete_tickets(): bool
+    {
+        $flag = $this->data->get('choice');
+
+        if (!$flag) {
+            if ($this->bot->storage()->get('current_ticket_id')) {
+                $view = "{$this->template_prefix}{$this->user->language_code}.support.incomplete_ticket";
+                $response = $this->chat->edit($this->user->message_id)
+                    ->message(view($view))->keyboard(Keyboard::make()
+                        ->buttons([
+                            Button::make('Да')->action('check_incomplete_tickets')->param('choice', 1),
+                            Button::make('Нет')->action('check_incomplete_tickets')->param('choice', 2)
+                        ]))->send();
+
+                $this->user->update([
+                   'message_id' => $response->telegraphMessageId()
+                ]);
+                return true;
+            }
+        } elseif ($flag == 2) {
+            $this->bot->storage()->forget('current_ticket_id');
+            $this->create_ticket();
+        } elseif ($flag == 1) {
+            $ticket = Ticket::where('id', $this->bot->storage()->get('current_ticket_id'))->first();
+            Log::debug(json_encode($ticket));
+            $this->user->update([
+                "step" => $ticket->last_step
+            ]);
+            $this->handle_ticket_request();
+        }
+        return false;
     }
 }

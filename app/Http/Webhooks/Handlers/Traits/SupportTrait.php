@@ -2,43 +2,44 @@
 
 namespace App\Http\Webhooks\Handlers\Traits;
 
+use App\Models\Chat;
 use App\Models\ChatOrder;
 use App\Models\Ticket;
 use App\Models\TicketItem;
+use App\Services\FakeRequest;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use App\Http\Webhooks\Handlers\User;
+use Illuminate\Support\Facades\Log;
+
 
 trait SupportTrait
 {
-    public function send_user_answer(): void
+
+    // TODO: Отправка через FakeRequest
+    public function send_user_answer(TicketItem $ticket_item): void
     {
         $ticket_id = $this->data->get('ticket_id');
         $ticket = Ticket::where('id', $ticket_id)->first();
-        $ticket_item = TicketItem::where('ticket_id',$ticket_id)
-            ->orderByDesc('time')
-            ->first();
-
         $user = $ticket->user;
-        $view = view('bot.support.send_user_answer', [
-            'text' => $ticket_item->text,
-            'ticket_id' => $ticket_id
-        ]);
-        // TODO: Доделать вид карточки для юзера + кнопки
-        $keyboard = Keyboard::make()->buttons([
-            Button::make('У меня остались еще вопросы')
-                ->action('add_ticket')
-                ->param('ticket_id', $ticket->id),
-            Button::make('Вопросов нет')
-                ->action('close_ticket')
-                ->param('ticket_id', $ticket->id)
+
+        $chat = Chat::factory()->make([
+            'chat_id' => $user->chat_id,
+            'name' => 'Temp',
+            'telegraph_bot_id' => 1
         ]);
 
-        $response = $this->send_message_to_user($user, $view, $keyboard);
-        $ticket->user->update([
-            'message_id' => $response->telegraphMessageId()
-        ]);
+        $fake_dataset = [
+            'action' => 'get_support_answer',
+            'params' => [
+                'ticket_item_id' => $ticket_item->id
+            ]
+        ];
+
+        Log::debug($chat->chat_id);
+        $fake_request = FakeRequest::callback_query($chat, $this->bot, $fake_dataset);
+        (new User($user))->handle($fake_request, $this->bot);
     }
-
 
     public function confirm_answer($text = null, Ticket $ticket = null): void
     {
@@ -61,7 +62,7 @@ trait SupportTrait
                     $this->send_ticket_card($this->chat, $ticket);
                 }
                 $this->delete_message_by_types([12]);
-                $this->send_user_answer();
+                $this->send_user_answer($ticket_item);
             } elseif ($flag == 2) {
                 $this->delete_message_by_types([10, 11, 12]);
                 $this->answer();
@@ -90,13 +91,13 @@ trait SupportTrait
         }
     }
 
-    public function send_ticket_card($chat, $ticket): void
+    public function send_ticket_card($chat, Ticket $ticket): void
     {
         $this->delete_ticket_card($chat, $ticket);
-
         $view = view('bot.support.ticket_card', [
             'ticket' => $ticket,
-            'baseUrl' => url()
+            'baseUrl' => url(),
+            'user' => $ticket->user
         ]);
 
         $response = $chat->message(preg_replace('#^\s+#m', '', $view))
@@ -145,12 +146,12 @@ trait SupportTrait
                 break;
             case 4:
             case 5:
-            $buttons = [
-                Button::make('Return')
-                    ->action('return_ticket')
-                    ->param('ticket_id', $ticket->id)
-                    ->width(0.5),
-            ];
+                $buttons = [
+                    Button::make('Return')
+                        ->action('return_ticket')
+                        ->param('ticket_id', $ticket->id)
+                        ->width(0.5),
+                ];
         }
 
         return Keyboard::make()->buttons($buttons);

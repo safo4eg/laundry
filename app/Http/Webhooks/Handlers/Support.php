@@ -5,6 +5,8 @@ namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\ChatsHelperTrait;
 use App\Http\Webhooks\Handlers\Traits\SupportTrait;
+use App\Http\Webhooks\Handlers\Traits\SupportUserTrait;
+use App\Http\Webhooks\Handlers\Traits\UserCommandsFuncsTrait;
 use App\Http\Webhooks\Handlers\Traits\UserMessageTrait;
 use App\Models\ChatOrder;
 use App\Models\Ticket;
@@ -29,6 +31,7 @@ class Support extends WebhookHandler
         $view = "$this->template_prefix.enter_answer";
         $ticket = Ticket::where('id', $this->data->get('ticket_id'))->first();
 
+        $this->delete_message_by_types([10]);
         $response = $this->chat->message(view($view, [
             'ticket' => $ticket
         ]))->keyboard(Keyboard::make()->buttons([
@@ -58,7 +61,7 @@ class Support extends WebhookHandler
             $view = view("bot.user.$user->language_code.support.reject_ticket_notification", [
                 'reason' => TicketRejectReason::where('id', $reason_flag)->first()
             ]);
-            $this->send_message_to_user($user->chat_id, $view);
+            $this->send_message_to_user($user, $view);
 
             $ticket->update([
                 'status_id' => 5
@@ -91,8 +94,10 @@ class Support extends WebhookHandler
         }
     }
 
+
     use SupportTrait;
     use ChatsHelperTrait;
+    use UserCommandsFuncsTrait;
 
     public function close(): void
     {
@@ -127,7 +132,6 @@ class Support extends WebhookHandler
                 $this->delete_message_by_types([11, 10]);
                 $this->confirm_answer($text, $ticket);
             }
-
         }
     }
 }

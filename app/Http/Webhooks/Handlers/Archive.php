@@ -13,11 +13,11 @@ class Archive extends WebhookHandler
         $ticket = Ticket::where('id', $this->data->get('ticket_id'))->first();
         $support_chat_id = Chat::where('name', 'Support')->first();
 
-        if ($ticket->ticketItems->search($support_chat_id)) {
+        if ($ticket->status_id == 4) {
             $ticket->update([
                 'status_id' => 3
             ]);
-        } else {
+        } else if($ticket->status_id == 5) {
             $ticket->update([
                 'status_id' => 2
             ]);

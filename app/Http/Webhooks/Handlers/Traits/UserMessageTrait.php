@@ -16,10 +16,18 @@ trait UserMessageTrait
             'telegraph_bot_id' => 1
         ]);
 
-        if (!$keyboard){
-            $response = $chat->edit($user->message_id)->message($template)->send();
+        if ($user->message_id) {
+            if (!$keyboard) {
+                $response = $chat->edit($user->message_id)->message($template)->send();
+            } else {
+                $response = $chat->edit($user->message_id)->message($template)->keyboard($keyboard)->send();
+            }
         } else {
-            $response = $chat->edit($user->message_id)->message($template)->keyboard($keyboard)->send();
+            if (!$keyboard) {
+                $response = $chat->edit($chat->messageId)->message($template)->send();
+            } else {
+                $response = $chat->edit($user->messageId)->message($template)->keyboard($keyboard)->send();
+            }
         }
 
         return $response;

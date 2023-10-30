@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->timestamp('time_start');
             $table->dateTime('time_end')->nullable();
+            $table->string('last_step')->nullable();
 
             $table->foreignId('status_id')->references('id')->on('ticket_statuses');
             $table->foreignId('user_id')->references('id')->on('users');

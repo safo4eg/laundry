@@ -3,12 +3,14 @@
 namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\FirstAndSecondScenarioTrait;
+use App\Http\Webhooks\Handlers\Traits\SupportTrait;
 use App\Http\Webhooks\Handlers\Traits\UserCommandsFuncsTrait;
 use App\Http\Webhooks\Handlers\Traits\UserMessageTrait;
 use App\Models\Chat;
 use App\Models\Order;
 use App\Models\OrderStatusPivot;
 use App\Models\Referral;
+use App\Models\Ticket;
 use App\Models\User as UserModel;
 use App\Services\QR;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
@@ -43,6 +45,8 @@ class User extends WebhookHandler
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
         if (!isset($flag)) {
+            $this->terminate_active_page();
+
             $buttons_texts = [
                 'recommend' => $this->config['referrals']['recommend'][$this->user->language_code],
                 'new_order' => $this->config['referrals']['new_order'][$this->user->language_code],
@@ -51,21 +55,9 @@ class User extends WebhookHandler
             ];
             $template = $template_prefix_lang . '.referrals.main';
 
-            $page = $this->user->page;
-            $order = $this->user->active_order;
-            if (
-                $page === 'first_scenario' or
-                $page === 'second_scenario' or
-                $page === 'first_scenario_phone' or
-                $page === 'first_scenario_whatsapp'
-
-            ) {
-                $this->terminate_filling_order($order);
-            }
-
             if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
             {
-                $this->delete_active_page();
+                $this->delete_active_page_message();
             }
 
             $start_order_button = null;
@@ -180,6 +172,8 @@ class User extends WebhookHandler
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
         if (!isset($flag)) {
+            $this->terminate_active_page();
+
             $buttons_texts = [
                 'new_order' => $this->config['profile']['new_order'][$this->user->language_code],
                 'continue_order' => $this->config['profile']['continue_order'][$this->user->language_code],
@@ -191,14 +185,7 @@ class User extends WebhookHandler
 
             $page = $this->user->page;
             $order = $this->user->active_order;
-            if (
-                $page === 'first_scenario' or
-                $page === 'second_scenario' or
-                $page === 'first_scenario_phone' or
-                $page === 'first_scenario_whatsapp'
-            ) {
-                $this->terminate_filling_order($order);
-            }
+
 
             $start_order_button = null;
             if ($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
@@ -230,7 +217,7 @@ class User extends WebhookHandler
 
                 if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
                 {
-                    $this->delete_active_page();
+                    $this->delete_active_page_message();
                 }
 
                 $response = $this->chat
@@ -320,7 +307,7 @@ class User extends WebhookHandler
                 ]);
 
                 if (isset($this->message)) {
-                    $this->delete_active_page();
+                    $this->delete_active_page_message();
                     $response = $this->chat
                         ->message(view($template, [
                             'order' => $order,
@@ -383,22 +370,7 @@ class User extends WebhookHandler
         if (!isset($flag)) {
 
             if (isset($this->message)) {
-                $page = $this->user->page;
-                $order = $this->user->active_order;
-
-                if (
-                    $page === 'first_scenario' or
-                    $page === 'second_scenario' or
-                    $page === 'first_scenario_phone' or
-                    $page === 'first_scenario_whatsapp'
-                ) {
-                    $this->terminate_filling_order($order);
-                }
-
-                if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
-                {
-                    $this->delete_active_page();
-                }
+                $this->terminate_active_page();
             }
 
             $orders = Order::where('user_id', $this->user->id)
@@ -555,19 +527,7 @@ class User extends WebhookHandler
             'continue_order' => $this->config['about_us']['continue_order'][$this->user->language_code],
         ];
 
-        if (
-            $page === 'first_scenario' or
-            $page === 'second_scenario' or
-            $page === 'first_scenario_phone' or
-            $page === 'first_scenario_whatsapp'
-        ) {
-            $this->terminate_filling_order($order);
-        }
-
-        if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
-        {
-            $this->delete_active_page();
-        }
+        $this->terminate_active_page();
 
         $start_order_button = null;
         if ($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
@@ -616,17 +576,7 @@ class User extends WebhookHandler
                     'reviews' => $this->config['start']['reviews'][$this->user->language_code],
                 ];
 
-                $page = $this->user->page;
-                $order = $this->user->active_order;
-
-                if (
-                    $page === 'first_scenario' or
-                    $page === 'second_scenario' or
-                    $page === 'first_scenario_phone' or
-                    $page === 'first_scenario_whatsapp'
-                ) {
-                    $this->terminate_filling_order($order);
-                }
+                $this->terminate_active_page();
 
                 $start_order_button = null;
                 if ($this->check_for_incomplete_order()) { // проверка есть ли недозаполненный заказ
@@ -646,7 +596,7 @@ class User extends WebhookHandler
 
                 if (isset($this->user->message_id)) {
                     if (isset($this->message)) { // проверяем проинициализирована ли переменная, т.к сюда можно попасть и с кнопки
-                        $this->delete_active_page();
+                        $this->delete_active_page_message();
                     } else { // если не с команды попало, тогда редактируем, т.к ничего не писали
                         $this->chat
                             ->edit($this->user->message_id)
@@ -858,7 +808,7 @@ class User extends WebhookHandler
                     $button_select_ru->param('page', 1),
                 ]);
 
-                $this->delete_active_page();
+                $this->delete_active_page_message();
 
                 $response = $this->chat
                     ->message((string)view($template))
@@ -1156,44 +1106,47 @@ class User extends WebhookHandler
     use Traits\SupportUserTrait;
     use Traits\ChatsHelperTrait;
     use Traits\UserMessageTrait;
+    use Traits\SupportTrait;
 
     public function support(): void
     {
         if ($this->check_for_language_code()) return;
-        if (isset($this->message)) {
-            $page = $this->user->page;
-            $order = $this->user->active_order;
-            if ($page === 'first_scenario' or $page === 'second_scenario') {
-                $this->terminate_filling_order($order);
-            }
-            if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
-            {
-                $this->delete_active_page();
-            }
-        }
+        $this->terminate_active_page();
+        $this->delete_active_page_message();
         $this->support_start();
     }
 
-
-    private function handle_ticket(): void
+    public function handle_ticket_request(): void
     {
         $step = $this->user->step;
+        $this->user->update([
+            "page" => "ticket_creation"
+        ]);
 
         switch ($step) {
             case 1:
                 $this->create_ticket();
                 break;
             case 2:
-                $this->ticket_add_text_handler();
-                break;
-            case 3:
                 $this->ticket_add_photo();
                 break;
-            case 4:
+        }
+    }
+
+    public function handle_ticket_response(): void
+    {
+        $step = $this->user->step;
+        $this->user->update([
+            "page" => "ticket_creation"
+        ]);
+
+        switch ($step) {
+            case 1:
+                $this->ticket_add_text_handler();
+                break;
+            case 2:
                 $this->ticket_add_photo_handler();
                 break;
-            case 5:
-                $this->ticket_created();
         }
     }
 
@@ -1218,9 +1171,9 @@ class User extends WebhookHandler
                     break;
                 case 'add_ticket':
                 case 'ticket_creation':
-                    $this->handle_ticket();
+                    $this->handle_ticket_response();
                     break;
             }
-        } // end if(isset($page))
+        }
     }
 }
