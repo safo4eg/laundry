@@ -83,10 +83,9 @@ trait UserCommandsFuncsTrait
                 break;
             case 'ticket_creation':
             case 'add_ticket':
-            Log::debug('заходит');
-                if ($this->bot->storage()->get('current_ticket_id')) {
-                    Log::debug('работает');
-                    $ticket = Ticket::where('id', $this->bot->storage()->get('current_ticket_id'))->first();
+                $user = $this->message->from();
+                if ($user->storage()->get('current_ticket_id')) {
+                    $ticket = Ticket::where('id', $user->storage()->get('current_ticket_id'))->first();
                     $this->terminate_filling_ticket($ticket);
                 }
                 break;

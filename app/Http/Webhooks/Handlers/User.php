@@ -1111,7 +1111,9 @@ class User extends WebhookHandler
     public function support(): void
     {
         if ($this->check_for_language_code()) return;
-        $this->terminate_active_page();
+        if ($this->message){
+            $this->terminate_active_page();
+        }
         $this->delete_active_page_message();
         $this->support_start();
     }

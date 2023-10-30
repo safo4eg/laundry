@@ -8,7 +8,6 @@ use App\Models\Ticket;
 use App\Models\TicketItem;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 
@@ -88,8 +87,10 @@ trait SupportUserTrait
     public function create_ticket(): void
     {
         $flag = $this->data->get('choice');
+        $user = $this->callbackQuery->from();
+
         if (!$flag) {
-            if ($this->check_incomplete_tickets()) return;
+            if ($this->check_incomplete_tickets($user)) return;
         }
 
         $template = "{$this->template_prefix}{$this->user->language_code}.support.create_ticket_text";
@@ -118,11 +119,12 @@ trait SupportUserTrait
         }
 
         if ($this->message) {
-            if ($this->bot->storage()->get('current_ticket_id')) {
+            $user = $this->message->from();
+            if ($user->storage()->get('current_ticket_id')) {
                 $ticket_text = $this->message->text();
                 TicketItem::create([
                     'text' => $ticket_text,
-                    'ticket_id' => $this->bot->storage()->get('current_ticket_id'),
+                    'ticket_id' => $user->storage()->get('current_ticket_id'),
                     'chat_id' => $this->message->from()->id()
                 ]);
             } else {
@@ -130,7 +132,7 @@ trait SupportUserTrait
                     'user_id' => $this->user->id,
                     'status_id' => 1
                 ]);
-                $this->bot->storage()->set('current_ticket_id', $ticket->id);
+                $user->storage()->set('current_ticket_id', $ticket->id);
 
                 $ticket_text = $this->message->text();
                 TicketItem::create([
@@ -180,16 +182,18 @@ trait SupportUserTrait
                     $this->delete_active_page_message();
                 }
 
+                $user = $this->message->from();
+
                 $photos = $this->message->photos();
                 $message_timestamp = $this->message->date()->timestamp; // время отправки прилетевшего фото
-                $last_message_timestamp = $this->bot->storage()->get('photo_message_timestamp'); // timestamp предыдущего прилетевшего фото
+                $last_message_timestamp = $user->storage()->get('photo_message_timestamp'); // timestamp предыдущего прилетевшего фото
 
-                if($message_timestamp !== $last_message_timestamp) {
+                if ($message_timestamp !== $last_message_timestamp) {
                     $photo = $this->save_ticket_photo($photos, $ticket_item);
-                    $this->bot->storage()->set('photo_id', $photo->id());
+                    $user->storage()->set('photo_id', $photo->id());
                 }
 
-                $this->bot->storage()->set('photo_message_timestamp', $message_timestamp);
+                $user->storage()->set('photo_message_timestamp', $message_timestamp);
 
                 $dir = "Ticket/ticket_item_{$ticket_item->id}";
                 $file_name = "{$photo->id()}.jpg";
@@ -221,45 +225,50 @@ trait SupportUserTrait
         }
 
         $flag = $this->data->get('confirm');
-        $current_ticket = $this->bot->storage()->get('current_ticket_id');
-        $this->bot->storage()->forget('current_ticket_id');
-        $ticket_item = TicketItem::where('ticket_id', $current_ticket)->first();
 
-        if ($flag) {
-            $dir = "ticket/ticket_item_{$ticket_item->id}";
+        if ($this->message) {
+            $user = $this->message->from();
+            $current_ticket = $user->storage()->get('current_ticket_id');
+            $user->storage()->forget('current_ticket_id');
+            $ticket_item = TicketItem::where('ticket_id', $current_ticket)->first();
 
-            $photo_id = $this->bot->storage()->get('photo_id');
+            if ($flag) {
+                $dir = "ticket/ticket_item_{$ticket_item->id}";
 
-            $file_name = "$photo_id.jpg";
+                $photo_id = $user->storage()->get('photo_id');
 
-            $ticket = Ticket::where('id', $current_ticket)->first();
-            $ticket->update([
-                'status_id' => 2
-            ]);
-            File::create([
-                'path' => Storage::url("{$dir}/{$file_name}"),
-                'ticket_item_id' => $ticket_item->id,
-            ]);
-            $this->user->update([
-                'step' => null
-            ]);
+                $file_name = "$photo_id.jpg";
 
-            $this->ticket_created();
-        } else {
-            $this->user->update([
-                "step" => 2,
-            ]);
+                $ticket = Ticket::where('id', $current_ticket)->first();
+                $ticket->update([
+                    'status_id' => 2
+                ]);
+                File::create([
+                    'path' => Storage::url("{$dir}/{$file_name}"),
+                    'ticket_item_id' => $ticket_item->id,
+                ]);
+                $this->user->update([
+                    'step' => null
+                ]);
+
+                $this->ticket_created($user);
+            } else {
+                $this->user->update([
+                    "step" => 2,
+                ]);
+            }
         }
     }
 
 
-    public function ticket_created(): void
+    public function ticket_created($user): void
     {
         $flag = $this->data->get('ticket_created_flag');
 
         if ($flag) {
-            $ticket_id = $this->bot->storage()->get('current_ticket_id');
-            $this->bot->storage()->forget('current_ticket_id');
+            $user = $this->message->from();
+            $ticket_id = $user->storage()->get('current_ticket_id');
+            $user->storage()->forget('current_ticket_id');
             $ticket = Ticket::where('id', $ticket_id)->first();
 
             $ticket->update([
@@ -282,7 +291,7 @@ trait SupportUserTrait
             ->send();
 
         $this->user->update([
-            "step" => 5,
+            "step" => null,
             "message_id" => $response->telegraphMessageId()
         ]);
     }
@@ -378,21 +387,24 @@ trait SupportUserTrait
     public function add_ticket(): void
     {
         $ticket_id = $this->data->get('ticket_id');
-        $this->bot->storage()->set('current_ticket_id', $ticket_id);
-        $this->user->update([
-            'page' => 'add_ticket',
-            'step' => 1
-        ]);
+        if ($this->callbackQuery) {
+            $user = $this->callbackQuery->from();
+            $user->storage()->set('current_ticket_id', $ticket_id);
+            $this->user->update([
+                'page' => 'add_ticket',
+                'step' => 1
+            ]);
+        }
 
         $this->handle_ticket_request();
     }
 
-    public function check_incomplete_tickets(): bool
+    public function check_incomplete_tickets($user = null): bool
     {
         $flag = $this->data->get('choice');
 
         if (!$flag) {
-            if ($this->bot->storage()->get('current_ticket_id')) {
+            if ($user->storage()->get('current_ticket_id')) {
                 $view = "{$this->template_prefix}{$this->user->language_code}.support.incomplete_ticket";
                 $response = $this->chat->edit($this->user->message_id)
                     ->message(view($view))->keyboard(Keyboard::make()
@@ -402,16 +414,17 @@ trait SupportUserTrait
                         ]))->send();
 
                 $this->user->update([
-                   'message_id' => $response->telegraphMessageId()
+                    'message_id' => $response->telegraphMessageId()
                 ]);
                 return true;
             }
         } elseif ($flag == 2) {
-            $this->bot->storage()->forget('current_ticket_id');
+            $user = $this->callbackQuery->from();
+            $user->storage()->forget('current_ticket_id');
             $this->create_ticket();
         } elseif ($flag == 1) {
-            $ticket = Ticket::where('id', $this->bot->storage()->get('current_ticket_id'))->first();
-            Log::debug(json_encode($ticket));
+            $user = $this->callbackQuery->from();
+            $ticket = Ticket::where('id', $user->storage()->get('current_ticket_id'))->first();
             $this->user->update([
                 "step" => $ticket->last_step
             ]);
