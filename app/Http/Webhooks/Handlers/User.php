@@ -16,6 +16,7 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\Models\TelegraphBot;
+use Illuminate\Auth\Access\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
@@ -51,10 +52,12 @@ class User extends WebhookHandler
         $order_id = $this->data->get('order_id');
         $order = Order::where('id', $order_id)->first();
         $request = $this->data->get('request');
-        $request = $this->data->get('confirm');
+        $confirm = $this->data->get('confirm');
 
         /* запрос фото оплаты, может быть вызвано ток через кнопку! */
         if(isset($request)) {
+            $photo = $this->data->get('photo');
+
             $template = $this->template_prefix.$this->user->language_code.'.order.request_payment_photo';
             $keyboard = Keyboard::make()->buttons([
                 Button::make($this->config['back'][$this->user->language_code])
@@ -63,17 +66,86 @@ class User extends WebhookHandler
                     ->param('order_id', $order->id)
             ]);
 
-            $this->chat
-                ->message(view($template, ['order' => $order]))
-                ->edit($this->messageId)
-                ->keyboard($keyboard)
-                ->send();
+            if(isset($photo)) {
+                $response = $this->chat->deleteMessage($this->user->message_id)->send();
+                $this->chat
+                    ->message(view($template, ['order' => $order]))
+                    ->keyboard($keyboard)
+                    ->send();
+            } else {
+                $response = $this->chat
+                    ->message(view($template, ['order' => $order]))
+                    ->edit($this->user->message_id)
+                    ->keyboard($keyboard)
+                    ->send();
+            }
 
-            $this->user->update(['page' => 'payment_photo']);
+            $this->user->update([
+                'page' => 'payment_photo',
+                'message_id' => $response->telegraphMessageId()
+            ]);
         }
 
-        if(isset($confim)) {
+        if(isset($confirm)) {
+            $yes = $this->data->get('yes');
+            $no = $this->data->get('no');
 
+            $photo_id = $this->callbackQuery->from()->storage()->get('payment_photo_id');
+            $photo_path = "User/{$this->user->id}/payments/{$order->payment->id}/{$photo_id}.jpg";
+
+            if(isset($yes) OR isset($no)) {
+                if(isset($yes)) {
+                    //
+                }
+
+                if(isset($no)) {
+                    Storage::delete($photo_path);
+                    $fake_data = [
+                        'action' => 'payment_photo',
+                        'params' => [
+                            'request' => 1,
+                            'order_id' => $order->id,
+                            'photo' => 1
+                        ]
+                    ];
+
+                    $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_data);
+                    (new self($this->user))->handle($fake_request, $this->bot);
+                }
+            }
+
+            if(!isset($yes) AND !isset($no)) {
+                $template = $this->template_prefix.$this->user->language_code.".order.confirm_payment_photo";
+                $buttons_texts = [
+                    'yes' => $this->config['payment_photo']['yes'][$this->user->language_code],
+                    'no' => $this->config['payment_photo']['no'][$this->user->language_code]
+                ];
+
+                $this->chat->deleteMessage($this->messageId)->send(); // удаляем текущее сообщение
+
+                $keyboard = Keyboard::make()->buttons([
+                    Button::make($buttons_texts['yes'])
+                        ->action('payment_photo')
+                        ->param('confirm', 1)
+                        ->param('order_id', $order->id)
+                        ->param('yes', 1),
+
+                    Button::make($buttons_texts['no'])
+                        ->action('payment_photo')
+                        ->param('confirm', 1)
+                        ->param('order_id', $order->id)
+                        ->param('no', 1),
+                ]);
+                $response = $this->chat
+                    ->photo(Storage::path($photo_path))
+                    ->html(view($template))
+                    ->keyboard($keyboard)
+                    ->send();
+
+                $this->user->update([
+                    'message_id' => $response->telegraphMessageId()
+                ]);
+            }
         }
     }
 
@@ -1706,9 +1778,20 @@ class User extends WebhookHandler
                 $last_message_timestamp = $from->storage()->get('payment_photo_timestamp');
                 if($message_timestamp !== $last_message_timestamp) {
                     $photo = $this->save_photo($photos, $order);
-                    $from->storage()->set('photo_id', $photo->id());
+                    $from->storage()->set('payment_photo_id', $photo->id());
                 }
                 $from->storage()->set('payment_photo_timestamp', $message_timestamp);
+
+                $fake_dataset = [
+                    'action' => 'payment_photo',
+                    'params' => [
+                        'confirm' => 1,
+                        'order_id' => $order->id
+                    ]
+                ];
+
+                $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
+                (new self($order->user))->handle($fake_request, $this->bot);
             }
         }
     }
