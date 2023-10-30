@@ -3,8 +3,11 @@
 namespace App\Http\Webhooks\Handlers\Traits;
 
 use App\Models\Order;
+use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Ramsey\Collection\Collection;
 
 trait UserCommandsFuncsTrait
 {
@@ -85,6 +88,21 @@ trait UserCommandsFuncsTrait
                 'message_id' => null
             ]);
         }
+    }
+
+    public function save_photo(\Illuminate\Support\Collection $photos, Order $order = null) {
+        $photo = $photos->last(); // лучшее качество фото
+        $dir = "User/{$this->user->id}/";
+        $file_name = $photo->id().".jpg";
+
+        switch ($this->user->page) {
+            case 'payment_photo':
+                $dir = $dir."payments/{$order->payment->id}";
+        }
+
+        Telegraph::store($photo, Storage::path($dir), $file_name);
+
+        return $photo;
     }
 
 
