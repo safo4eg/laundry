@@ -81,6 +81,7 @@ class Courier extends WebhookHandler
         $this->delete_message_by_types([1], $order);
         $order->payment->update([
             'method_id' => null,
+            'status_id' => 1
         ]);
 
         /* происходит обновление страницы с оплатой у пользователя через наблюдатель */

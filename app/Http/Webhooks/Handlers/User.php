@@ -279,8 +279,22 @@ class User extends WebhookHandler
             $choice = $this->data->get('choice');
 
             if (isset($choice)) {
-                $order->payment->update(['method_id' => $choice]);
-                // на бонусах нужно оплачивать сразу здесь
+                if($choice == 1) { // оплата курьеру
+                    $order->payment->update([
+                        'method_id' => $choice,
+                        'status_id' => 2
+                    ]);
+                } else if($choice == 2 OR $choice == 3) {
+                    $order->payment->update([
+                        'method_id' => $choice,
+                    ]);
+                } else if($choice == 4) { // оплата бонусами
+                    $order->payment->update([
+                        'method_id' => $choice,
+                        'status_id' => 3 // оплачен
+                    ]);
+                }
+
                 /* отправка назад к инфе о идушем заказе */
                 $fake_dataset = [
                     'action' => 'payment_page',
