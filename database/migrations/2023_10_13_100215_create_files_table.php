@@ -18,7 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('order_id')->nullable();
             $table->unsignedBigInteger('ticket_item_id')->nullable();
             $table->unsignedTinyInteger('file_type_id');
-            $table->unsignedTinyInteger('order_status_id');
+            $table->unsignedTinyInteger('order_status_id')->nullable();
             $table->text('path');
 
             $table->foreign('order_id')->references('id')->on('orders');
