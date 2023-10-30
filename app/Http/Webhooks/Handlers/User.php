@@ -49,19 +49,75 @@ class User extends WebhookHandler
     /* и свою кнопку "Продолжить" */
     public function unpaid_orders(): bool
     {
-        $flag = $this->data->get('flag');
+        $flag = $this->data->get('unpaid');
 
         if(isset($flag)) {
-            $command = $this->data->get('page');
             $page = $this->data->get('page');
+            $command = $this->data->get('command');
 
             if(isset($page)) {
-                $this->chat->message($page)->send();
+                switch ($page) {
+                    case 'start':
+                    case 'first_scenario':
+                    case 'first_scenario_phone':
+                    case 'first_scenario_whatsapp':
+                    case 'second_scenario':
+                    case 'payment':
+                    case 'order_dialogue':
+                    case 'request_order_message':
+                    case 'message_from_courier':
+                    case 'select_payment':
+                        $this->start();
+                        break;
+                    case 'orders':
+                    case 'order_accepted':
+                    case 'order_wishes':
+                    case 'cancel_order':
+                    case 'order_canceled':
+                        $this->orders();
+                        break;
+                    case 'about_us':
+                        $this->about();
+                        break;
+                    case 'profile':
+                    case 'select_language':
+                    case 'profile_change_phone_number':
+                    case 'profile_change_whatsapp':
+                        $this->profile();
+                        break;
+                    case 'referrals':
+                        $this->referrals();
+                        break;
+                    case 'support':
+                        $this->support();
+                        break;
+                }
             }
 
             if(isset($command)) {
-                $this->chat->message($command)->send();
+                switch ($command) {
+                    case '/start':
+                        $this->start();
+                        break;
+                    case '/about':
+                        $this->about();
+                        break;
+                    case '/orders':
+                        $this->orders();
+                        break;
+                    case '/profile':
+                        $this->profile();
+                        break;
+                    case '/referrals':
+                        $this->referrals();
+                        break;
+                    case '/support':
+                        $this->support();
+                        break;
+                }
             }
+
+            return true;
         }
 
         if(!isset($flag)) {
@@ -107,7 +163,7 @@ class User extends WebhookHandler
                     $buttons[] = Button::make($buttons_texts['continue'][$this->user->language_code])
                         ->action('unpaid_orders')
                         ->param('page', $page)
-                        ->param('flag', 1);
+                        ->param('unpaid', 1);
                 }
 
                 if(!isset($fake)) {
@@ -115,7 +171,7 @@ class User extends WebhookHandler
                     $buttons[] = Button::make($buttons_texts['continue'][$this->user->language_code])
                         ->action('unpaid_orders')
                         ->param('command', $command)
-                        ->param('flag', 1);
+                        ->param('unpaid', 1);
                 }
 
                 $this->terminate_active_page();
@@ -134,7 +190,7 @@ class User extends WebhookHandler
                 return true;
             }
         }
-
+        return true;
     }
 
     /* Обработки своих кнопок не будет => без флага */
@@ -427,6 +483,9 @@ class User extends WebhookHandler
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
         if (!isset($flag)) {
+            if(isset($this->message)) {
+                if($this->unpaid_orders()) return;
+            }
             $this->terminate_active_page();
 
             $buttons_texts = [
@@ -548,6 +607,9 @@ class User extends WebhookHandler
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
         if (!isset($flag)) {
+            if(isset($this->message)) {
+                if($this->unpaid_orders()) return;
+            }
             $buttons_texts = [
                 'new_order' => $this->config['profile']['new_order'][$this->user->language_code],
                 'continue_order' => $this->config['profile']['continue_order'][$this->user->language_code],
@@ -735,6 +797,7 @@ class User extends WebhookHandler
         if (!isset($flag)) {
 
             if (isset($this->message)) {
+                if($this->unpaid_orders()) return;
                 $this->terminate_active_page();
             }
 
@@ -878,6 +941,9 @@ class User extends WebhookHandler
     public function about(): void // можно попасть только с команды /about
     {
         if ($this->check_for_language_code()) return;
+        if(isset($this->message)) {
+            if($this->unpaid_orders()) return;
+        }
         $this->terminate_active_page();
 
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
@@ -1477,6 +1543,7 @@ class User extends WebhookHandler
         } else if (!isset($flag)) {
 
             if (isset($this->message)) {
+                if($this->unpaid_orders()) return;
                 $this->terminate_active_page();
             }
 
