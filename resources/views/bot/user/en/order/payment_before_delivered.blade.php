@@ -11,39 +11,44 @@ To contact the courier, use the "Contact the courier" button.
 
 <b>Order price: {{$price}}</b>
 
-@if(isset($payment))
-    Selected payment method: <b>{{$payment['desc']}}</b>
+@if(!is_null($payment['method_id']))
+    @if($payment['status_id'] !== 3)
+        Selected payment method: <b>{{$payment['desc']}}</b>
+        @if($payment['method_id'] === 1)
+            💸Transfer this amount to our courier or leave it to the staff at the reception. The courier always has change with him.
 
-    @if($payment['id'] !== 4)
-        @if($payment['id'] === 1)
-            💸 Give this amount to our courier or leave it to the staff at the reception. The courier always has change with him.
-        @elseif($payment['id'] === 2 OR $payment['id'] === 3)
-            @if($payment['id'] === 2)
-                💳 Here are the details for transferring to an Indonesian BRI bank card in rupees:
+            To change the payment method, click the <b>"Change payment method"</b> button.
+        @elseif($payment['method_id'] === 2 OR $payment['method_id'] === 3)
+            @if($payment['status_id'] === 2)
+                ✅ After successful confirmation of the payment, you will receive a notification.
+            @elseif($payment['status_id'] === 1)
+                @if($payment['method_id'] === 2)
+                    💳 Here are the details for transferring to an Indonesian BRI bank card in rupees:
 
-                <b>4628 0100 4036 508</b>
-                <b>Anak Agung Gede Adi Semara</b>
-            @elseif($payment['id'] === 3)
-                💳 Here are the data for transferring to a Tinkoff card in rubles:
+                    <b>4628 0100 4036 508</b>
+                    <b>Anak Agung Gede Adi Semara</b>
+                @elseif($payment['method_id'] === 3)
+                    💳 Here are the data for transferring to a Tinkoff card in rubles:
 
-                <b>2200 7007 7932 1818</b>
-                <b>Olga G.</b>
+                    <b>2200 7007 7932 1818</b>
+                    <b>Olga G.</b>
 
-                <b>Amount to pay in rubles: {{$payment['ru_price']}}</b>
+                    <b>Amount to pay in rubles: {{$payment['ru_price']}}</b>
+                @endif
+
+                🧾 After you transfer, click the <b>"Send photo of payment"</b> button and send a screenshot of the transfer.
+
+                ‼️The courier will leave the items only after payment.
+
+                To change the payment method, click the <b>"Change payment method"</b> button.
             @endif
-
-            🧾 After you translate, click the button <b>"Send photo of payment"</b> and send a screenshot of the translation.
         @endif
-
-        To change the payment method, click the  <b>Change payment method</b>.
-
-        ‼️The courier will leave the items only after payment.
     @else
-        ✅Paid with bonuses
+        @if($payment['method_id'] ===  4)
+            ✅Paid with bonuses
+        @endif
     @endif
 @else
-    To select a payment method, click the button <b>"Select payment method"</b>.
-
-    ‼️The courier will leave the items only after payment.
+    To select a payment method, click the <b>"Select payment method"</b> button.
 @endif
 
