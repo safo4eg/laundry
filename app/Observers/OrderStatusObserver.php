@@ -60,8 +60,13 @@ class OrderStatusObserver
             (new Courier())->handle($courier_chat_request, $bot);
         }
 
-        if($order->status_id === 5 OR $order->status_id === 13) { // отправка уведомления клиенту
+        if($order->status_id === 5 OR $order->status_id === 13 OR $order->status_id === 14) { // отправка уведомления клиенту
             $user_config = config('buttons.user');
+            $chat = Chat::factory()->make([
+                'chat_id' => $order->user->chat_id,
+                'name' => 'User',
+                'telegraph_bot_id' => 1
+            ]);
 
             if($order->status_id === 5) {
                 $status = $order->statuses()->where('id', 5)->first();
@@ -72,14 +77,19 @@ class OrderStatusObserver
                 ];
                 Helper::send_user_notification($order->user, 'order_pickuped', $user_chat_dataset);
             } else if($order->status_id === 13) {
-                $chat = Chat::factory()->make([
-                    'chat_id' => $order->user->chat_id,
-                    'name' => 'User',
-                    'telegraph_bot_id' => 1
-                ]);
-
                 $fake_dataset = [
                     'action' => 'payment_page',
+                    'params' => [
+                        'order_id' => $order->id,
+                    ]
+                ];
+
+                $fake_request = FakeRequest::callback_query($chat, $bot, $fake_dataset);
+                (new User($order->user))->handle($fake_request, $bot);
+            } else if($order->status_id === 14) {
+                /* ОТПРАВКА КЛИЕНТУ ПРОСЬБЫ ОЦЕНИТЬ ЗАКАЗ */
+                $fake_dataset = [
+                    'action' => 'request_rating',
                     'params' => [
                         'order_id' => $order->id,
                     ]
