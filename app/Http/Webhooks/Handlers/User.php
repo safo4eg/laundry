@@ -40,10 +40,10 @@ class User extends WebhookHandler
         parent::__construct();
     }
 
-    public function test(): void
-    {
-        Log::debug($this->unpaid_orders_page());
-    }
+//    public function test(): void
+//    {
+//        Log::debug($this->unpaid_orders_page());
+//    }
 
     /* Должен вызываться только через фейк-запросы */
     /* и свою кнопку "Продолжить" */
@@ -281,6 +281,7 @@ class User extends WebhookHandler
         $buttons_texts = [
             'write' => $this->config['order_dialogue']['write'][$this->user->language_code],
             'pay' => $this->config['order_dialogue']['pay'][$this->user->language_code],
+            'change' => $this->config['order_dialogue']['change'][$this->user->language_code],
             'reply' => $this->config['order_dialogue']['reply'][$this->user->language_code],
             'close' => $this->config['order_dialogue']['close'][$this->user->language_code],
             'open' => $this->config['order_dialogue']['open'][$this->user->language_code]
@@ -319,8 +320,6 @@ class User extends WebhookHandler
             }
 
             if (isset($get_message)) { // если прилетел фейк запрос через наблюдатель когда курьер отправил сообщение
-                $payment_status = false; // оплаты не было(имитация)
-
                 $new_order_message = OrderMessage::where('order_id', $order->id)
                     ->orderBy('created_at', 'desc')
                     ->first(); // получаем последнее сообщение
@@ -344,11 +343,17 @@ class User extends WebhookHandler
                     ->param('order_id', $order->id)
                     ->width(0.5);
 
-                if (!$payment_status) { // если заказ не оплачен тогда кнопка оплатить
-                    $buttons[] = Button::make($buttons_texts['pay'])
-                        ->action('act');
+                if($order->payment->status_id === 1) {
+                    if($order->payment->method_id !== 1) {
+                        $buttons[] = Button::make($buttons_texts['pay'])
+                            ->action('payment_page')
+                            ->param('back', 1);
+                    } else {
+                        $buttons[] = Button::make($buttons_texts['change'])
+                            ->action('payment_page')
+                            ->param('back', 1);
+                    }
                 }
-
 
                 $keyboard = Keyboard::make()->buttons($buttons);
 
@@ -358,7 +363,6 @@ class User extends WebhookHandler
                     ->message(view($template, [
                         'order' => $order,
                         'order_message' => $new_order_message,
-                        'payment_status' => $payment_status
                     ]))
                     ->keyboard($keyboard)
                     ->send();

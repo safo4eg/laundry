@@ -97,6 +97,7 @@ return [
         'order_dialogue' => [
             'write' => ['ru' => 'Написать', 'en' => 'Write'],
             'pay' => ['ru' => 'Оплатить заказ', 'en' => 'Pay for the order'],
+            'change' => ['ru' => 'Изменить способ оплаты', 'en' => 'Change payment method'],
             'reply' => ['ru' => 'Ответить', 'en' => 'Reply'],
             'open' => ['ru' => 'Открыть диалог', 'en' => 'Open dialogue'],
             'close' => ['ru' => 'Закрыть', 'en' => 'Close']
