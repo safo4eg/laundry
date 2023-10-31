@@ -69,8 +69,7 @@ class PaymentObserver
 
         /* Если оплата не прошла проверку: */
         /* Отменил курьер или Администратор не подтвердил */
-        if (!isset($attributes['method_id'])) {
-            Log::debug('зашло сюда');
+        if (array_key_exists('method_id', $attributes) AND !isset($attributes['method_id'])) {
             $chat = Chat::factory()->make([
                 'chat_id' => $order->user->chat_id,
                 'name' => 'User',
