@@ -141,6 +141,10 @@ return [
         8 => 'Ready for weighing', // вещи переданы курьеру на взвешивание (ид=8) меняет на 9
     ],
 
+    'admin' => [
+
+    ],
+
     'chats' => [
         'request_photo' => [
             'cancel' => 'Cancel'
