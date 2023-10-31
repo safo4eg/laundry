@@ -8,6 +8,7 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
 use App\Models\Order;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use Illuminate\Support\Facades\Storage;
 
 class Admin extends WebhookHandler
 {
@@ -82,7 +83,7 @@ class Admin extends WebhookHandler
 
             $keyboard = Keyboard::make()->buttons($buttons);
             $response = $this->chat
-                ->photo($photo_path)
+                ->photo(Storage::path($photo_path))
                 ->html(view($template, ['order' => $order]))
                 ->keyboard($keyboard)
                 ->send();

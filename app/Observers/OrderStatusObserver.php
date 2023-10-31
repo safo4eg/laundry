@@ -8,6 +8,7 @@ use App\Http\Webhooks\Handlers\User;
 use App\Http\Webhooks\Handlers\Washer;
 use App\Models\Bot;
 use App\Models\Chat;
+use App\Models\ChatOrderPivot;
 use App\Models\OrderStatusPivot;
 use App\Http\Webhooks\Handlers\Manager;
 use App\Models\Payment;
@@ -110,19 +111,23 @@ class OrderStatusObserver
         }
 
         /* ОТПРАВКА В АДМИН ЧАТ */
-        if($order->status_id === 13) {
-            /* Если оплата картами => нужно пдтвердить */
-            if($order->payment->status_id === 2 AND $order->payment->method_id !== 1) {
-                $admin_chat = Chat::where('name', 'Admin')->first();
+        if($order->status_id === 13 OR $order->status_id === 14) {
+            $admin_chat = Chat::where('name', 'Admin')->first();
+            $chat_order = ChatOrderPivot::where('telegraph_chat_id', $admin_chat->id)
+                ->where('order_id', $order->id)
+                ->where('message_type_id', 1)
+                ->first();
+
+            if(!isset($chat_order)) {
                 $fake_dataset = [
-                    'action' => 'test',
-                    'params' => []
+                    'action' => 'send_card',
+                    'params' => [
+                        'order_id' => $order->id
+                    ]
                 ];
 
                 $admin_chat_request = FakeRequest::callback_query($admin_chat, $bot, $fake_dataset);
                 (new Admin())->handle($admin_chat_request, $bot);
-            } else if($order->payment->status_id === 3) { // оплата бонусами
-                // отправка на OK
             }
         }
 
