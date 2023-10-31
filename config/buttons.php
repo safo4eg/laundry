@@ -142,7 +142,10 @@ return [
     ],
 
     'admin' => [
-
+        'send_card' => [
+            'confirm' => '✅Confirm payment',
+            'decline' => '❌Decline payment',
+        ]
     ],
 
     'chats' => [
