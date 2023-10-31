@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Http\Webhooks\Handlers\Admin;
 use App\Http\Webhooks\Handlers\Courier;
 use App\Http\Webhooks\Handlers\User;
 use App\Http\Webhooks\Handlers\Washer;
@@ -106,6 +107,23 @@ class OrderStatusObserver
                 ->first();
             $washer_chat_request = FakeRequest::callback_query($washer_chat, $bot, $update_order_dataset);
             (new Washer())->handle($washer_chat_request, $bot);
+        }
+
+        /* ОТПРАВКА В АДМИН ЧАТ */
+        if($order->status_id === 13) {
+            /* Если оплата картами => нужно пдтвердить */
+            if($order->payment->status_id === 2 AND $order->payment->method_id !== 1) {
+                $admin_chat = Chat::where('name', 'Admin')->first();
+                $fake_dataset = [
+                    'action' => 'test',
+                    'params' => []
+                ];
+
+                $admin_chat_request = FakeRequest::callback_query($admin_chat, $bot, $fake_dataset);
+                (new Admin())->handle($admin_chat_request, $bot);
+            } else if($order->payment->status_id === 3) { // оплата бонусами
+                // отправка на OK
+            }
         }
 
     }
