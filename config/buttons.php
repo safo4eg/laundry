@@ -87,10 +87,21 @@ return [
             ],
             'back' => ['ru' => 'Назад', 'en' => 'Back'],
             'tickets' => ['ru' => 'Проверить статус заявки', 'en' => 'Check application status'],
+            'new_request' => ['ru' => 'Новый запрос', 'en' => 'New request'],
+            'check_incomplete_tickets' => [
+                'yes' => ['ru' => 'Да', 'en' => 'Yes'],
+                'no' => ['ru' => 'Нет', 'en' => 'No']
+            ],
             'skip' => ['ru' => 'Пропустить', 'en' => 'Skip'],
-            'get_answer' =>[
+            'get_answer' => [
                 'have_questions' => ['ru' => 'У меня еще остались вопросы', 'en' => 'I still have questions'],
                 'have_not_questions' => ['ru' => 'Нет вопросов', 'en' => 'I not have any questions']
+            ],
+            [
+                'close_buttons' => [
+                    'create_order' => ['ru' => 'Сделать заказ', 'en' => 'Create order'],
+                    'new_request' => ['ru' => 'Новое обращение', 'en' => 'New request']
+                ]
             ]
         ]
     ],
@@ -116,5 +127,9 @@ return [
         'select_order' => [
             'cancel' => 'Cancel'
         ]
+    ],
+
+    'support' => [
+
     ]
 ];

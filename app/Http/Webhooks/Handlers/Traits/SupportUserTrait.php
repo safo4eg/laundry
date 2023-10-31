@@ -41,7 +41,6 @@ trait SupportUserTrait
         ]);
     }
 
-    // TODO: кнопки!!!!!!!!
     public function close_ticket(): void
     {
         $ticket = Ticket::where('id', $this->data->get('ticket_id'))->first();
@@ -53,9 +52,10 @@ trait SupportUserTrait
         $this->delete_ticket_card($support_chat, $ticket);
 
         $view = "bot.user.{$ticket->user->language_code}.support.rate";
+        $buttons = config('buttons.user')['support']['close_ticket'];
         $buttons = [
-            Button::make('Сделать заказ')->action('start'),
-            Button::make('Написать новое обращение')->action('support')
+            Button::make($buttons['new_order'])->action('start'),
+            Button::make($buttons['new_request'])->action('support')
         ];
 
         $this->chat->edit($this->user->message_id)
@@ -261,12 +261,16 @@ trait SupportUserTrait
     }
 
 
-    public function ticket_created($user): void
+    public function ticket_created(): void
     {
         $flag = $this->data->get('ticket_created_flag');
 
         if ($flag) {
-            $user = $this->message->from();
+            if ($this->message){
+                $user = $this->message->from();
+            } elseif ($this->callbackQuery){
+                $user = $this->callbackQuery->from();
+            }
             $ticket_id = $user->storage()->get('current_ticket_id');
             $user->storage()->forget('current_ticket_id');
             $ticket = Ticket::where('id', $ticket_id)->first();
@@ -345,12 +349,13 @@ trait SupportUserTrait
                     'ticket' => Ticket::where('id', $ticket_id)->first(),
                     'messages' => $ticket_items
                 ]);
+                $new_req_button = $this->config['support']['new_request'][$this->user->language_code];
 
                 $this->chat->edit($this->messageId)
                     ->message(preg_replace('#^\s+#m', '', $view))->keyboard(Keyboard::make()
                         ->buttons([
                             Button::make($button)->action('check_user_tickets'),
-                            Button::make('Написать сообщение')
+                            Button::make($new_req_button)
                                 ->action('add_ticket')
                                 ->param('ticket_id', $ticket_id)
                         ]))
@@ -406,11 +411,12 @@ trait SupportUserTrait
         if (!$flag) {
             if ($user->storage()->get('current_ticket_id')) {
                 $view = "{$this->template_prefix}{$this->user->language_code}.support.incomplete_ticket";
+                $buttons = $this->config['support']['check_incomplete_tickets'];
                 $response = $this->chat->edit($this->user->message_id)
                     ->message(view($view))->keyboard(Keyboard::make()
                         ->buttons([
-                            Button::make('Да')->action('check_incomplete_tickets')->param('choice', 1),
-                            Button::make('Нет')->action('check_incomplete_tickets')->param('choice', 2)
+                            Button::make($buttons['yes'][$this->user->language_code])->action('check_incomplete_tickets')->param('choice', 1),
+                            Button::make($buttons['no'][$this->user->language_code])->action('check_incomplete_tickets')->param('choice', 2)
                         ]))->send();
 
                 $this->user->update([
