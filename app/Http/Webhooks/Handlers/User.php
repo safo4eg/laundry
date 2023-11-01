@@ -47,7 +47,7 @@ class User extends WebhookHandler
         $bonus = $this->data->get('bonus');
 
         $ref_link = "https://t.me/share/url?url=https://t.me/rastan_telegraph_bot?start=ref{$this->user->id}";
-        $template = $this->template_prefix.$this->user->language_code.'.notifications.addition_bonuses';
+        $template = $this->template_prefix . $this->user->language_code . '.notifications.addition_bonuses';
         $template_data = [
             'ref_link' => $ref_link,
             'bonus' => $bonus,
@@ -79,10 +79,10 @@ class User extends WebhookHandler
         $confirm = $this->data->get('confirm');
 
         /* запрос фото оплаты, может быть вызвано ток через кнопку! */
-        if(isset($request)) {
+        if (isset($request)) {
             $photo = $this->data->get('photo');
 
-            $template = $this->template_prefix.$this->user->language_code.'.order.request_payment_photo';
+            $template = $this->template_prefix . $this->user->language_code . '.order.request_payment_photo';
             $keyboard = Keyboard::make()->buttons([
                 Button::make($this->config['back'][$this->user->language_code])
                     ->action('payment_page')
@@ -90,7 +90,7 @@ class User extends WebhookHandler
                     ->param('order_id', $order->id)
             ]);
 
-            if(isset($photo)) {
+            if (isset($photo)) {
                 $this->chat->deleteMessage($this->user->message_id)->send();
                 $response = $this->chat
                     ->message(view($template, ['order' => $order]))
@@ -110,15 +110,15 @@ class User extends WebhookHandler
             ]);
         }
 
-        if(isset($confirm)) {
+        if (isset($confirm)) {
             $yes = $this->data->get('yes');
             $no = $this->data->get('no');
 
             $photo_id = $this->callbackQuery->from()->storage()->get('payment_photo_id');
             $photo_path = "User/{$this->user->id}/payments/{$order->payment->id}/{$photo_id}.jpg";
 
-            if(isset($yes) OR isset($no)) {
-                if(isset($yes)) {
+            if (isset($yes) or isset($no)) {
+                if (isset($yes)) {
                     File::create([
                         'order_id' => $order->id,
                         'file_type_id' => 1,
@@ -135,7 +135,7 @@ class User extends WebhookHandler
                     ];
                 }
 
-                if(isset($no)) {
+                if (isset($no)) {
                     Storage::delete($photo_path);
                     $fake_data = [
                         'action' => 'payment_photo',
@@ -151,8 +151,8 @@ class User extends WebhookHandler
                 (new self($this->user))->handle($fake_request, $this->bot);
             }
 
-            if(!isset($yes) AND !isset($no)) {
-                $template = $this->template_prefix.$this->user->language_code.".order.confirm_payment_photo";
+            if (!isset($yes) and !isset($no)) {
+                $template = $this->template_prefix . $this->user->language_code . ".order.confirm_payment_photo";
                 $buttons_texts = [
                     'yes' => $this->config['payment_photo']['yes'][$this->user->language_code],
                     'no' => $this->config['payment_photo']['no'][$this->user->language_code]
@@ -194,7 +194,7 @@ class User extends WebhookHandler
         $order_id = $this->data->get('order_id');
         $order = Order::where('id', $order_id)->first();
 
-        $template = $this->template_prefix.$this->user->language_code.'.order.request_rating';
+        $template = $this->template_prefix . $this->user->language_code . '.order.request_rating';
         $buttons_texts = [
             'recommend' => $this->config['request_rating']['recommend'][$this->user->language_code],
             'start' => $this->config['request_rating']['start'][$this->user->language_code],
@@ -206,9 +206,9 @@ class User extends WebhookHandler
             ->action('start');
 
 
-        if(isset($flag)) {
+        if (isset($flag)) {
             $choice = $this->data->get('choice');
-            if(isset($choice)) {
+            if (isset($choice)) {
                 $keyboard = Keyboard::make()->buttons([$recommend_button, $start_button]);
                 $order->update(['rating' => $choice]);
                 $this->chat
@@ -220,9 +220,9 @@ class User extends WebhookHandler
             }
         }
 
-        if(!isset($flag)) {
+        if (!isset($flag)) {
             $keyboard = Keyboard::make();
-            for($i = 1; $i < 6; $i++) {
+            for ($i = 1; $i < 6; $i++) {
                 $keyboard->button($i)
                     ->action('request_rating')
                     ->param('rating', 1)
@@ -251,11 +251,11 @@ class User extends WebhookHandler
     {
         $flag = $this->data->get('unpaid');
 
-        if(isset($flag)) {
+        if (isset($flag)) {
             $page = $this->data->get('page');
             $command = $this->data->get('command');
 
-            if(isset($page)) {
+            if (isset($page)) {
                 switch ($page) {
                     case 'start':
                     case 'first_scenario':
@@ -294,7 +294,7 @@ class User extends WebhookHandler
                 }
             }
 
-            if(isset($command)) {
+            if (isset($command)) {
                 switch ($command) {
                     case '/start':
                         $this->start();
@@ -320,7 +320,7 @@ class User extends WebhookHandler
             return true;
         }
 
-        if(!isset($flag)) {
+        if (!isset($flag)) {
             /* получаем неоплаченные заказы */
             $payments = Payment::where('status_id', 1)
                 ->whereExists(function ($query) {
@@ -329,9 +329,9 @@ class User extends WebhookHandler
                         ->where('orders.user_id', $this->user->id);
                 })->get();
 
-            if($payments->isEmpty()) return false;
+            if ($payments->isEmpty()) return false;
             else {
-                $template = $this->template_prefix.$this->user->language_code.'.orders.unpaids';
+                $template = $this->template_prefix . $this->user->language_code . '.orders.unpaids';
                 $template_dataset = [
                     'payments' => $payments,
                     'is_one' => false
@@ -340,7 +340,7 @@ class User extends WebhookHandler
                 $buttons_texts = $this->config['unpaid_orders'];
                 $buttons = [];
 
-                if($payments->count() === 1) {
+                if ($payments->count() === 1) {
                     $template_dataset['is_one'] = true;
                     $buttons[] = Button::make($buttons_texts['pay'][$this->user->language_code])
                         ->action('payment_page')
@@ -358,7 +358,7 @@ class User extends WebhookHandler
                 /* Тогда будет браться текст команды */
                 $fake = $this->data->get('fake');
 
-                if(isset($fake)) {
+                if (isset($fake)) {
                     $page = $this->user->page;
                     $buttons[] = Button::make($buttons_texts['continue'][$this->user->language_code])
                         ->action('unpaid_orders')
@@ -366,7 +366,7 @@ class User extends WebhookHandler
                         ->param('unpaid', 1);
                 }
 
-                if(!isset($fake)) {
+                if (!isset($fake)) {
                     $command = $this->message->text();
                     $buttons[] = Button::make($buttons_texts['continue'][$this->user->language_code])
                         ->action('unpaid_orders')
@@ -402,7 +402,7 @@ class User extends WebhookHandler
         $order_id = $this->data->get('order_id');
         $order = isset($order_id) ? Order::where('id', $order_id)->first() : $this->user->active_order;
 
-        $template = $this->template_prefix.$this->user->language_code.".order.payment_after_delivered";
+        $template = $this->template_prefix . $this->user->language_code . ".order.payment_after_delivered";
         $template_data = [
             'order_services' => OrderServicePivot::where('order_id', $order->id)->get(),
             'price' => $order->price,
@@ -418,15 +418,15 @@ class User extends WebhookHandler
         $template_data['payment']['method_id'] = $method_id;
         $template_data['payment']['status_id'] = $status_id;
 
-        if(isset($method_id)) $template_data['payment']['desc'] = $order->payment->method->$payment_desc_key;
+        if (isset($method_id)) $template_data['payment']['desc'] = $order->payment->method->$payment_desc_key;
 
         /* Если заказ еще ожидает оплаты ИЛИ оплата выбрана курьеру */
-        if($status_id === 1 OR $method_id === 1) {
+        if ($status_id === 1 or $method_id === 1) {
             $selection_button_text = $buttons_texts['select'][$this->user->language_code];
 
-            if(!is_null($method_id)) {
+            if (!is_null($method_id)) {
                 $selection_button_text = $buttons_texts['change'][$this->user->language_code];
-                if($method_id === 2 OR $method_id === 3) {
+                if ($method_id === 2 or $method_id === 3) {
                     switch ($method_id) {
                         case 3:
                             $template_data['payment']['ru_price'] = 'переведено в рублики';
@@ -446,8 +446,8 @@ class User extends WebhookHandler
 
         }
 
-        if($order->status_id === 12) { // пока кура доставляет заказ
-            $template = $this->template_prefix.$this->user->language_code.".order.payment_before_delivered";
+        if ($order->status_id === 12) { // пока кура доставляет заказ
+            $template = $this->template_prefix . $this->user->language_code . ".order.payment_before_delivered";
             $buttons[] = Button::make($buttons_texts['dialogue'][$this->user->language_code])
                 ->action('order_dialogue')
                 ->param('order_id', $order->id);
@@ -476,6 +476,86 @@ class User extends WebhookHandler
         ]);
     }
 
+    public function payment_with_bonuses(): void
+    {
+        $flag = $this->data->get('bonuses');
+        $order_id = $this->data->get('order_id');
+        $order = Order::where('id', $order_id)->first();
+
+        if (isset($flag)) {
+            $price = $order->price;
+            $balance = $this->user->balance;
+            $with_bonuses = 0;
+            if ($balance >= $price) {
+                $with_bonuses = $price;
+                $balance = $balance - $price;
+                $price = 0;
+            } else if ($balance < $price) {
+                $price = $price - $balance;
+                $with_bonuses = $balance;
+                $balance = 0;
+            }
+
+            $this->user->update(['balance' => $balance]);
+            $order->update([
+                'price' => $price,
+                'bonuses' => $with_bonuses
+            ]);
+
+            if ($price === 0) {
+                $order->payment->update([
+                    'method_id' => 4,
+                    'status_id' => 3 // оплачен
+                ]);
+            }
+
+            if($price !== 0 OR $order->status_id === 12) {
+                $fake_dataset = [
+                    'action' => 'payment_page',
+                    'params' => [
+                        'back' => 1,
+                        'order_id' => $order->id
+                    ]
+                ];
+                $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
+                (new self($this->user))->handle($fake_request, $this->bot);
+            }
+        }
+
+        if (!isset($flag)) {
+            $template = $this->template_prefix . $this->user->language_code . '.notifications.payment_with_bonuses';
+            $template_data = [
+                'balance' => $this->user->balance,
+                'order' => $order
+            ];
+            $buttons_texts = [
+                'yes' => $this->config['payment_with_bonuses']['yes'][$this->user->language_code],
+                'no' => $this->config['payment_with_bonuses']['no'][$this->user->language_code],
+            ];
+            $keyboard = Keyboard::make()->buttons([
+                Button::make($buttons_texts['yes'])
+                    ->action('payment_with_bonuses')
+                    ->param('bonuses', 1)
+                    ->param('order_id', $order->id),
+
+                Button::make($buttons_texts['no'])
+                    ->action('payment_page')
+                    ->param('order_id', $order->id)
+                    ->param('back', 1)
+
+            ]);
+            $this->chat
+                ->edit($this->messageId)
+                ->message(view($template, $template_data))
+                ->keyboard($keyboard)
+                ->send();
+
+            $this->user->update([
+                'page' => 'payment_with_bonuses'
+            ]);
+        }
+    }
+
     // когда сюда попадает всегда актуальный оред_эктив стоит
     // можно попасть только с кнопки!
     public function select_payment(): void
@@ -488,62 +568,28 @@ class User extends WebhookHandler
             $choice = $this->data->get('choice');
 
             if (isset($choice)) {
-                if($choice == 1) { // оплата курьеру
+                if ($choice == 1) { // оплата курьеру
                     $order->payment->update([
                         'method_id' => $choice,
                         'status_id' => 2
                     ]);
-                } else if($choice == 2 OR $choice == 3) {
+                } else if ($choice == 2 or $choice == 3) {
                     $order->payment->update([
                         'method_id' => $choice,
                         'status_id' => 1
                     ]);
-                } else if($choice == 4) { // оплата бонусами
-                    $price = $order->price;
-                    $balance = $this->user->balance;
-
-                    if((int)$balance >= (int)$price) {
-                        $this->user->update(['balance' => $balance - $price]);
-                        $order->payment->update([
-                            'method_id' => $choice,
-                            'status_id' => 3 // оплачен
-                        ]);
-                    } else {
-                        $ref_link = "https://t.me/share/url?url=https://t.me/rastan_telegraph_bot?start=ref{$this->user->id}";
-                        $template = $this->template_prefix.$this->user->language_code.'.notifications.not_enough_bonus';
-                        $keyboard = Keyboard::make()->buttons([
-                            Button::make($this->config['referrals']['recommend'][$this->user->language_code])
-                                ->url($ref_link),
-                            Button::make($this->config['back'][$this->user->language_code])
-                                ->action('payment_page')
-                                ->param('back', 1)
-                                ->param('order_id', $order->id)
-                        ]);
-
-                        $this->chat
-                            ->edit($this->user->message_id)
-                            ->message(view($template))
-                            ->keyboard($keyboard)
-                            ->send();
-
-                        $this->user->update([
-                            'page' => 'not_enough_bonus'
-                        ]);
-                    }
                 }
 
                 /* отправка назад к инфе о идушем заказе */
-                if($choice != 4 AND $order->payment->method_id != 4) {
-                    $fake_dataset = [
-                        'action' => 'payment_page',
-                        'params' => [
-                            'back' => 1,
-                            'order_id' => $order->id
-                        ]
-                    ];
-                    $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
-                    (new User($this->user))->handle($fake_request, $this->bot);
-                }
+                $fake_dataset = [
+                    'action' => 'payment_page',
+                    'params' => [
+                        'back' => 1,
+                        'order_id' => $order->id
+                    ]
+                ];
+                $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
+                (new User($this->user))->handle($fake_request, $this->bot);
             }
 
         }
@@ -556,11 +602,17 @@ class User extends WebhookHandler
             foreach ($payment_methods as $method) {
                 if ($order->payment->method_id !== $method->id) {
                     $desc_property = "{$this->user->language_code}_desc";
-                    $buttons[] = Button::make($method->$desc_property)
-                        ->action('select_payment')
-                        ->param('select', 1)
-                        ->param('choice', $method->id)
-                        ->param('order_id', $order->id);
+                    if($method->id !== 4) {
+                        $buttons[] = Button::make($method->$desc_property)
+                            ->action('select_payment')
+                            ->param('select', 1)
+                            ->param('choice', $method->id)
+                            ->param('order_id', $order->id);
+                    } else {
+                        $buttons[] = Button::make($method->$desc_property)
+                            ->action('payment_with_bonuses')
+                            ->param('order_id', $order->id);
+                    }
                 }
             } // end foreach
 
@@ -652,8 +704,8 @@ class User extends WebhookHandler
                     ->param('order_id', $order->id)
                     ->width(0.5);
 
-                if($order->payment->status_id === 1) {
-                    if($order->payment->method_id !== 1) {
+                if ($order->payment->status_id === 1) {
+                    if ($order->payment->method_id !== 1) {
                         $buttons[] = Button::make($buttons_texts['pay'])
                             ->action('payment_page')
                             ->param('back', 1);
@@ -736,8 +788,8 @@ class User extends WebhookHandler
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
         if (!isset($flag)) {
-            if(isset($this->message)) {
-                if($this->unpaid_orders()) return;
+            if (isset($this->message)) {
+                if ($this->unpaid_orders()) return;
             }
             $this->terminate_active_page();
 
@@ -796,7 +848,6 @@ class User extends WebhookHandler
             $template = $template_prefix_lang . '.referrals.info';
             if (isset($info)) {
                 $referrals_amount = $this->user->referrals()->count();
-                $bonuses = $this->user->referrals()->sum('bonuses');
 
                 $this->chat
                     ->deleteMessage($this->user->message_id)
@@ -806,7 +857,7 @@ class User extends WebhookHandler
                     ->message(view($template,
                         [
                             'referrals_amount' => $referrals_amount,
-                            'bonuses' => $bonuses
+                            'bonuses' => $this->user->balance
                         ]
                     ))
                     ->keyboard(Keyboard::make()->buttons([$back_button]))
@@ -860,8 +911,8 @@ class User extends WebhookHandler
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
 
         if (!isset($flag)) {
-            if(isset($this->message)) {
-                if($this->unpaid_orders()) return;
+            if (isset($this->message)) {
+                if ($this->unpaid_orders()) return;
             }
             $buttons_texts = [
                 'new_order' => $this->config['profile']['new_order'][$this->user->language_code],
@@ -1050,7 +1101,7 @@ class User extends WebhookHandler
         if (!isset($flag)) {
 
             if (isset($this->message)) {
-                if($this->unpaid_orders()) return;
+                if ($this->unpaid_orders()) return;
                 $this->terminate_active_page();
             }
 
@@ -1194,8 +1245,8 @@ class User extends WebhookHandler
     public function about(): void // можно попасть только с команды /about
     {
         if ($this->check_for_language_code()) return;
-        if(isset($this->message)) {
-            if($this->unpaid_orders()) return;
+        if (isset($this->message)) {
+            if ($this->unpaid_orders()) return;
         }
         $this->terminate_active_page();
 
@@ -1239,8 +1290,8 @@ class User extends WebhookHandler
         if (!isset($flag)) {
             if (isset($this->user)) {
 
-                if(isset($this->message)) {
-                    if($this->unpaid_orders()) return;
+                if (isset($this->message)) {
+                    if ($this->unpaid_orders()) return;
                 }
 
                 $template_prefix_lang = $this->template_prefix . $this->user->language_code;
@@ -1796,7 +1847,7 @@ class User extends WebhookHandler
         } else if (!isset($flag)) {
 
             if (isset($this->message)) {
-                if($this->unpaid_orders()) return;
+                if ($this->unpaid_orders()) return;
                 $this->terminate_active_page();
             }
 
@@ -1845,14 +1896,14 @@ class User extends WebhookHandler
             }
         }
 
-        if(isset($photos) AND $photos->isNotEmpty()) {
-            if($page === 'payment_photo') {
+        if (isset($photos) and $photos->isNotEmpty()) {
+            if ($page === 'payment_photo') {
                 $from = $this->message->from();
                 $order = $this->user->active_order;
 
                 $message_timestamp = $this->message->date()->timestamp;
                 $last_message_timestamp = $from->storage()->get('payment_photo_timestamp');
-                if($message_timestamp !== $last_message_timestamp) {
+                if ($message_timestamp !== $last_message_timestamp) {
                     $photo = $this->save_photo($photos, $order);
                     $from->storage()->set('payment_photo_id', $photo->id());
                 }

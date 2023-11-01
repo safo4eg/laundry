@@ -119,6 +119,11 @@ return [
             'yes' => ['ru' => 'Да', 'en' => 'Yes'],
             'no' => ['ru' => 'Нет', 'en' => 'No']
         ],
+
+        'payment_with_bonuses' => [
+            'yes' => ['ru' => 'Да', 'en' => 'Yes'],
+            'no' => ['ru' => 'Нет', 'en' => 'No']
+        ],
     ],
 
     'manager' => [
