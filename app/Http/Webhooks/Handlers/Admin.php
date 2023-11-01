@@ -3,10 +3,11 @@
 namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\ChatsHelperTrait;
-use App\Models\Chat;
+use App\Models\User as UserModel;
 use App\Models\ChatOrderPivot;
 use App\Models\File;
 use App\Services\FakeRequest;
+use App\Services\Helper;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use App\Models\Order;
 use DefStudio\Telegraph\Keyboard\Button;
@@ -35,6 +36,7 @@ class Admin extends WebhookHandler
             $text = $this->data->get('text');
             $button = $this->data->get('button');
             $preview = $this->data->get('preview');
+            $send = $this->data->get('send');
 
             if(isset($text)) {
                 if(isset($notification["text_{$text}"])) {
@@ -127,8 +129,9 @@ class Admin extends WebhookHandler
                             ->param('lang', 'en');
                     }
 
-                    $button[] = Button::make($buttons_texts['send'])
+                    $buttons[] = Button::make($buttons_texts['send'])
                         ->action('notification')
+                        ->param('notification', 1)
                         ->param('send', 1);
 
                     $buttons[] = Button::make($buttons_texts['cancel'])
@@ -148,6 +151,40 @@ class Admin extends WebhookHandler
                         'message_type_id' => 20
                     ]);
                 }
+            }
+
+            if(isset($send)) {
+                $notification = $this->chat->storage()->get('notification');
+
+                $users = UserModel::all();
+                foreach ($users as $user) {
+                    $user_lang_code = $user->language_code;
+                    $template = $notification["text_{$user_lang_code}"];
+                    $buttons = [];
+                    foreach ($notification['buttons'] as $key => $button) {
+                        if($key === 'start') {
+                            $button_texts = [
+                                'ru' => 'Заказать стирку',
+                                'en' => 'Order laundry'
+                            ];
+                            $buttons[] = Button::make($button_texts[$user_lang_code])
+                                ->action('start');
+                        } else if($key === 'recommend') {
+                            $button_texts = [
+                                'ru' => 'Рекомендовать друзьям',
+                                'en' => 'Recommend to friends'
+                            ];
+                            $ref_link = "https://t.me/share/url?url=https://t.me/rastan_telegraph_bot?start=ref{$user->id}";
+                            $buttons[] = Button::make($button_texts[$user_lang_code])
+                                ->url($ref_link);
+                        }
+
+                        $keyboard = Keyboard::make()->buttons($buttons);
+                        Helper::send_user_custom_notification($user, $template, $keyboard);
+                    }
+                }
+
+                $this->delete_message_by_types([16, 17, 18, 19, 20]);
             }
         }
 
