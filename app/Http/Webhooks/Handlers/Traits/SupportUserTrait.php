@@ -8,6 +8,7 @@ use App\Models\Ticket;
 use App\Models\TicketItem;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 
@@ -109,9 +110,16 @@ trait SupportUserTrait
             ->keyboard(Keyboard::make()->buttons($buttons))
             ->send();
 
+        Log::debug($this->user->page);
+
+        if ($this->user->page !== "add_ticket") {
+            $this->user->update([
+                "page" => "ticket_creation"
+            ]);
+        }
+
         $this->user->update([
             "message_id" => $response->telegraphMessageId(),
-            "page" => "ticket_creation"
         ]);
     }
 
@@ -119,7 +127,7 @@ trait SupportUserTrait
     {
         if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
         {
-            $this->delete_active_page_message();
+            $this->chat->deleteMessage($this->user->message_id)->send();
         }
 
         if ($this->message) {
@@ -183,7 +191,7 @@ trait SupportUserTrait
         if (isset($this->message)) {
             if ($this->message->photos() !== null && $this->message->photos()->isNotEmpty()) {
                 if (isset($this->user->message_id)) {
-                    $this->delete_active_page_message();
+                    $this->chat->deleteMessage($this->user->message_id)->send();
                 }
 
                 $user = $this->message->from();
@@ -225,16 +233,18 @@ trait SupportUserTrait
     {
         if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
         {
-            $this->delete_active_page_message();
+            $this->chat->deleteMessage($this->user->message_id)->send();
         }
 
         $flag = $this->data->get('confirm');
 
-        if ($this->message) {
-            $user = $this->message->from();
+        if ($this->message or $this->callbackQuery) {
+            $this->message ? $user = $this->message->from() : $user = $this->callbackQuery->from();
             $current_ticket = $user->storage()->get('current_ticket_id');
             $user->storage()->forget('current_ticket_id');
-            $ticket_item = TicketItem::where('ticket_id', $current_ticket)->first();
+            $ticket_item = TicketItem::where('ticket_id', $current_ticket)
+                ->orderByDesc('time')
+                ->first();
 
             if ($flag) {
                 $dir = "ticket/ticket_item_{$ticket_item->id}";
@@ -242,12 +252,6 @@ trait SupportUserTrait
                 $photo_id = $user->storage()->get('photo_id');
 
                 $file_name = "$photo_id.jpg";
-
-                $ticket = Ticket::where('id', $current_ticket)->first();
-                $ticket->update([
-                    'status_id' => 2
-                ]);
-
                 File::create([
                     'path' => Storage::url("{$dir}/{$file_name}"),
                     'ticket_item_id' => $ticket_item->id,
@@ -256,7 +260,16 @@ trait SupportUserTrait
                     'step' => null
                 ]);
 
-                $this->ticket_created($user);
+                $ticket = Ticket::where('id', $current_ticket)->first();
+                if ($this->user->page == "add_ticket") {
+                    $this->ticket_created();
+                    $chat = Chat::where('name', 'Support')->first();
+                    $this->send_ticket_card($chat, $ticket);
+                } else {
+                    $ticket->update([
+                        'status_id' => 2
+                    ]);
+                }
             } else {
                 $this->user->update([
                     "step" => 2,
@@ -280,12 +293,11 @@ trait SupportUserTrait
             $user->storage()->forget('current_ticket_id');
             $ticket = Ticket::where('id', $ticket_id)->first();
 
-            $chat = Chat::where('name', 'Support')->first();
-            $this->send_ticket_card($chat, $ticket);
-
-            $ticket->update([
-                'status_id' => 2
-            ]);
+            if ($this->user->page !== "add_ticket") {
+                $ticket->update([
+                    'status_id' => 2
+                ]);
+            }
         }
 
         if (isset($this->user->message_id)) // если есть активное окно (окно с кнопками) - удаляем
@@ -414,9 +426,9 @@ trait SupportUserTrait
                 'page' => 'add_ticket',
                 'step' => 1
             ]);
-        }
 
-        $this->handle_ticket_request();
+            $this->handle_ticket_request();
+        }
     }
 
     public function check_incomplete_tickets($user = null): bool
