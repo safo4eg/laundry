@@ -150,6 +150,22 @@ return [
         'send_card' => [
             'confirm' => '✅Confirm payment',
             'decline' => '❌Decline payment',
+        ],
+
+        'commands' => [
+            'notification' => '🔔Create notification'
+        ],
+
+        'create_notification' => [
+            'text_ru' => 'Add text (RU)',
+            'text_en' => 'Add text (EN)',
+            'start' => 'Start button',
+            'recommend' => 'Recommend button',
+            'preview' => '🎬Preview',
+            'cancel' => 'Cancel',
+            'ru' => 'Preview (RU)',
+            'en' => 'Preview (EN)',
+            'send' => 'Send notification'
         ]
     ],
 
