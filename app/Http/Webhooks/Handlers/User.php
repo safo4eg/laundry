@@ -59,6 +59,7 @@ class User extends WebhookHandler
         ]);
 
         $this->terminate_active_page();
+
         $response = $this->chat
             ->message(view($template, $template_data))
             ->keyboard($keyboard)
@@ -501,26 +502,48 @@ class User extends WebhookHandler
                     $price = $order->price;
                     $balance = $this->user->balance;
 
-                    if((int)$balance > (int)$price) {
-                        $balance = $balance - $price;
-                        $this->user->update(['balance' => $balance]);
+                    if((int)$balance >= (int)$price) {
+                        $this->user->update(['balance' => $balance - $price]);
                         $order->payment->update([
                             'method_id' => $choice,
                             'status_id' => 3 // оплачен
+                        ]);
+                    } else {
+                        $ref_link = "https://t.me/share/url?url=https://t.me/rastan_telegraph_bot?start=ref{$this->user->id}";
+                        $template = $this->template_prefix.$this->user->language_code.'.notifications.not_enough_bonus';
+                        $keyboard = Keyboard::make()->buttons([
+                            Button::make($this->config['referrals']['recommend'][$this->user->language_code])
+                                ->url($ref_link),
+                            Button::make($this->config['back'][$this->user->language_code])
+                                ->action('payment_page')
+                                ->param('back', 1)
+                                ->param('order_id', $order->id)
+                        ]);
+
+                        $this->chat
+                            ->edit($this->user->message_id)
+                            ->message(view($template))
+                            ->keyboard($keyboard)
+                            ->send();
+
+                        $this->user->update([
+                            'page' => 'not_enough_bonus'
                         ]);
                     }
                 }
 
                 /* отправка назад к инфе о идушем заказе */
-                $fake_dataset = [
-                    'action' => 'payment_page',
-                    'params' => [
-                        'back' => 1,
-                        'order_id' => $order->id
-                    ]
-                ];
-                $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
-                (new User($this->user))->handle($fake_request, $this->bot);
+                if($choice != 4 AND $order->payment->method_id != 4) {
+                    $fake_dataset = [
+                        'action' => 'payment_page',
+                        'params' => [
+                            'back' => 1,
+                            'order_id' => $order->id
+                        ]
+                    ];
+                    $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
+                    (new User($this->user))->handle($fake_request, $this->bot);
+                }
             }
 
         }
