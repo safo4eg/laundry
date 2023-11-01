@@ -1121,9 +1121,6 @@ class User extends WebhookHandler
     public function handle_ticket_request(): void
     {
         $step = $this->user->step;
-        $this->user->update([
-            "page" => "ticket_creation"
-        ]);
 
         switch ($step) {
             case 1:
@@ -1138,9 +1135,6 @@ class User extends WebhookHandler
     public function handle_ticket_response(): void
     {
         $step = $this->user->step;
-        $this->user->update([
-            "page" => "ticket_creation"
-        ]);
 
         switch ($step) {
             case 1:
