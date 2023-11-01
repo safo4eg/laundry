@@ -68,7 +68,7 @@ class PaymentObserver
 
                         $fake_request = FakeRequest::callback_query($courier_chat, $bot, $fake_callback_dataset);
                         (new Courier())->handle($fake_request, $bot);
-                    } else if ($order->payment->method_id === 2 OR $order->payment->method_id === 3) {
+                    } else if ($order->payment->method_id === 2 or $order->payment->method_id === 3) {
                         $admin_chat = Chat::where('name', 'Admin')->first();
                         $fake_dataset = [
                             'action' => 'send_card',
@@ -79,30 +79,14 @@ class PaymentObserver
                         $fake_request = FakeRequest::callback_query($admin_chat, $bot, $fake_dataset);
                         (new Admin())->handle($fake_request, $bot);
                     }
+                } else if($attributes['status_id'] === 3) {
+                    if($order->payment->method_id === 4) {
+                        $order->update(['status_id' => 14]);
+                    }
                 }
+
             }
         }
-
-//        if (isset($attributes['method_id'])) {
-//            if ($order->status_id === 13) {
-//                if($attributes['method_id'] === 1) {
-//                    $courier_chat = Chat::where('name', 'Courier')
-//                        ->where('laundry_id', $order->laundry_id)
-//                        ->first();
-//
-//                    $fake_callback_dataset = [
-//                        'action' => 'update_order_card',
-//                        'params' => [
-//                            'update_order_card' => 1,
-//                            'order_id' => $order->id
-//                        ]
-//                    ];
-//
-//                    $fake_request = FakeRequest::callback_query($courier_chat, $bot, $fake_callback_dataset);
-//                    (new Courier())->handle($fake_request, $bot);
-//                }
-//            }
-//        }
 
         /* Если оплата не прошла проверку: */
         /* Отменил курьер или Администратор не подтвердил */

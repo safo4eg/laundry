@@ -127,7 +127,7 @@ class OrderStatusObserver
                     ];
 
                     $fake_request = FakeRequest::callback_query($inviter_chat, $bot, $fake_dataset);
-                    (new User($order->user))->handle($fake_request, $bot);
+                    (new User($inviter))->handle($fake_request, $bot);
                 }
             }
         }
@@ -142,7 +142,6 @@ class OrderStatusObserver
 
         /* ОТПРАВКА В АДМИН ЧАТ */
         if($order->status_id === 13 OR $order->status_id === 14) {
-            Log::debug('зашло сюда 1');
             $admin_chat = Chat::where('name', 'Admin')->first();
             $chat_order = ChatOrderPivot::where('telegraph_chat_id', $admin_chat->id)
                 ->where('order_id', $order->id)
@@ -158,10 +157,11 @@ class OrderStatusObserver
 
             /* Если была выбрана оплата и после этого курьер доставил вещи */
             if($order->status_id === 13) {
-                if(($order->payment->method_id === 2 OR $order->payment->method_id === 3) AND $order->payment->status_id === 2)
-                {
+                if(($order->payment->method_id === 2 OR $order->payment->method_id === 3) AND $order->payment->status_id === 2) {
                     $admin_chat_request = FakeRequest::callback_query($admin_chat, $bot, $fake_dataset);
                     (new Admin())->handle($admin_chat_request, $bot);
+                } else if($order->payment->method_id === 4) { // если уже было оплачено бонусами
+                    $order->update(['status_id' => 14]);
                 }
             }
 
