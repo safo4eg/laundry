@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Http\Webhooks\Handlers\Admin;
 use App\Http\Webhooks\Handlers\Courier;
 use App\Http\Webhooks\Handlers\User;
 use App\Models\Bot;
@@ -47,29 +48,65 @@ class PaymentObserver
         $order = $payment->order;
         $attributes = $payment->getDirty();
 
-        if (isset($attributes['method_id'])) {
+        if (isset($attributes['status_id'])) {
+            // заказ уже доставлен
             if ($order->status_id === 13) {
-                $courier_chat = Chat::where('name', 'Courier')
-                    ->where('laundry_id', $order->laundry_id)
-                    ->first();
+                /* смена статуса на ожидает подтверждения платежа */
+                if ($attributes['status_id'] === 2) {
+                    if ($order->payment->method_id === 1) {
+                        $courier_chat = Chat::where('name', 'Courier')
+                            ->where('laundry_id', $order->laundry_id)
+                            ->first();
 
-                $fake_callback_dataset = [
-                    'action' => 'update_order_card',
-                    'params' => [
-                        'update_order_card' => 1,
-                        'order_id' => $order->id
-                    ]
-                ];
+                        $fake_callback_dataset = [
+                            'action' => 'update_order_card',
+                            'params' => [
+                                'update_order_card' => 1,
+                                'order_id' => $order->id
+                            ]
+                        ];
 
-                $fake_request = FakeRequest::callback_query($courier_chat, $bot, $fake_callback_dataset);
-
-                (new Courier())->handle($fake_request, $bot);
+                        $fake_request = FakeRequest::callback_query($courier_chat, $bot, $fake_callback_dataset);
+                        (new Courier())->handle($fake_request, $bot);
+                    } else if ($order->payment->method_id === 2 OR $order->payment->method_id === 3) {
+                        $admin_chat = Chat::where('name', 'Admin')->first();
+                        $fake_dataset = [
+                            'action' => 'send_card',
+                            'params' => [
+                                'order_id' => $order->id
+                            ]
+                        ];
+                        $fake_request = FakeRequest::callback_query($admin_chat, $bot, $fake_dataset);
+                        (new Admin())->handle($fake_request, $bot);
+                    }
+                }
             }
         }
 
+//        if (isset($attributes['method_id'])) {
+//            if ($order->status_id === 13) {
+//                if($attributes['method_id'] === 1) {
+//                    $courier_chat = Chat::where('name', 'Courier')
+//                        ->where('laundry_id', $order->laundry_id)
+//                        ->first();
+//
+//                    $fake_callback_dataset = [
+//                        'action' => 'update_order_card',
+//                        'params' => [
+//                            'update_order_card' => 1,
+//                            'order_id' => $order->id
+//                        ]
+//                    ];
+//
+//                    $fake_request = FakeRequest::callback_query($courier_chat, $bot, $fake_callback_dataset);
+//                    (new Courier())->handle($fake_request, $bot);
+//                }
+//            }
+//        }
+
         /* Если оплата не прошла проверку: */
         /* Отменил курьер или Администратор не подтвердил */
-        if (array_key_exists('method_id', $attributes) AND !isset($attributes['method_id'])) {
+        if (array_key_exists('method_id', $attributes) and !isset($attributes['method_id'])) {
             $chat = Chat::factory()->make([
                 'chat_id' => $order->user->chat_id,
                 'name' => 'User',
