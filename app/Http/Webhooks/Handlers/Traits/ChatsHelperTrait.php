@@ -286,15 +286,14 @@ trait ChatsHelperTrait
 
     public function prepare_template(string $view, array $params = null): array|string|null
     {
-        $template = view($view, $params);
-        $template = str_replace("\t", " ", $template);
+        $template = str_replace("\t", " ", view($view, $params));
         $lines = explode(PHP_EOL, $template);
         $new_lines = [];
 
         foreach ($lines as $line) {
-            $new_lines[] = preg_replace('/\s{2,}/', ' ', $line);
+            $new_lines[] = preg_replace('/ {2,}/', ' ', $line);
         }
 
-        return implode(PHP_EOL, $new_lines);
+         return implode(PHP_EOL, $new_lines);
     }
 }
