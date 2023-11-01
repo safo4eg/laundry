@@ -10,11 +10,32 @@ use DefStudio\Telegraph\Keyboard\Keyboard;
 
 class Helper
 {
+    public static function send_user_custom_notification($user, string $template, Keyboard $keyboard): void
+    {
+        $chat = Chat::factory()->make([
+            'chat_id' => $user->chat_id,
+            'name' => 'User',
+            'telegraph_bot_id' => 1
+        ]);
+
+        if(isset($user->message_id)) {
+            $chat->deleteMessage($user->message_id)->send();
+        }
+
+        $response = $chat
+            ->message($template)
+            ->keyboard($keyboard)
+            ->send();
+
+        $user->update([
+            'page' => 'notification',
+            'message_id' => $response->telegraphMessageId()
+        ]);
+    }
     public static function send_user_notification($user, string $template, array $dataset = null, Keyboard $keyboard = null): void
     {
         $language_code = $user->language_code;
         $chat_id = $user->chat_id;
-        $template_data = [];
 
         $template = "bot.user.{$language_code}.notifications.{$template}";
 
