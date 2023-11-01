@@ -30,7 +30,12 @@ class MessageTypeSeeder extends Seeder
             ['title' => 'text'],
             ['title' => 'dialogue'],
             ['title' => 'request_dialogue_message'],
-            ['title' => 'message_from_client']
+            ['title' => 'message_from_client'],
+            ['title' => 'admin_commands'],
+            ['title' => 'admin_notification'],
+            ['title' => 'admin_notification_request_text_ru'],
+            ['title' => 'admin_notification_request_text_en'],
+            ['title' => 'admin_notification_preview'],
         ]);
     }
 }

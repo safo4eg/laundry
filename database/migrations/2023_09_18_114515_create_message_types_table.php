@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('message_types', function (Blueprint $table) {
             $table->unsignedTinyInteger('id')->autoIncrement();
-            $table->string('title', 32);
+            $table->text('title');
         });
     }
 
