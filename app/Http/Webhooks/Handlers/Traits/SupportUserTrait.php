@@ -262,7 +262,6 @@ trait SupportUserTrait
 
                 $ticket = Ticket::where('id', $current_ticket)->first();
                 if ($this->user->page == "add_ticket") {
-                    $this->ticket_created();
                     $chat = Chat::where('name', 'Support')->first();
                     $this->send_ticket_card($chat, $ticket);
                 } else {
@@ -270,6 +269,7 @@ trait SupportUserTrait
                         'status_id' => 2
                     ]);
                 }
+                $this->ticket_created();
             } else {
                 $this->user->update([
                     "step" => 2,

@@ -294,6 +294,6 @@ trait ChatsHelperTrait
             $new_lines[] = preg_replace('/ {2,}/', ' ', $line);
         }
 
-         return implode(PHP_EOL, $new_lines);
+        return implode(PHP_EOL, $new_lines);
     }
 }
