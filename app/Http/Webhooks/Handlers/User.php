@@ -267,6 +267,9 @@ class User extends WebhookHandler
                     case 'request_order_message':
                     case 'message_from_courier':
                     case 'select_payment':
+                    case 'notification':
+                    case 'payment_photo':
+                    case 'request_rating ':
                         $this->start();
                         break;
                     case 'orders':
@@ -286,6 +289,9 @@ class User extends WebhookHandler
                         $this->profile();
                         break;
                     case 'referrals':
+                    case 'addition_bonus':
+                    case 'addition_bonus':
+                    case 'payment_with_bonuses':
                         $this->referrals();
                         break;
                     case 'support':
