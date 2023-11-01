@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Log;
 
 trait SupportTrait
 {
-    // TODO: Отправка через FakeRequest
+    use ChatsHelperTrait;
     public function send_user_answer(TicketItem $ticket_item): void
     {
         $ticket_id = $this->data->get('ticket_id');
