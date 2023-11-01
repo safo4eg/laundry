@@ -283,4 +283,18 @@ trait ChatsHelperTrait
 
         return $photo;
     }
+
+    public function prepare_template(string $view, array $params = null): array|string|null
+    {
+        $template = view($view, $params);
+        $template = str_replace("\t", " ", $template);
+        $lines = explode(PHP_EOL, $template);
+        $new_lines = [];
+
+        foreach ($lines as $line) {
+            $new_lines[] = preg_replace('/\s{2,}/', ' ', $line);
+        }
+
+        return implode(PHP_EOL, $new_lines);
+    }
 }
