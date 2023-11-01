@@ -1,9 +1,7 @@
-<b>Ticket #{{$ticket->id}}</b>
+<b>📝 Ticket #{{$ticket->id}}</b>
 <b>User</b>: {{ $user->username }} - ID{{ $user->id }}
-@if ($last_order)
-    <b>Last order:</b> #{{ $last_order->id }}
-@else
-    <b>Last order:</b> None
+@if ($last_order)<b>Last order:</b> #{{ $last_order->id }}
+@else<b>Last order:</b> None
 @endif
 
 @foreach($ticket->ticketItems as $message)
@@ -18,4 +16,6 @@
             <a href="{{ url($file->path) }}">The attachment</a>
         @endforeach
     @endif
+
 @endforeach
+

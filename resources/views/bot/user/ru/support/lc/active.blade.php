@@ -2,8 +2,7 @@
 
 @if(!$tickets->isEmpty())
     @foreach($tickets as $ticket)
-        <b>#{{ $ticket->id }}</b>
-        <i>Время обращения: {{ $ticket->time_start }}</i>
+        <b>#{{ $ticket->id }}</b> - <i>Время обращения: {{ $ticket->time_start }}</i>
     @endforeach
 @else
     <i>У вас нет архивных обращений</i>

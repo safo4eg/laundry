@@ -12,4 +12,5 @@
             <a href="{{ url($file->path) }}">Вложение</a>
         @endforeach
     @endif
+
 @endforeach
