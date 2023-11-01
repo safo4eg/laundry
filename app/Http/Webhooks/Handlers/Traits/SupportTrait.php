@@ -36,7 +36,6 @@ trait SupportTrait
             ]
         ];
 
-        Log::debug(json_encode($this->bot));
         $fake_request = FakeRequest::callback_query($chat, $this->bot, $fake_dataset);
         (new User($ticket->user))->handle($fake_request, $this->bot);
     }

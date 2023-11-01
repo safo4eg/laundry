@@ -1,6 +1,6 @@
-Welcome to the support chat message block <b>LaundryBot</b>
-Here you can conveniently view and track your messages and communication with our support team.
-We appreciate your attention to detail and your commitment to stay up to date.
-To view your messages, just scroll down this block. You will find all your previous requests and our answers here. This will help you keep records and keep abreast of the progress of solving your queries.
-We are always ready to help if you have any new questions or need additional support. Do not hesitate to contact us at any time.
+Welcome to the <b>LaundryBot</b> support chat message block
+Here you can conveniently view and track your messages and communications with our support team.
+We appreciate your attention to detail and your desire to stay informed.
+To view your messages, simply scroll down this block. You will find all your previous requests and our responses here. This will help you keep records and stay updated on the progress of your requests.
+We're always here to help if you have new questions or need additional support. Feel free to contact us at any time.
 Thank you for choosing us to solve your needs. We are here to provide you with the best service.
