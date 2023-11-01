@@ -1,7 +1,9 @@
 <b>Ticket #{{$ticket->id}}</b>
 <b>User</b>: {{ $user->username }} - ID{{ $user->id }}
-@if(isset($user->orders))
-    <b>Last order</b>
+@if ($last_order)
+    <b>Last order:</b> #{{ $last_order->id }}
+@else
+    <b>Last order:</b> None
 @endif
 
 @foreach($ticket->ticketItems as $message)

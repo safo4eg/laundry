@@ -18,6 +18,8 @@ trait SupportUserTrait
 
     public function get_support_answer(): void
     {
+        $this->terminate_active_page();
+
         $ticket_item_id = $this->data->get('ticket_item_id');
         $ticket_item = TicketItem::where('id', $ticket_item_id)->first();
 
@@ -89,8 +91,10 @@ trait SupportUserTrait
         $flag = $this->data->get('choice');
         $user = $this->callbackQuery->from();
 
-        if (!$flag) {
-            if ($this->check_incomplete_tickets($user)) return;
+        if ($this->user->page === 'support') {
+            if (!$flag) {
+                if ($this->check_incomplete_tickets($user)) return;
+            }
         }
 
         $template = "{$this->template_prefix}{$this->user->language_code}.support.create_ticket_text";
@@ -243,6 +247,7 @@ trait SupportUserTrait
                 $ticket->update([
                     'status_id' => 2
                 ]);
+
                 File::create([
                     'path' => Storage::url("{$dir}/{$file_name}"),
                     'ticket_item_id' => $ticket_item->id,
@@ -274,6 +279,9 @@ trait SupportUserTrait
             $ticket_id = $user->storage()->get('current_ticket_id');
             $user->storage()->forget('current_ticket_id');
             $ticket = Ticket::where('id', $ticket_id)->first();
+
+            $chat = Chat::where('name', 'Support')->first();
+            $this->send_ticket_card($chat, $ticket);
 
             $ticket->update([
                 'status_id' => 2

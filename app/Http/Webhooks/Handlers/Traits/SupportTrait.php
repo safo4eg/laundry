@@ -2,20 +2,20 @@
 
 namespace App\Http\Webhooks\Handlers\Traits;
 
+use App\Http\Webhooks\Handlers\User;
 use App\Models\Chat;
 use App\Models\ChatOrder;
+use App\Models\Order;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use App\Services\FakeRequest;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use App\Http\Webhooks\Handlers\User;
 use Illuminate\Support\Facades\Log;
 
 
 trait SupportTrait
 {
-
     // TODO: Отправка через FakeRequest
     public function send_user_answer(TicketItem $ticket_item): void
     {
@@ -36,9 +36,9 @@ trait SupportTrait
             ]
         ];
 
-        Log::debug($chat->chat_id);
+        Log::debug(json_encode($this->bot));
         $fake_request = FakeRequest::callback_query($chat, $this->bot, $fake_dataset);
-        (new User($user))->handle($fake_request, $this->bot);
+        (new User($ticket->user))->handle($fake_request, $this->bot);
     }
 
     public function confirm_answer($text = null, Ticket $ticket = null): void
@@ -94,10 +94,12 @@ trait SupportTrait
     public function send_ticket_card($chat, Ticket $ticket): void
     {
         $this->delete_ticket_card($chat, $ticket);
+        $last_order = Order::where('user_id', $ticket->user->id)->orderByDesc('id')->first();
         $view = view('bot.support.ticket_card', [
             'ticket' => $ticket,
             'baseUrl' => url(),
-            'user' => $ticket->user
+            'user' => $ticket->user,
+            'last_order' => $last_order
         ]);
 
         $response = $chat->message(preg_replace('#^\s+#m', '', $view))

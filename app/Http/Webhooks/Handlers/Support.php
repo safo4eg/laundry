@@ -78,8 +78,12 @@ class Support extends WebhookHandler
                     ->param('ticket_id', $ticket->id);
             }
 
+            $ticket_card = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+                ->where('ticket_id', $ticket->id)->where('message_type_id', 9)
+                ->first();
+
             $view = "$this->template_prefix.reject_ticket";
-            $response = $this->chat->message(view($view, [
+            $response = $this->chat->reply($ticket_card->message_id)->message(view($view, [
                 'ticket' => $ticket
             ]))->keyboard(Keyboard::make()
                 ->buttons($buttons))

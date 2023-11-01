@@ -10,8 +10,10 @@ class () extends Migration {
     {
         Schema::create('telegraph_bots', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('bot_id');
             $table->string('token')->unique();
-            $table->string('name')->nullable();
+            $table->string('first_name')->nullable();
+            $table->string('username')->nullable();
         });
     }
 
