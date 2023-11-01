@@ -49,13 +49,13 @@ trait ChatsHelperTrait
     {
         $chat_orders = null;
 
-        if(!empty($with_main)) { // удаляет все сообщения связанные с карточкой, но без главной карточки заказа
+        if(!empty($with_main)) { // удаляет сообщения включая карточку заказа
             $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('order_id', $order->id)
                 ->get();
         }
 
-        if(empty($with_main)) { // удаляет сообщения включая карточку заказа
+        if(empty($with_main)) { // удаляет все сообщения связанные с карточкой, но без главной карточки заказа
             $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('order_id', $order->id)
                 ->where('message_type_id', '!=', 1)

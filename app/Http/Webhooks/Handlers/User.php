@@ -16,9 +16,6 @@ use App\Models\User as UserModel;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use DefStudio\Telegraph\Models\TelegraphBot;
-use Illuminate\Auth\Access\Gate;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
 use Illuminate\Database\Eloquent\Builder;
@@ -43,10 +40,35 @@ class User extends WebhookHandler
         parent::__construct();
     }
 
-//    public function test(): void
-//    {
-//        Log::debug($this->unpaid_orders_page());
-//    }
+    /* добавление бонусов пригласителю */
+    /* своих кнопок для обрабобтка не будет */
+    public function addition_balance(): void
+    {
+        $bonus = $this->data->get('bonus');
+
+        $ref_link = "https://t.me/share/url?url=https://t.me/rastan_telegraph_bot?start=ref{$this->user->id}";
+        $template = $this->template_prefix.$this->user->language_code.'.notifications.addition_bonuses';
+        $template_data = [
+            'ref_link' => $ref_link,
+            'bonus' => $bonus,
+            'balance' => $this->user->balance
+        ];
+        $buttons_text = $this->config['referrals']['recommend'][$this->user->language_code];
+        $keyboard = Keyboard::make()->buttons([
+            Button::make($buttons_text)->url($ref_link)
+        ]);
+
+        $this->terminate_active_page();
+        $response = $this->chat
+            ->message(view($template, $template_data))
+            ->keyboard($keyboard)
+            ->send();
+
+        $this->user->update([
+            'page' => 'addition_bonus',
+            'message_id' => $response->telegraphMessageId()
+        ]);
+    }
 
     public function payment_photo(): void
     {
@@ -476,10 +498,17 @@ class User extends WebhookHandler
                         'status_id' => 1
                     ]);
                 } else if($choice == 4) { // оплата бонусами
-                    $order->payment->update([
-                        'method_id' => $choice,
-                        'status_id' => 3 // оплачен
-                    ]);
+                    $price = $order->price;
+                    $balance = $this->user->balance;
+
+                    if((int)$balance > (int)$price) {
+                        $balance = $balance - $price;
+                        $this->user->update(['balance' => $balance]);
+                        $order->payment->update([
+                            'method_id' => $choice,
+                            'status_id' => 3 // оплачен
+                        ]);
+                    }
                 }
 
                 /* отправка назад к инфе о идушем заказе */

@@ -26,7 +26,7 @@ trait UserCommandsFuncsTrait
     {
         if (!isset($this->user) and isset($this->message)) {
             $command = $this->message->text();
-            if ($command != '/start') {
+            if (strripos($command, '/start')) {
                 $this->chat
                     ->message('БД была обновлена, вызовите команду /start')
                     ->send();

@@ -2,7 +2,6 @@
 
 namespace App\Http\Webhooks\Handlers;
 use App\Http\Webhooks\Handlers\Traits\ChatsHelperTrait;
-use App\Models\Chat;
 use App\Models\ChatOrderPivot;
 use App\Models\Order;
 use App\Models\File;
@@ -11,12 +10,9 @@ use App\Models\OrderServicePivot;
 use App\Models\Service;
 use App\Services\FakeRequest;
 use App\Services\Helper;
-use DefStudio\Telegraph\DTO\Photo;
-use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use Illuminate\Session\Store;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Stringable;
 use Illuminate\Support\Facades\Storage;

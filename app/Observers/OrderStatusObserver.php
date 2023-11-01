@@ -12,6 +12,7 @@ use App\Models\ChatOrderPivot;
 use App\Models\OrderStatusPivot;
 use App\Http\Webhooks\Handlers\Manager;
 use App\Models\Payment;
+use App\Models\Referral;
 use App\Services\FakeRequest;
 use App\Services\Helper;
 use Carbon\Carbon;
@@ -98,6 +99,36 @@ class OrderStatusObserver
 
                 $fake_request = FakeRequest::callback_query($chat, $bot, $fake_dataset);
                 (new User($order->user))->handle($fake_request, $bot);
+
+                /* Добавление бабок пригласителю(реф система) */
+                $referral = Referral::where('invited_id', $order->user->id)
+                    ->first();
+
+                if(isset($referral)) { // если пригласитель существует
+                    /* Обновляем баланс пригласителя */
+                    $inviter = $referral->inviter;
+                    $bonus = $order->price*0.1;
+                    $balance = $inviter->balance;
+                    if(!isset($balance)) $balance = $bonus;
+                    else $balance = $balance + $bonus;
+                    $inviter->update(['balance' => $balance]);
+
+                    $inviter_chat = Chat::factory()->make([
+                        'chat_id' => $inviter->chat_id,
+                        'name' => 'User',
+                        'telegraph_bot_id' => 1
+                    ]);
+
+                    $fake_dataset = [
+                        'action' => 'addition_balance',
+                        'params' => [
+                            'bonus' => $bonus,
+                        ]
+                    ];
+
+                    $fake_request = FakeRequest::callback_query($inviter_chat, $bot, $fake_dataset);
+                    (new User($order->user))->handle($fake_request, $bot);
+                }
             }
         }
 
