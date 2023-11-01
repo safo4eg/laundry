@@ -63,7 +63,6 @@ class OrderStatusObserver
         }
 
         if($order->status_id === 5 OR $order->status_id === 13 OR $order->status_id === 14) { // отправка уведомления клиенту
-            $user_config = config('buttons.user');
             $chat = Chat::factory()->make([
                 'chat_id' => $order->user->chat_id,
                 'name' => 'User',
@@ -112,22 +111,34 @@ class OrderStatusObserver
 
         /* ОТПРАВКА В АДМИН ЧАТ */
         if($order->status_id === 13 OR $order->status_id === 14) {
+            Log::debug('зашло сюда 1');
             $admin_chat = Chat::where('name', 'Admin')->first();
             $chat_order = ChatOrderPivot::where('telegraph_chat_id', $admin_chat->id)
                 ->where('order_id', $order->id)
                 ->where('message_type_id', 1)
                 ->first();
 
-            if(!isset($chat_order)) {
-                $fake_dataset = [
-                    'action' => 'send_card',
-                    'params' => [
-                        'order_id' => $order->id
-                    ]
-                ];
+            $fake_dataset = [
+                'action' => 'send_card',
+                'params' => [
+                    'order_id' => $order->id
+                ]
+            ];
 
-                $admin_chat_request = FakeRequest::callback_query($admin_chat, $bot, $fake_dataset);
-                (new Admin())->handle($admin_chat_request, $bot);
+            /* Если была выбрана оплата и после этого курьер доставил вещи */
+            if($order->status_id === 13) {
+                if(($order->payment->method_id === 2 OR $order->payment->method_id === 3) AND $order->payment->status_id === 2)
+                {
+                    $admin_chat_request = FakeRequest::callback_query($admin_chat, $bot, $fake_dataset);
+                    (new Admin())->handle($admin_chat_request, $bot);
+                }
+            }
+
+            if($order->status_id === 14) {
+                if(!isset($chat_order)) {
+                    $admin_chat_request = FakeRequest::callback_query($admin_chat, $bot, $fake_dataset);
+                    (new Admin())->handle($admin_chat_request, $bot);
+                }
             }
         }
 
