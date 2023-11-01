@@ -271,9 +271,9 @@ trait SupportUserTrait
         $flag = $this->data->get('ticket_created_flag');
 
         if ($flag) {
-            if ($this->message){
+            if ($this->message) {
                 $user = $this->message->from();
-            } elseif ($this->callbackQuery){
+            } elseif ($this->callbackQuery) {
                 $user = $this->callbackQuery->from();
             }
             $ticket_id = $user->storage()->get('current_ticket_id');
@@ -357,21 +357,28 @@ trait SupportUserTrait
                     'ticket' => Ticket::where('id', $ticket_id)->first(),
                     'messages' => $ticket_items
                 ]);
+
                 $new_req_button = $this->config['support']['new_request'][$this->user->language_code];
+                $ticket = Ticket::where('id', $ticket_id)->first();
+
+                if ($ticket->status_id == 4 or $ticket->status_id == 5) {
+                    $buttons = Button::make($button)->action('check_user_tickets');
+                } else {
+                    $buttons = [
+                        Button::make($new_req_button)
+                            ->action('add_ticket')
+                            ->param('ticket_id', $ticket_id),
+                        Button::make($button)->action('check_user_tickets')
+                    ];
+                }
 
                 $this->chat->edit($this->messageId)
                     ->message(preg_replace('#^\s+#m', '', $view))->keyboard(Keyboard::make()
-                        ->buttons([
-                            Button::make($button)->action('check_user_tickets'),
-                            Button::make($new_req_button)
-                                ->action('add_ticket')
-                                ->param('ticket_id', $ticket_id)
-                        ]))
+                        ->buttons($buttons))
                     ->send();
             }
         }
     }
-
 
     public function ticket_list($tickets, string $type): void
     {
