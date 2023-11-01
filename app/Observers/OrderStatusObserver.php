@@ -111,6 +111,7 @@ class OrderStatusObserver
                     $balance = $inviter->balance;
                     if(!isset($balance)) $balance = $bonus;
                     else $balance = $balance + $bonus;
+                    $referral->update(['bonuses' => $bonus]);
                     $inviter->update(['balance' => $balance]);
 
                     $inviter_chat = Chat::factory()->make([
