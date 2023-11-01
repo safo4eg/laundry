@@ -353,7 +353,7 @@ trait SupportUserTrait
                     ->first()
                     ->ticketItems;
 
-                $view = view($template, [
+                $view = $this->prepare_template($template, [
                     'ticket' => Ticket::where('id', $ticket_id)->first(),
                     'messages' => $ticket_items
                 ]);
@@ -373,7 +373,7 @@ trait SupportUserTrait
                 }
 
                 $this->chat->edit($this->messageId)
-                    ->message(preg_replace('#^\s+#m', '', $view))->keyboard(Keyboard::make()
+                    ->message($view)->keyboard(Keyboard::make()
                         ->buttons($buttons))
                     ->send();
             }
@@ -384,7 +384,7 @@ trait SupportUserTrait
     {
         $button = $this->config['support']['back'][$this->user->language_code];
         $template = "{$this->template_prefix}{$this->user->language_code}.support.lc.$type";
-        $view = view($template, [
+        $view = $this->prepare_template($template, [
             'tickets' => $tickets
         ]);
 
@@ -398,7 +398,7 @@ trait SupportUserTrait
         $buttons[] = Button::make($button)->action('check_user_tickets');
 
         $this->chat->edit($this->messageId)
-            ->message(preg_replace('#^[^\n]\s+#m', '', $view))
+            ->message($view)
             ->keyboard(Keyboard::make()
                 ->buttons($buttons))->send();
     }

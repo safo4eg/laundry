@@ -94,14 +94,14 @@ trait SupportTrait
     {
         $this->delete_ticket_card($chat, $ticket);
         $last_order = Order::where('user_id', $ticket->user->id)->orderByDesc('id')->first();
-        $view = view('bot.support.ticket_card', [
+        $view = $this->prepare_template('bot.support.ticket_card', [
             'ticket' => $ticket,
             'baseUrl' => url(),
             'user' => $ticket->user,
             'last_order' => $last_order
         ]);
 
-        $response = $chat->message(preg_replace('#^\s+#m', '', $view))
+        $response = $chat->message($view)
             ->keyboard($this->update_ticket_keyboard_by_status($ticket))
             ->send();
 
