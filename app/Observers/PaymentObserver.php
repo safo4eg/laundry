@@ -69,6 +69,7 @@ class PaymentObserver
                         $fake_request = FakeRequest::callback_query($courier_chat, $bot, $fake_callback_dataset);
                         (new Courier())->handle($fake_request, $bot);
                     } else if ($order->payment->method_id === 2 or $order->payment->method_id === 3) {
+                        Log::debug('зашло сюда 4');
                         $admin_chat = Chat::where('name', 'Admin')->first();
                         $fake_dataset = [
                             'action' => 'send_card',

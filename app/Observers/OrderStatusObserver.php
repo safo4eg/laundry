@@ -16,19 +16,18 @@ use App\Models\Referral;
 use App\Services\FakeRequest;
 use App\Services\Helper;
 use Carbon\Carbon;
-use DefStudio\Telegraph\Keyboard\Button;
-use DefStudio\Telegraph\Keyboard\Keyboard;
 use Illuminate\Support\Facades\Log;
 
 class OrderStatusObserver
 {
     public function created(OrderStatusPivot $orderStatus)
     {
+        $attributes = $orderStatus->getDirty();
         $order = $orderStatus->order;
         $update_order_dataset = null;
         $bot = null;
 
-        if($order->status_id !== 1) {
+        if($attributes['status_id'] !== 1) {
             $bot = Bot::where('username', 'rastan_telegraph_bot')->first();
             $update_order_dataset = [
                 'action' => 'update_order_card',
@@ -38,7 +37,7 @@ class OrderStatusObserver
                 ]
             ];
 
-            if($order->status_id !== 3) {
+            if($attributes['status_id'] !== 3) {
                 $manager_chat = Chat::where('name', 'Manager')->first();
                 $manager_chat_request = FakeRequest::callback_query($manager_chat, $bot, $update_order_dataset);
                 (new Manager())->handle($manager_chat_request, $bot);
@@ -46,13 +45,13 @@ class OrderStatusObserver
         }
 
         if(
-            $order->status_id === 3 OR
-            $order->status_id === 9 OR
-            $order->status_id === 10 OR
-            $order->status_id === 12
+            $attributes['status_id'] === 3 OR
+            $attributes['status_id'] === 9 OR
+            $attributes['status_id'] === 10 OR
+            $attributes['status_id'] === 12
         ) { // отправка карточки заказа в чат курьеров
 
-            if($order->status_id === 12) { // создание записи в payments
+            if($attributes['status_id'] === 12) { // создание записи в payments
                 Payment::create(['order_id' => $order->id, 'status_id' => 1]);
             }
 
@@ -63,14 +62,14 @@ class OrderStatusObserver
             (new Courier())->handle($courier_chat_request, $bot);
         }
 
-        if($order->status_id === 5 OR $order->status_id === 13 OR $order->status_id === 14) { // отправка уведомления клиенту
+        if($attributes['status_id'] === 5 OR $attributes['status_id'] === 13 OR $attributes['status_id'] === 14) { // отправка уведомления клиенту
             $chat = Chat::factory()->make([
                 'chat_id' => $order->user->chat_id,
                 'name' => 'User',
                 'telegraph_bot_id' => 1
             ]);
 
-            if($order->status_id === 5) {
+            if($attributes['status_id'] === 5) {
                 $status = $order->statuses()->where('id', 5)->first();
                 $picked_time = (new Carbon($status->pivot->created_at))->format('Y-m-d H:i');
                 $user_chat_dataset = [
@@ -78,7 +77,7 @@ class OrderStatusObserver
                     'picked_time' => $picked_time
                 ];
                 Helper::send_user_notification($order->user, 'order_pickuped', $user_chat_dataset);
-            } else if($order->status_id === 13) {
+            } else if($attributes['status_id'] === 13) {
                 $fake_dataset = [
                     'action' => 'payment_page',
                     'params' => [
@@ -88,7 +87,7 @@ class OrderStatusObserver
 
                 $fake_request = FakeRequest::callback_query($chat, $bot, $fake_dataset);
                 (new User($order->user))->handle($fake_request, $bot);
-            } else if($order->status_id === 14) {
+            } else if($attributes['status_id'] === 14) {
                 /* ОТПРАВКА КЛИЕНТУ ПРОСЬБЫ ОЦЕНИТЬ ЗАКАЗ */
                 $fake_dataset = [
                     'action' => 'request_rating',
@@ -108,6 +107,7 @@ class OrderStatusObserver
                     /* Обновляем баланс пригласителя */
                     $inviter = $referral->inviter;
                     $bonus = $order->price*0.1;
+                    if(isset($order->bonuses)) $bonus = $bonus + $order->bonuses*0.1;
                     $balance = $inviter->balance;
                     if(!isset($balance)) $balance = $bonus;
                     else $balance = $balance + $bonus;
@@ -133,7 +133,7 @@ class OrderStatusObserver
             }
         }
 
-        if($order->status_id === 6) { // отправка в прачку
+        if($attributes['status_id'] === 6) { // отправка в прачку
             $washer_chat = Chat::where('name', 'Washer')
                 ->where('laundry_id', $order->laundry_id)
                 ->first();
@@ -142,7 +142,7 @@ class OrderStatusObserver
         }
 
         /* ОТПРАВКА В АДМИН ЧАТ */
-        if($order->status_id === 13 OR $order->status_id === 14) {
+        if($attributes['status_id'] === 13 OR $order->status_id === 14) {
             $admin_chat = Chat::where('name', 'Admin')->first();
             $chat_order = ChatOrderPivot::where('telegraph_chat_id', $admin_chat->id)
                 ->where('order_id', $order->id)
@@ -157,7 +157,7 @@ class OrderStatusObserver
             ];
 
             /* Если была выбрана оплата и после этого курьер доставил вещи */
-            if($order->status_id === 13) {
+            if($attributes['status_id'] === 13) {
                 if(($order->payment->method_id === 2 OR $order->payment->method_id === 3) AND $order->payment->status_id === 2) {
                     $admin_chat_request = FakeRequest::callback_query($admin_chat, $bot, $fake_dataset);
                     (new Admin())->handle($admin_chat_request, $bot);
@@ -166,7 +166,7 @@ class OrderStatusObserver
                 }
             }
 
-            if($order->status_id === 14) {
+            if($attributes['status_id'] === 14) {
                 if(!isset($chat_order)) {
                     $admin_chat_request = FakeRequest::callback_query($admin_chat, $bot, $fake_dataset);
                     (new Admin())->handle($admin_chat_request, $bot);
