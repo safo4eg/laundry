@@ -153,7 +153,8 @@ return [
         ],
 
         'commands' => [
-            'notification' => '🔔Create notification'
+            'notification' => '🔔Create notification',
+            'bonuses' => '🎁Bonus management'
         ],
 
         'create_notification' => [

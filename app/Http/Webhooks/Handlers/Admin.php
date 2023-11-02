@@ -26,6 +26,41 @@ class Admin extends WebhookHandler
         parent::__construct();
     }
 
+    public function bonuses(): void
+    {
+        $flag = $this->data->get('bonuses');
+
+        if(isset($flag)) {
+            $user = $this->data->get('user'); // запрос юзер_ид
+
+            if(isset($user)) {
+                $this->delete_message_by_types([3, 16, 17, 18, 19, 20, 21]);
+                $template = "Enter the user ID in order to find out its balance";
+                $cancel_button = Button::make('Cancel')
+                    ->action('commands');
+                $keyboard = Keyboard::make()->buttons([$cancel_button]);
+                $response = $this->chat
+                    ->message($template)
+                    ->keyboard($keyboard)
+                    ->send();
+
+                ChatOrderPivot::create([
+                    'telegraph_chat_id' => $this->chat->id,
+                    'order_id' => null,
+                    'message_id' => $response->telegraphMessageId(),
+                    'message_type_id' => 21
+                ]);
+            }
+        }
+
+        if(!isset($flag)) {
+            $user_id = $this->data->get('user_id');
+            $user = UserModel::where('id', $user_id)->first();
+
+
+        }
+    }
+
     public function notification(): void
     {
         $flag = $this->data->get('notification');
@@ -271,7 +306,7 @@ class Admin extends WebhookHandler
 
             if(isset($this->message)) {
                 $this->chat->deleteMessage($this->messageId)->send();
-                $this->delete_message_by_types([16, 17, 18, 19, 20]);
+                $this->delete_message_by_types([3, 16, 17, 18, 19, 20]);
             }
 
             $template = 'Admin chat commands';
@@ -281,6 +316,11 @@ class Admin extends WebhookHandler
                 Button::make($buttons_texts['notification'])
                     ->action('notification')
                     ->param('reset', 1),
+
+                Button::make($buttons_texts['bonuses'])
+                    ->action('bonuses')
+                    ->param('bonuses', 1)
+                    ->param('user', 1)
             ]);
 
             $response = $this->chat
@@ -431,10 +471,10 @@ class Admin extends WebhookHandler
         if($photos->isEmpty() AND isset($text)) {
             $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('order_id', null)
-                ->whereIn('message_type_id', [18, 19])
+                ->whereIn('message_type_id', [18, 19, 21])
                 ->first();
 
-            if(isset($chat_order)) {
+            if(in_array($chat_order->message_type_id, [18, 19])) {
                 $notification = $this->chat->storage()->get('notification');
                 if($chat_order->message_type_id === 18) $notification['text_ru'] = $text;
                 else if($chat_order->message_type_id === 19) $notification['text_en'] = $text;
@@ -447,6 +487,49 @@ class Admin extends WebhookHandler
                 (new self())->handle($fake_request, $this->bot);
 
                 $this->chat->deleteMessage($this->messageId)->send();
+            } else if($chat_order->message_type_id === 21) { // запрос ид пользователя
+                if(preg_match('#^[0-9]+$#', $text)) {
+                    $user = UserModel::where('id', $text)->first();
+                    if(isset($user)) {
+                        // отправка на бонусы
+                    } else {
+                        $response = $this->chat
+                            ->message('There is no user with the specified ID, please try again:')
+                            ->send();
+
+                        ChatOrderPivot::create([
+                            'telegraph_chat_id' => $this->chat->id,
+                            'order_id' => null,
+                            'message_id' => $response->telegraphMessageId(),
+                            'message_type_id' => 3
+                        ]);
+
+                        ChatOrderPivot::create([
+                            'telegraph_chat_id' => $this->chat->id,
+                            'order_id' => null,
+                            'message_id' => $this->messageId,
+                            'message_type_id' => 12
+                        ]);
+                    }
+                } else {
+                    $response = $this->chat
+                        ->message('Invalid user ID entered, please try again:')
+                        ->send();
+
+                    ChatOrderPivot::create([
+                        'telegraph_chat_id' => $this->chat->id,
+                        'order_id' => null,
+                        'message_id' => $response->telegraphMessageId(),
+                        'message_type_id' => 3
+                    ]);
+
+                    ChatOrderPivot::create([
+                        'telegraph_chat_id' => $this->chat->id,
+                        'order_id' => null,
+                        'message_id' => $this->messageId,
+                        'message_type_id' => 12
+                    ]);
+                }
             }
         }
     }

@@ -36,6 +36,7 @@ class MessageTypeSeeder extends Seeder
             ['title' => 'admin_notification_request_text_ru'],
             ['title' => 'admin_notification_request_text_en'],
             ['title' => 'admin_notification_preview'],
+            ['title' => 'admin_bonuses_id'], // запрос ИД пользователя
         ]);
     }
 }
