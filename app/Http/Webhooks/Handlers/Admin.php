@@ -648,7 +648,8 @@ class Admin extends WebhookHandler
                     ->first();
                 $photo_path = $file->path;
                 $buttons[] = Button::make($this->general_buttons['report'])
-                    ->action('fake');
+                    ->action('order_report')
+                    ->param('order_id', $order->id);
             }
 
             $keyboard = Keyboard::make()->buttons($buttons);
