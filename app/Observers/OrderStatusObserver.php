@@ -70,8 +70,10 @@ class OrderStatusObserver
             ]);
 
             if($attributes['status_id'] === 5) {
-                $status = $order->statuses()->where('id', 5)->first();
-                $picked_time = (new Carbon($status->pivot->created_at))->format('Y-m-d H:i');
+                $order_status = OrderStatusPivot::where('order_id', $order->id)
+                    ->where('status_id', 5)
+                    ->first();
+                $picked_time = (new Carbon($order_status->created_at))->format('Y-m-d H:i');
                 $user_chat_dataset = [
                     'order' => $order,
                     'picked_time' => $picked_time
