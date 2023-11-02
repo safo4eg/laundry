@@ -277,7 +277,7 @@ trait ChatsHelperTrait
         $photo = $photos->last(); // получение фото с лучшим качеством
         $dir = "ticket/";
         $file_name = $photo->id() . ".jpg";
-        $dir = $dir . "ticket_item_{$ticket_item->id}";
+        $dir = $dir . "ticket_$ticket_item->ticket_id/ticket_item_{$ticket_item->id}";
 
         Telegraph::store($photo, Storage::path($dir), $file_name); // сохранение фото
 

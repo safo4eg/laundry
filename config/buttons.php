@@ -97,12 +97,11 @@ return [
                 'have_questions' => ['ru' => 'У меня еще остались вопросы', 'en' => 'I still have questions'],
                 'have_not_questions' => ['ru' => 'Нет вопросов', 'en' => 'I not have any questions']
             ],
-            [
-                'close_buttons' => [
-                    'create_order' => ['ru' => 'Сделать заказ', 'en' => 'Create order'],
-                    'new_request' => ['ru' => 'Новое обращение', 'en' => 'New request']
-                ]
+            'close_buttons' => [
+                'new_order' => ['ru' => 'Сделать заказ', 'en' => 'Create order'],
+                'new_request' => ['ru' => 'Новое обращение', 'en' => 'New request']
             ]
+
         ]
     ],
 

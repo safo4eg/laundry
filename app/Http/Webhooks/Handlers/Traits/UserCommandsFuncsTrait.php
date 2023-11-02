@@ -4,9 +4,8 @@ namespace App\Http\Webhooks\Handlers\Traits;
 
 use App\Models\Order;
 use App\Models\Ticket;
-use Illuminate\Support\Facades\Log;
-use Symfony\Component\HttpKernel\DataCollector\LoggerDataCollector;
-use function Psy\debug;
+use DefStudio\Telegraph\Facades\Telegraph;
+use Illuminate\Support\Facades\Storage;
 
 trait UserCommandsFuncsTrait
 {
@@ -109,5 +108,4 @@ trait UserCommandsFuncsTrait
             ]);
         }
     }
-
 }

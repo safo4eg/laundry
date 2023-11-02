@@ -1104,7 +1104,6 @@ class User extends WebhookHandler
     }
 
     use Traits\SupportUserTrait;
-    use Traits\ChatsHelperTrait;
     use Traits\UserMessageTrait;
     use Traits\SupportTrait;
 

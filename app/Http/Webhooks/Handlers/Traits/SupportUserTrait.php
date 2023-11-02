@@ -8,7 +8,6 @@ use App\Models\Ticket;
 use App\Models\TicketItem;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 
@@ -54,11 +53,11 @@ trait SupportUserTrait
         $support_chat = Chat::where('name', 'Support')->first();
         $this->delete_ticket_card($support_chat, $ticket);
 
-        $view = "bot.user.{$ticket->user->language_code}.support.rate";
-        $buttons = config('buttons.user')['support']['close_ticket'];
+        $view = "bot.user.{$ticket->user->language_code}.support.ticket_closed";
+        $buttons = config('buttons.user')['support']['close_buttons'];
         $buttons = [
-            Button::make($buttons['new_order'])->action('start'),
-            Button::make($buttons['new_request'])->action('support')
+            Button::make($buttons['new_order'][$this->user->language_code])->action('start'),
+            Button::make($buttons['new_request'][$this->user->language_code])->action('support')
         ];
 
         $this->chat->edit($this->user->message_id)
@@ -109,9 +108,6 @@ trait SupportUserTrait
             ->message(view($template))
             ->keyboard(Keyboard::make()->buttons($buttons))
             ->send();
-
-        Log::debug($this->user->page);
-
         if ($this->user->page !== "add_ticket") {
             $this->user->update([
                 "page" => "ticket_creation"
@@ -207,7 +203,7 @@ trait SupportUserTrait
 
                 $user->storage()->set('photo_message_timestamp', $message_timestamp);
 
-                $dir = "Ticket/ticket_item_{$ticket_item->id}";
+                $dir = "ticket/ticket_{$ticket_item->ticket_id}/ticket_item_{$ticket_item->id}";
                 $file_name = "{$photo->id()}.jpg";
 
                 $confirmation_buttons = $this->config['support']['confirm'];
@@ -241,17 +237,15 @@ trait SupportUserTrait
         if ($this->message or $this->callbackQuery) {
             $this->message ? $user = $this->message->from() : $user = $this->callbackQuery->from();
             $current_ticket = $user->storage()->get('current_ticket_id');
-            $user->storage()->forget('current_ticket_id');
             $ticket_item = TicketItem::where('ticket_id', $current_ticket)
                 ->orderByDesc('time')
                 ->first();
 
             if ($flag) {
-                $dir = "ticket/ticket_item_{$ticket_item->id}";
-
                 $photo_id = $user->storage()->get('photo_id');
-
+                $dir = "ticket/ticket_{$ticket_item->ticket_id}/ticket_item_{$ticket_item->id}";
                 $file_name = "$photo_id.jpg";
+
                 File::create([
                     'path' => Storage::url("{$dir}/{$file_name}"),
                     'ticket_item_id' => $ticket_item->id,
@@ -270,10 +264,12 @@ trait SupportUserTrait
                     ]);
                 }
                 $this->ticket_created();
+                $user->storage()->forget('current_ticket_id');
             } else {
                 $this->user->update([
                     "step" => 2,
                 ]);
+                $this->handle_ticket_request();
             }
         }
     }
@@ -297,6 +293,9 @@ trait SupportUserTrait
                 $ticket->update([
                     'status_id' => 2
                 ]);
+            } else {
+                $chat = Chat::where('name', 'Support')->first();
+                $this->send_ticket_card($chat, $ticket);
             }
         }
 
@@ -338,7 +337,7 @@ trait SupportUserTrait
         ]);
 
         if (!isset($type)) {
-            $this->chat->edit($this->messageId)->message(view($template))->keyboard(
+            $response = $this->chat->edit($this->user->message_id)->message(view($template))->keyboard(
                 Keyboard::make()->buttons([
                     Button::make($buttons['active'])->action('check_user_tickets')
                         ->param('check_user_tickets', 'active')->width(0.5),
@@ -347,15 +346,19 @@ trait SupportUserTrait
                     Button::make($button)->action('support')
                 ])
             )->send();
+
+            $this->user->update([
+                'message_id' => $response->telegraphMessageId()
+            ]);
         }
 
         if (isset($type)) {
             if ($type == 'archive') {
-                $archive_tickets = $tickets->whereNotNull('time_end')->get();
+                $archive_tickets = $tickets->whereIn('status_id', [4, 5])->get();
                 $this->ticket_list($archive_tickets, 'archive');
             }
             if ($type == 'active') {
-                $active_tickets = $tickets->whereNull('time_end')->get();
+                $active_tickets = $tickets->whereIn('status_id', [2, 3])->get();
                 $this->ticket_list($active_tickets, 'active');
             }
             if ($type == 'ticket_info') {
@@ -374,20 +377,30 @@ trait SupportUserTrait
                 $ticket = Ticket::where('id', $ticket_id)->first();
 
                 if ($ticket->status_id == 4 or $ticket->status_id == 5) {
-                    $buttons = Button::make($button)->action('check_user_tickets');
+                    $buttons = [
+                        Button::make($button)
+                            ->action('check_user_tickets')
+                            ->param('check_user_tickets', 'archive')
+                    ];
                 } else {
                     $buttons = [
                         Button::make($new_req_button)
                             ->action('add_ticket')
                             ->param('ticket_id', $ticket_id),
-                        Button::make($button)->action('check_user_tickets')
+                        Button::make($button)
+                            ->action('check_user_tickets')
+                            ->param('check_user_tickets', 'active')
                     ];
                 }
 
-                $this->chat->edit($this->messageId)
+                $response = $this->chat->edit($this->user->message_id)
                     ->message($view)->keyboard(Keyboard::make()
                         ->buttons($buttons))
                     ->send();
+
+                $this->user->update([
+                    'message_id' => $response->telegraphMessageId()
+                ]);
             }
         }
     }
@@ -409,10 +422,14 @@ trait SupportUserTrait
         }
         $buttons[] = Button::make($button)->action('check_user_tickets');
 
-        $this->chat->edit($this->messageId)
+        $response = $this->chat->edit($this->user->message_id)
             ->message($view)
             ->keyboard(Keyboard::make()
                 ->buttons($buttons))->send();
+
+        $this->user->update([
+            'message_id' => $response->telegraphMessageId()
+        ]);
     }
 
 
@@ -424,7 +441,7 @@ trait SupportUserTrait
             $user->storage()->set('current_ticket_id', $ticket_id);
             $this->user->update([
                 'page' => 'add_ticket',
-                'step' => 1
+                'step' => 1,
             ]);
 
             $this->handle_ticket_request();

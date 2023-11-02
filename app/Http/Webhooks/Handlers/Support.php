@@ -101,7 +101,6 @@ class Support extends WebhookHandler
 
     use SupportTrait;
     use ChatsHelperTrait;
-    use UserCommandsFuncsTrait;
 
     public function close(): void
     {
