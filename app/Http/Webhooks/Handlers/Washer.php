@@ -25,6 +25,15 @@ class Washer extends WebhookHandler
         $this->template_prefix = 'bot.chats.';
         parent::__construct();
     }
+
+    /* вызов в админ-чате */
+    public function delete_order(): void
+    {
+        $order_id = $this->data->get('order_id');
+        $order = Order::where('id', $order_id)->first();
+        $this->delete_order_card_messages($order, true);
+    }
+
     public function send_order_card(Order $order): void
     {
         if(in_array($order->status_id, [6, 7, 8])) {

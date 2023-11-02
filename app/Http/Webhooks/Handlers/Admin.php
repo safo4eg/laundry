@@ -3,6 +3,10 @@
 namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\ChatsHelperTrait;
+use App\Models\OrderMessage;
+use App\Models\OrderServicePivot;
+use App\Models\OrderStatusPivot;
+use App\Models\Payment;
 use App\Models\User as UserModel;
 use App\Models\ChatOrderPivot;
 use App\Models\File;
@@ -32,6 +36,83 @@ class Admin extends WebhookHandler
 
         if(isset($flag)) {
             $order_id = $this->data->get('order_id');
+            $files = File::where('order_id', $order_id)->get();
+            if($files->isNotEmpty()) {
+                foreach ($files as $file) {
+                    Storage::delete($file->path);
+                    $file->delete();
+                }
+            }
+
+            $order_messages = OrderMessage::where('order_id', $order_id)->get();
+            if($order_messages->isNotEmpty()) {
+                foreach ($order_messages as $order_message) {
+                    $order_message->delete();
+                }
+            }
+
+            $order_services = OrderServicePivot::where('order_id', $order_id)->get();
+            if($order_services->isNotEmpty()) {
+                foreach ($order_services as $order_service) {
+                    $order_service->delete();
+                }
+            }
+
+            $order_statuses = OrderStatusPivot::where('order_id', $order_id)->get();
+            if($order_statuses->isNotEmpty()) {
+                foreach($order_statuses as $order_status) {
+                    $order_status->delete();
+                }
+            }
+
+            $payments = Payment::where('order_id', $order_id)->get();
+            if($payments->isNotEmpty()) {
+                foreach ($payments as $payment) {
+                    $payment->delete();
+                }
+            }
+
+            $chat_orders = ChatOrderPivot::where('order_id', $order_id)
+                ->where('message_type_id', 1)
+                ->get();
+            if($chat_orders->isNotEmpty()) {
+                $fake_dataset = [
+                    'action' => 'delete_order',
+                    'params' => [
+                        'order_id' => $order_id
+                    ]
+                ];
+                $chat_handler_class_prefix = '\\App\\Http\\Webhooks\\Handlers\\';
+                foreach ($chat_orders as $chat_order) {
+                    $fake_request = FakeRequest::callback_query($chat_order->chat, $this->bot, $fake_dataset);
+                    $handler_class = $chat_handler_class_prefix.$chat_order->chat->name;
+                    (new $handler_class())->handle($fake_request, $this->bot);
+                }
+            }
+
+            $order = Order::where('id', $order_id)->first();
+            $user = $order->user;
+            $order->delete();
+            $this->delete_message_by_types([25]);
+            $response = $this->chat
+                ->message("Order #{$order_id} has been deleted")
+                ->keyboard(Keyboard::make()
+                    ->buttons([
+                        Button::make('OK')
+                            ->action('delete_message_by_types')
+                            ->param('delete', 1)
+                            ->param('type_id', '3')])
+                )->send();
+
+            ChatOrderPivot::create([
+                'telegraph_chat_id' => $this->chat->id,
+                'order_id' => null,
+                'user_id' => null,
+                'message_id' => $response->telegraphMessageId(),
+                'message_type_id' => 3
+            ]);
+
+            // отправка уведомления пользователю чей был заказ
         }
 
         if(!isset($flag)) {
@@ -42,7 +123,7 @@ class Admin extends WebhookHandler
             if($orders->isNotEmpty()) {
                 $template = 'Select the order you want to delete:';
                 foreach ($orders as $order) {
-                    $buttons[] = Button::make("#{$order->id}")
+                    $buttons[] = Button::make("#{$order->id} ({$order->status->en_desc})")
                         ->action('delete_order')
                         ->param('delete', 1)
                         ->param('order_id', $order->id);
