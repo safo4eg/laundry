@@ -332,6 +332,7 @@ class User extends WebhookHandler
                 ->whereExists(function ($query) {
                     $query->select(DB::raw(1))
                         ->from('orders')
+                        ->whereColumn('orders.id', 'payments.order_id')
                         ->where('orders.user_id', $this->user->id);
                 })->get();
 
