@@ -42,9 +42,11 @@ class Manager extends WebhookHandler
 
     public function send_order_card(Order $order): void // распределение какую карточку отправить
     {
-        $keyboard = $this->get_keyboard_order_card($order);
-        if($order->status_id === 2) $this->distribute($order, $keyboard);
-        else $this->show_card($order, $keyboard);
+        if($order->status_id !== 14) {
+            $keyboard = $this->get_keyboard_order_card($order);
+            if($order->status_id === 2) $this->distribute($order, $keyboard);
+            else $this->show_card($order, $keyboard);
+        }
     }
 
     public function get_keyboard_order_card(Order $order = null): Keyboard
