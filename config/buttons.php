@@ -157,6 +157,12 @@ return [
             'bonuses' => '🎁Bonus management'
         ],
 
+        'bonuses' => [
+            'plus' => '⬆️Top Up',
+            'minus' => '⬇️Write off',
+            'back' => 'Back'
+        ],
+
         'create_notification' => [
             'text_ru' => 'Add text (RU)',
             'text_en' => 'Add text (EN)',
