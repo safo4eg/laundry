@@ -31,7 +31,7 @@ class Support extends WebhookHandler
         $view = "$this->template_prefix.enter_answer";
         $ticket = Ticket::where('id', $this->data->get('ticket_id'))->first();
 
-        $this->delete_message_by_types([10]);
+        $this->delete_message_by_types([27]);
         $response = $this->chat->message(view($view, [
             'ticket' => $ticket
         ]))->keyboard(Keyboard::make()->buttons([
@@ -44,7 +44,7 @@ class Support extends WebhookHandler
         ChatOrder::create([
             'telegraph_chat_id' => $this->chat->id,
             'message_id' => $response->telegraphMessageId(),
-            'message_type_id' => 10,
+            'message_type_id' => 27,
             'ticket_id' => $ticket->id
         ]);
     }
@@ -67,7 +67,7 @@ class Support extends WebhookHandler
                 'status_id' => 5
             ]);
 
-            $this->delete_message_by_types([9, 10, 11, 12, 13, 14, 15]);
+            $this->delete_message_by_types([26, 27, 28, 29, 30, 31]);
 
         } else {
             $buttons = [];
@@ -79,7 +79,7 @@ class Support extends WebhookHandler
             }
 
             $ticket_card = ChatOrder::where('telegraph_chat_id', $this->chat->id)
-                ->where('ticket_id', $ticket->id)->where('message_type_id', 9)
+                ->where('ticket_id', $ticket->id)->where('message_type_id', 26)
                 ->first();
 
             $view = "$this->template_prefix.reject_ticket";
@@ -92,7 +92,7 @@ class Support extends WebhookHandler
             ChatOrder::create([
                 'telegraph_chat_id' => $this->chat->id,
                 'message_id' => $response->telegraphMessageId(),
-                'message_type_id' => 14,
+                'message_type_id' => 31,
                 'ticket_id' => $ticket->id
             ]);
         }
@@ -123,16 +123,16 @@ class Support extends WebhookHandler
                 'telegraph_chat_id' => $this->chat->id,
                 'message_id' => $this->messageId,
                 'ticket_id' => null,
-                'message_type_id' => 11
+                'message_type_id' => 28
             ]);
 
             $chat_ticket = ChatOrder::where('telegraph_chat_id', $this->chat->id)
-                ->where('message_type_id', 10)
+                ->where('message_type_id', 27)
                 ->first();
 
             $ticket = $chat_ticket?->ticket;
             if (isset($chat_ticket)) {
-                $this->delete_message_by_types([11, 10]);
+                $this->delete_message_by_types([27, 28]);
                 $this->confirm_answer($text, $ticket);
             }
         }

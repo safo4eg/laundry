@@ -60,14 +60,14 @@ trait SupportTrait
                 } else {
                     $this->send_ticket_card($this->chat, $ticket);
                 }
-                $this->delete_message_by_types([12]);
+                $this->delete_message_by_types([29]);
                 $this->send_user_answer($ticket_item);
             } elseif ($flag == 2) {
-                $this->delete_message_by_types([10, 11, 12]);
+                $this->delete_message_by_types([27, 28, 29]);
                 $this->answer();
             }
         } else {
-            $this->delete_message_by_types([10, 11, 12]);
+            $this->delete_message_by_types([27, 28, 29]);
             $response = $this->chat->message(view('bot.support.confirm_ticket', [
                 'ticket_id' => $ticket->id,
                 'text' => $text
@@ -85,7 +85,7 @@ trait SupportTrait
                 'telegraph_chat_id' => $this->chat->id,
                 'message_id' => $response->telegraphMessageId(),
                 'ticket_id' => $ticket->id,
-                'message_type_id' => 12
+                'message_type_id' => 29
             ]);
         }
     }
@@ -109,7 +109,7 @@ trait SupportTrait
             'telegraph_chat_id' => $chat->id,
             'message_id' => $response->telegraphMessageId(),
             'ticket_id' => $ticket->id,
-            'message_type_id' => 9
+            'message_type_id' => 26
         ]);
     }
 
