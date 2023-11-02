@@ -78,6 +78,29 @@ class Admin extends WebhookHandler
                         'message_type_id' => 23
                     ]);
                 }
+
+                if(isset($minus)) {
+                    $template = 'Enter the number of bonuses you want to deduct from the user:';
+                    $keyboard = Keyboard::make()->buttons([
+                        Button::make('Cancel')
+                            ->action('delete_message_by_types')
+                            ->param('delete', 1)
+                            ->param('type_id', '24')
+                    ]);
+
+                    $response = $this->chat
+                        ->message($template)
+                        ->keyboard($keyboard)
+                        ->send();
+
+                    ChatOrderPivot::create([
+                        'telegraph_chat_id' => $this->chat->id,
+                        'order_id' => null,
+                        'user_id' => $user->id,
+                        'message_id' => $response->telegraphMessageId(),
+                        'message_type_id' => 24
+                    ]);
+                }
             }
         }
 
@@ -605,7 +628,11 @@ class Admin extends WebhookHandler
                         $template = $template_prefix."balance_replenished";
                         $template_text = view($template, ['plus' => $text, 'user' => $user]);
                     } else if($chat_order->message_type_id === 24) {
+                        $new_balance = (int)$user->balance - (int) $text;
+                        $user->update(['balance' => $new_balance]);
 
+                        $template = $template_prefix."balance_updated";
+                        $template_text = view($template, ['minus' => $text, 'user' => $user]);
                     }
                     // обновление у админа
                     $fake_dataset = [
