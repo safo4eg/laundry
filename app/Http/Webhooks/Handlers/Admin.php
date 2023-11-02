@@ -125,7 +125,9 @@ class Admin extends WebhookHandler
                     ->param('user_id', $user->id),
 
                 Button::make($buttons_texts['back'])
-                    ->action('commands')
+                    ->action('delete_message_by_types')
+                    ->param('delete', 1)
+                    ->param('type_id', '22')
             ]);
 
             $response = $this->chat
