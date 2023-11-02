@@ -14,6 +14,7 @@ return new class extends Migration
     public function up()
     {
         Schema::create('order_service', function (Blueprint $table) {
+            $table->id();
             $table->unsignedBigInteger('order_id');
             $table->unsignedTinyInteger('service_id');
             $table->unsignedInteger('amount');

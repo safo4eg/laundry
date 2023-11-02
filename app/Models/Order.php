@@ -19,6 +19,10 @@ class Order extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function status(){
+        return $this->belongsTo(OrderStatus::class, 'status_id', 'id');
+    }
+
     public function statuses() {
         return $this->belongsToMany(
             OrderStatus::class,
