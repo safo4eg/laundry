@@ -4,18 +4,21 @@ namespace App\Http\Webhooks\Handlers\Traits;
 
 use App\Http\Webhooks\Handlers\User;
 use App\Models\Chat;
-use App\Models\ChatOrder;
+use App\Models\ChatOrderPivot;
 use App\Models\Order;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use App\Services\FakeRequest;
+use DefStudio\Telegraph\DTO\Photo;
+use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 
 
 trait SupportTrait
 {
-    use ChatsHelperTrait;
     public function send_user_answer(TicketItem $ticket_item): void
     {
         $ticket_id = $this->data->get('ticket_id');
@@ -80,7 +83,7 @@ trait SupportTrait
                 Button::make('Cancel')->action('cancel')
             ]))->send();
 
-            ChatOrder::create([
+            ChatOrderPivot::create([
                 'telegraph_chat_id' => $this->chat->id,
                 'message_id' => $response->telegraphMessageId(),
                 'ticket_id' => $ticket->id,
@@ -104,7 +107,7 @@ trait SupportTrait
             ->keyboard($this->update_ticket_keyboard_by_status($ticket))
             ->send();
 
-        ChatOrder::create([
+        ChatOrderPivot::create([
             'telegraph_chat_id' => $chat->id,
             'message_id' => $response->telegraphMessageId(),
             'ticket_id' => $ticket->id,
@@ -160,7 +163,7 @@ trait SupportTrait
 
     public function delete_ticket_card($chat, Ticket $ticket): void
     {
-        $messages = ChatOrder::where('telegraph_chat_id', $chat->id)
+        $messages = ChatOrderPivot::where('telegraph_chat_id', $chat->id)
             ->where('ticket_id', $ticket->id)
             ->get();
 
@@ -168,5 +171,30 @@ trait SupportTrait
             $chat->deleteMessage($message->message_id)->send();
             $message->delete();
         }
+    }
+
+    public function save_ticket_photo(Collection $photos, TicketItem $ticket_item): Photo
+    {
+        $photo = $photos->last(); // получение фото с лучшим качеством
+        $dir = "ticket/";
+        $file_name = $photo->id() . ".jpg";
+        $dir = $dir . "ticket_$ticket_item->ticket_id/ticket_item_{$ticket_item->id}";
+
+        Telegraph::store($photo, Storage::path($dir), $file_name); // сохранение фото
+
+        return $photo;
+    }
+
+    public function prepare_template(string $view, array $params = null): array|string|null
+    {
+        $template = str_replace("\t", " ", view($view, $params));
+        $lines = explode(PHP_EOL, $template);
+        $new_lines = [];
+
+        foreach ($lines as $line) {
+            $new_lines[] = preg_replace('/ {2,}/', ' ', $line);
+        }
+
+        return implode(PHP_EOL, $new_lines);
     }
 }

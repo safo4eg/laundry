@@ -17,12 +17,14 @@ return new class extends Migration
             $table->unsignedBigInteger('telegraph_chat_id');
             $table->unsignedBigInteger('order_id')->nullable();
             $table->unsignedBigInteger('ticket_id')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('message_id');
             $table->unsignedTinyInteger('message_type_id');
 
             $table->foreign('telegraph_chat_id')->references('id')->on('telegraph_chats');
             $table->foreign('order_id')->references('id')->on('orders');
             $table->foreign('ticket_id')->references('id')->on('tickets');
+            $table->foreign('user_id')->references('id')->on('users');
             $table->foreign('message_type_id')->references('id')->on('message_types');
         });
     }

@@ -8,7 +8,6 @@ use Carbon\Carbon;
 use DefStudio\Telegraph\Models\TelegraphBot;
 use DefStudio\Telegraph\Models\TelegraphChat;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class FakeRequest
 {
@@ -99,8 +98,6 @@ class FakeRequest
         foreach ($dataset['params'] as $name => $value) {
             $payload['callback_query']['data'] = $payload['callback_query']['data'].";$name:$value";
         }
-
-        Log::debug(json_encode($payload));
 
         return request()->replace($payload);
     }

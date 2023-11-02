@@ -17,10 +17,10 @@ class TelegraphBotSeeder extends Seeder
     {
         DB::table('telegraph_bots')->insert([
             [
-                'bot_id' => 6152481327,
-                'token' => '6152481327:AAG3VzvXBmKIanOoWqMM_e9_PqBISVa176Y',
-                'first_name' => 'test',
-                'username' => 'lann777_bot'
+                'bot_id' => 5999454872,
+                'token' => '5999454872:AAG-APM61vU2oIFqQ1D1VKYrXTXmvz4glFM',
+                'first_name' => 'telegraph',
+                'username' => 'rastan_telegraph_bot'
             ],
         ]);
     }

@@ -14,6 +14,7 @@ return new class extends Migration
     public function up()
     {
         Schema::create('order_status', function (Blueprint $table) {
+            $table->id();
             $table->unsignedBigInteger('order_id');
             $table->unsignedTinyInteger('status_id');
             $table->timestamp('created_at')->nullable();

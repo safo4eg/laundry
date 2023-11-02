@@ -102,6 +102,44 @@ return [
                 'new_request' => ['ru' => 'Новое обращение', 'en' => 'New request']
             ]
 
+        ],
+
+        'payment' => [
+            'select' => ['ru' => 'Выбрать способ оплаты', 'en' => 'Choose payment method'],
+            'change' => ['ru' => 'Изменить способ оплаты', 'en' => 'Change payment method'],
+            'dialogue' => ['ru' => 'Написать курьеру', 'en' => 'Write to the courier'],
+            'request_photo' => ['ru' => 'Отправить фото оплаты', 'en' => 'Send photo of payment']
+        ],
+
+        'order_dialogue' => [
+            'write' => ['ru' => 'Написать', 'en' => 'Write'],
+            'pay' => ['ru' => 'Оплатить заказ', 'en' => 'Pay for the order'],
+            'change' => ['ru' => 'Изменить способ оплаты', 'en' => 'Change payment method'],
+            'reply' => ['ru' => 'Ответить', 'en' => 'Reply'],
+            'open' => ['ru' => 'Открыть диалог', 'en' => 'Open dialogue'],
+            'close' => ['ru' => 'Закрыть', 'en' => 'Close']
+        ],
+
+        'request_order_message' => ['ru' => 'Отмена', 'en' => 'Cancel'],
+
+        'unpaid_orders' => [
+            'pay' => ['ru' => 'Оплатить', 'en' => 'Pay'],
+            'continue' => ['ru' => 'Продолжить', 'en' => 'Сontinue']
+        ],
+
+        'request_rating' => [
+            'recommend' => ['ru' => 'Рассказать друзьям', 'en' => 'Recommend to friends'],
+            'start' => ['ru' => 'Заказать стирку', 'en' => 'Order laundry']
+        ],
+
+        'payment_photo' => [
+            'yes' => ['ru' => 'Да', 'en' => 'Yes'],
+            'no' => ['ru' => 'Нет', 'en' => 'No']
+        ],
+
+        'payment_with_bonuses' => [
+            'yes' => ['ru' => 'Да', 'en' => 'Yes'],
+            'no' => ['ru' => 'Нет', 'en' => 'No']
         ]
     ],
 
@@ -110,25 +148,85 @@ return [
     ],
 
     'courier' => [
-        'pickup' => [
-            'pickup' => 'Pickup'
+        3 => 'Pickup',
+        5 => 'In the Laundry',
+        9 => 'Weigh', // отправлены на взвешивание
+        10 => 'Photo on the scales',
+        11 => "Let's hit the road",
+        12 => '📤Photos of delivered things',
+        13 => '💵Photo of money'
+    ],
+
+    'washer' => [
+        6 => 'Photo before washing', // когда только доставили статус = Доставлен (ид=6) меняет на 7
+        7 => 'Photo after washing', // вещи постираны статус = Постираны (ид=7) меняет на 8
+        8 => 'Ready for weighing', // вещи переданы курьеру на взвешивание (ид=8) меняет на 9
+    ],
+
+    'admin' => [
+        'send_card' => [
+            'confirm' => '✅Confirm payment',
+            'decline' => '❌Decline payment',
         ],
 
-        'photo_request' => [
+        'commands' => [
+            'notification' => '🔔Create notification',
+            'bonuses' => '🎁Bonus management',
+            'delete' => '❌Delete Order'
+        ],
+
+        'bonuses' => [
+            'plus' => '⬆️Top Up',
+            'minus' => '⬇️Write off',
+            'back' => 'Back'
+        ],
+
+        'create_notification' => [
+            'text_ru' => 'Add text (RU)',
+            'text_en' => 'Add text (EN)',
+            'start' => 'Start button',
+            'recommend' => 'Recommend button',
+            'preview' => '🎬Preview',
+            'cancel' => 'Cancel',
+            'ru' => 'Preview (RU)',
+            'en' => 'Preview (EN)',
+            'send' => 'Send notification'
+        ]
+    ],
+
+    'chats' => [
+        'request_photo' => [
             'cancel' => 'Cancel'
         ],
 
         'confirm_photo' => [
             'yes' => 'YES',
-            'no' => 'NO'
+            'no' => 'NO',
+            'cancel' => 'CANCEL'
         ],
 
         'select_order' => [
             'cancel' => 'Cancel'
+        ],
+
+        'report' => 'ℹ️Order report',
+
+        'weighing' => [
+            'accept' => 'Accept',
+            'reset' => 'Reset',
+            'cancel' => 'Cancel'
+        ],
+
+        'confirm_weighing' => [
+            'yes' => '✅YES',
+            'no' => '❌NO'
+        ],
+
+        'courier_dialogue' => [
+            'write' => 'Write',
+            'close' => 'Close dialogue',
+            'close_message' => 'Close',
+            'reply_to_message' => 'Reply'
         ]
     ],
-
-    'support' => [
-
-    ]
 ];

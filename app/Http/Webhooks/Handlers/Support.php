@@ -8,7 +8,7 @@ use App\Http\Webhooks\Handlers\Traits\SupportTrait;
 use App\Http\Webhooks\Handlers\Traits\SupportUserTrait;
 use App\Http\Webhooks\Handlers\Traits\UserCommandsFuncsTrait;
 use App\Http\Webhooks\Handlers\Traits\UserMessageTrait;
-use App\Models\ChatOrder;
+use App\Models\ChatOrderPivot;
 use App\Models\Ticket;
 use App\Models\TicketRejectReason;
 use App\Models\User as UserModel;
@@ -21,7 +21,6 @@ class Support extends WebhookHandler
 {
     public function __construct()
     {
-        $this->config = config('buttons.support');
         $this->template_prefix = 'bot.support';
         parent::__construct();
     }
@@ -41,7 +40,7 @@ class Support extends WebhookHandler
                 ->param('type_id', 10)
         ]))->send();
 
-        ChatOrder::create([
+        ChatOrderPivot::create([
             'telegraph_chat_id' => $this->chat->id,
             'message_id' => $response->telegraphMessageId(),
             'message_type_id' => 27,
@@ -78,7 +77,7 @@ class Support extends WebhookHandler
                     ->param('ticket_id', $ticket->id);
             }
 
-            $ticket_card = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+            $ticket_card = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('ticket_id', $ticket->id)->where('message_type_id', 26)
                 ->first();
 
@@ -89,7 +88,7 @@ class Support extends WebhookHandler
                 ->buttons($buttons))
                 ->send();
 
-            ChatOrder::create([
+            ChatOrderPivot::create([
                 'telegraph_chat_id' => $this->chat->id,
                 'message_id' => $response->telegraphMessageId(),
                 'message_type_id' => 31,
@@ -119,14 +118,14 @@ class Support extends WebhookHandler
         if ($text) {
             $this->chat->storage()->set('text', $text);
 
-            ChatOrder::create([
+            ChatOrderPivot::create([
                 'telegraph_chat_id' => $this->chat->id,
                 'message_id' => $this->messageId,
                 'ticket_id' => null,
                 'message_type_id' => 28
             ]);
 
-            $chat_ticket = ChatOrder::where('telegraph_chat_id', $this->chat->id)
+            $chat_ticket = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('message_type_id', 27)
                 ->first();
 

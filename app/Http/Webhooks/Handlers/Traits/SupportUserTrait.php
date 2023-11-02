@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Storage;
 trait SupportUserTrait
 {
     use SupportTrait;
-    use UserCommandsFuncsTrait;
 
     public function get_support_answer(): void
     {

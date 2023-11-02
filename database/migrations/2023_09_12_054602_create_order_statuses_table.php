@@ -16,6 +16,7 @@ return new class extends Migration
         Schema::create('order_statuses', function (Blueprint $table) {
             $table->tinyInteger('id')->unsigned()->autoIncrement();
             $table->string('name', 64);
+            $table->string('signature_photo', 64)->nullable();
             $table->string('en_desc', 64);
             $table->string('ru_desc', 64);
         });

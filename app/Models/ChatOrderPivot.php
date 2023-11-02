@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class ChatOrder extends Pivot
+class ChatOrderPivot extends Pivot
 {
     public $timestamps = false;
     protected $guarded = [];
@@ -25,5 +25,10 @@ class ChatOrder extends Pivot
     public function ticket(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Ticket::class, 'ticket_id', 'id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 }

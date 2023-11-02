@@ -13,10 +13,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('files', function (Blueprint $table) {
+        Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->string('path');
-            $table->foreignId('ticket_item_id')->references('id')->on('ticket_items');
+            $table->foreignId('order_id')->constrained();
+            $table->unsignedTinyInteger('method_id')->nullable();
+            $table->unsignedTinyInteger('status_id')->nullable();
+
+            $table->foreign('method_id')->references('id')->on('payment_methods');
         });
     }
 
@@ -27,6 +30,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('files');
+        Schema::dropIfExists('payments');
     }
 };

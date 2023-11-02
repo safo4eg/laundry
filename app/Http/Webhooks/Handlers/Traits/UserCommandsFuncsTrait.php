@@ -3,9 +3,11 @@
 namespace App\Http\Webhooks\Handlers\Traits;
 
 use App\Models\Order;
-use App\Models\Ticket;
 use DefStudio\Telegraph\Facades\Telegraph;
+use DefStudio\Telegraph\Keyboard\Keyboard;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Ramsey\Collection\Collection;
 
 trait UserCommandsFuncsTrait
 {
@@ -24,7 +26,7 @@ trait UserCommandsFuncsTrait
     {
         if (!isset($this->user) and isset($this->message)) {
             $command = $this->message->text();
-            if ($command != '/start') {
+            if ($command !== '/start') {
                 $this->chat
                     ->message('БД была обновлена, вызовите команду /start')
                     ->send();
@@ -37,7 +39,28 @@ trait UserCommandsFuncsTrait
         return false;
     }
 
-    public function terminate_filling_order(Order $order): void
+    public function terminate_active_page(bool $disable_active_order = true): void
+    {
+        $page = $this->user->page;
+
+        switch ($page) {
+            case 'first_scenario':
+            case 'second_scenario':
+            case 'first_scenario_phone':
+            case 'first_scenario_whatsapp':
+                $this->terminate_filling_order($this->user->active_order);
+                break;
+            default:
+                $this->delete_active_page_message();
+        }
+
+        if($disable_active_order) {
+            $active_order = $this->user->active_order;
+            if(isset($active_order)) $active_order->update(['active' => 0]);
+        }
+    }
+
+    private function terminate_filling_order(Order $order): void
     {
         $pause_template = $this->template_prefix . $this->user->language_code . '.order.pause';
 
@@ -69,43 +92,29 @@ trait UserCommandsFuncsTrait
         ]);
     }
 
-    public function terminate_active_page(bool $disable_active_order = true): void
-    {
-        $page = $this->user->page;
-
-        switch ($page) {
-            case 'first_scenario':
-            case 'second_scenario':
-            case 'first_scenario_phone':
-            case 'first_scenario_whatsapp':
-                $this->terminate_filling_order($this->user->active_order);
-                break;
-            case 'ticket_creation':
-            case 'add_ticket':
-                $user = $this->message->from();
-                if ($user->storage()->get('current_ticket_id')) {
-                    $ticket = Ticket::where('id', $user->storage()->get('current_ticket_id'))->first();
-                    $this->terminate_filling_ticket($ticket);
-                }
-                break;
-            default:
-                $this->delete_active_page_message();
-        }
-
-        if ($disable_active_order) {
-            $active_order = $this->user->active_order;
-            if (isset($active_order)) $active_order->update(['active' => 0]);
-        }
-    }
-
     private function delete_active_page_message(): void
     {
-        if (isset($this->user->message_id)) {
+        if(isset($this->user->message_id)) {
             $this->chat->deleteMessage($this->user->message_id)->send();
             $this->user->update([
                 'page' => null,
                 'message_id' => null
             ]);
         }
+    }
+
+    public function save_photo(\Illuminate\Support\Collection $photos, Order $order = null) {
+        $photo = $photos->last(); // лучшее качество фото
+        $dir = "User/{$this->user->id}/";
+        $file_name = $photo->id().".jpg";
+
+        switch ($this->user->page) {
+            case 'payment_photo':
+                $dir = $dir."payments/{$order->payment->id}";
+        }
+
+        Telegraph::store($photo, Storage::path($dir), $file_name);
+
+        return $photo;
     }
 }

@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\ChatFactory;
+use DefStudio\Telegraph\Database\Factories\TelegraphChatFactory;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use DefStudio\Telegraph\Models\TelegraphChat;
 
@@ -22,5 +25,10 @@ class Chat extends TelegraphChat
     public function laundry()
     {
         return $this->belongsTo(Laundry::class, 'laundry_id', 'id');
+    }
+
+    protected static function newFactory(): Factory
+    {
+        return ChatFactory::new();
     }
 }

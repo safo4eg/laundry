@@ -19,6 +19,10 @@ class Order extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function status(){
+        return $this->belongsTo(OrderStatus::class, 'status_id', 'id');
+    }
+
     public function statuses() {
         return $this->belongsToMany(
             OrderStatus::class,
@@ -37,6 +41,10 @@ class Order extends Model
             'order_id',
             'telegraph_chat_id'
         )->withPivot('message_id', 'message_type_id');
+    }
+
+    public function payment() {
+        return $this->hasOne(Payment::class, 'order_id', 'id');
     }
 
     public function reason() {
