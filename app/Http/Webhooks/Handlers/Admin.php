@@ -113,6 +113,14 @@ class Admin extends WebhookHandler
             ]);
 
             // отправка уведомления пользователю чей был заказ
+            $template = "bot.user.".$user->language_code.'.notifications.delete_order';
+            $start_button_texts = ['ru' => 'Заказать стирку', 'en' => 'Order Laundry'];
+            $keyboard = Keyboard::make()->buttons([
+                Button::make($start_button_texts[$user->language_code])
+                    ->action('start')
+            ]);
+            $template_text = view($template, ['order_id' => $order_id]);
+            Helper::send_user_custom_notification($user, $template_text, $keyboard);
         }
 
         if(!isset($flag)) {
