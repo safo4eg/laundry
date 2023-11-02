@@ -154,7 +154,8 @@ return [
 
         'commands' => [
             'notification' => '🔔Create notification',
-            'bonuses' => '🎁Bonus management'
+            'bonuses' => '🎁Bonus management',
+            'delete' => '❌Delete Order'
         ],
 
         'bonuses' => [

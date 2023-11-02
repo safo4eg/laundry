@@ -26,6 +26,50 @@ class Admin extends WebhookHandler
         parent::__construct();
     }
 
+    public function delete_order(): void
+    {
+        $flag = $this->data->get('delete');
+
+        if(isset($flag)) {
+            $order_id = $this->data->get('order_id');
+        }
+
+        if(!isset($flag)) {
+            $this->delete_message_by_types([16]);
+            $orders = Order::whereIn('status_id', [2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13])->get();
+            $template = null;
+            $buttons = [];
+            if($orders->isNotEmpty()) {
+                $template = 'Select the order you want to delete:';
+                foreach ($orders as $order) {
+                    $buttons[] = Button::make("#{$order->id}")
+                        ->action('delete_order')
+                        ->param('delete', 1)
+                        ->param('order_id', $order->id);
+                }
+            } else $template = 'There are no active orders that can be deleted.';
+
+            $buttons[] = Button::make('Cancel')
+                ->action('delete_message_by_types')
+                ->param('delete', 1)
+                ->param('type_id', '25');
+
+            $keyboard = Keyboard::make()->buttons($buttons);
+            $response = $this->chat
+                ->message($template)
+                ->keyboard($keyboard)
+                ->send();
+
+            ChatOrderPivot::create([
+                'telegraph_chat_id' => $this->chat->id,
+                'order_id' => null,
+                'user_id' => null,
+                'message_id' => $response->telegraphMessageId(),
+                'message_type_id' => 25
+            ]);
+        }
+    }
+
     public function bonuses(): void
     {
         $flag = $this->data->get('bonuses');
@@ -403,7 +447,10 @@ class Admin extends WebhookHandler
                 Button::make($buttons_texts['bonuses'])
                     ->action('bonuses')
                     ->param('bonuses', 1)
-                    ->param('user', 1)
+                    ->param('user', 1),
+
+                Button::make($buttons_texts['delete'])
+                    ->action('delete_order')
             ]);
 
             $response = $this->chat
@@ -564,35 +611,48 @@ class Admin extends WebhookHandler
                 ->whereIn('message_type_id', [18, 19, 21, 23, 24])
                 ->first();
 
-            if(in_array($chat_order->message_type_id, [18, 19])) {
-                $notification = $this->chat->storage()->get('notification');
-                if($chat_order->message_type_id === 18) $notification['text_ru'] = $text;
-                else if($chat_order->message_type_id === 19) $notification['text_en'] = $text;
-                $this->chat->storage()->set('notification', $notification);
-                $fake_dataset = [
-                    'action' => 'notification',
-                    'params' => []
-                ];
-                $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
-                (new self())->handle($fake_request, $this->bot);
+            if(isset($chat_order)) {
+                if(in_array($chat_order->message_type_id, [18, 19])) {
+                    $notification = $this->chat->storage()->get('notification');
+                    if($chat_order->message_type_id === 18) $notification['text_ru'] = $text;
+                    else if($chat_order->message_type_id === 19) $notification['text_en'] = $text;
+                    $this->chat->storage()->set('notification', $notification);
+                    $fake_dataset = [
+                        'action' => 'notification',
+                        'params' => []
+                    ];
+                    $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
+                    (new self())->handle($fake_request, $this->bot);
 
-                $this->chat->deleteMessage($this->messageId)->send();
-            } else if($chat_order->message_type_id === 21) { // запрос ид пользователя
-                if(preg_match('#^[0-9]+$#', $text)) {
-                    $user = UserModel::where('id', $text)->first();
-                    if(isset($user)) {
-                        $fake_dataset = [
-                            'action' => 'bonuses',
-                            'params' => [
-                                'user_id' => $user->id
-                            ]
-                        ];
+                    $this->chat->deleteMessage($this->messageId)->send();
+                } else if($chat_order->message_type_id === 21) { // запрос ид пользователя
+                    if(preg_match('#^[0-9]+$#', $text)) {
+                        $user = UserModel::where('id', $text)->first();
+                        if(isset($user)) {
+                            $fake_dataset = [
+                                'action' => 'bonuses',
+                                'params' => [
+                                    'user_id' => $user->id
+                                ]
+                            ];
 
-                        $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
-                        (new self())->handle($fake_request, $this->bot);
+                            $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
+                            (new self())->handle($fake_request, $this->bot);
+                        } else {
+                            $response = $this->chat
+                                ->message('There is no user with the specified ID, please try again:')
+                                ->send();
+
+                            ChatOrderPivot::create([
+                                'telegraph_chat_id' => $this->chat->id,
+                                'order_id' => null,
+                                'message_id' => $response->telegraphMessageId(),
+                                'message_type_id' => 3
+                            ]);
+                        }
                     } else {
                         $response = $this->chat
-                            ->message('There is no user with the specified ID, please try again:')
+                            ->message('Invalid user ID entered, please try again:')
                             ->send();
 
                         ChatOrderPivot::create([
@@ -602,62 +662,51 @@ class Admin extends WebhookHandler
                             'message_type_id' => 3
                         ]);
                     }
-                } else {
-                    $response = $this->chat
-                        ->message('Invalid user ID entered, please try again:')
-                        ->send();
+                } else if($chat_order->message_type_id === 23 OR $chat_order->message_type_id === 24) { // добавление бонусов
+                    if(preg_match('#^[0-9]+$#', $text)) {
+                        $user = $chat_order->user;
+                        $template_prefix = 'bot.user.'.$user->language_code.".notifications.";
+                        $start_text = ['ru' => 'Заказать стирку', 'en' => 'Order Laundry'];
+                        $template_text = null;
+                        $keyboard = Keyboard::make()->buttons([
+                            Button::make($start_text[$user->language_code])->action('start')
+                        ]);
+                        if($chat_order->message_type_id === 23) {
+                            $new_balance = (int)$user->balance + (int)$text;
+                            $user->update(['balance' => $new_balance]);
+                            // отправка уведомления клиенту
+                            $template = $template_prefix."balance_replenished";
+                            $template_text = view($template, ['plus' => $text, 'user' => $user]);
+                        } else if($chat_order->message_type_id === 24) {
+                            $new_balance = (int)$user->balance - (int) $text;
+                            $user->update(['balance' => $new_balance]);
 
-                    ChatOrderPivot::create([
-                        'telegraph_chat_id' => $this->chat->id,
-                        'order_id' => null,
-                        'message_id' => $response->telegraphMessageId(),
-                        'message_type_id' => 3
-                    ]);
-                }
-            } else if($chat_order->message_type_id === 23 OR $chat_order->message_type_id === 24) { // добавление бонусов
-                if(preg_match('#^[0-9]+$#', $text)) {
-                    $user = $chat_order->user;
-                    $template_prefix = 'bot.user.'.$user->language_code.".notifications.";
-                    $start_text = ['ru' => 'Заказать стирку', 'en' => 'Order Laundry'];
-                    $template_text = null;
-                    $keyboard = Keyboard::make()->buttons([
-                        Button::make($start_text[$user->language_code])->action('start')
-                    ]);
-                    if($chat_order->message_type_id === 23) {
-                        $new_balance = (int)$user->balance + (int)$text;
-                        $user->update(['balance' => $new_balance]);
-                        // отправка уведомления клиенту
-                        $template = $template_prefix."balance_replenished";
-                        $template_text = view($template, ['plus' => $text, 'user' => $user]);
-                    } else if($chat_order->message_type_id === 24) {
-                        $new_balance = (int)$user->balance - (int) $text;
-                        $user->update(['balance' => $new_balance]);
+                            $template = $template_prefix."balance_updated";
+                            $template_text = view($template, ['minus' => $text, 'user' => $user]);
+                        }
+                        // обновление у админа
+                        $fake_dataset = [
+                            'action' => 'bonuses',
+                            'params' =>  [
+                                'user_id' => $user->id
+                            ]
+                        ];
+                        $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
+                        (new self())->handle($fake_request, $this->bot);
 
-                        $template = $template_prefix."balance_updated";
-                        $template_text = view($template, ['minus' => $text, 'user' => $user]);
+                        Helper::send_user_custom_notification($user, $template_text, $keyboard);
+                    } else {
+                        $response = $this->chat
+                            ->message('Invalid value, please try again:')
+                            ->send();
+
+                        ChatOrderPivot::create([
+                            'telegraph_chat_id' => $this->chat->id,
+                            'order_id' => null,
+                            'message_id' => $response->telegraphMessageId(),
+                            'message_type_id' => 3
+                        ]);
                     }
-                    // обновление у админа
-                    $fake_dataset = [
-                        'action' => 'bonuses',
-                        'params' =>  [
-                            'user_id' => $user->id
-                        ]
-                    ];
-                    $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
-                    (new self())->handle($fake_request, $this->bot);
-
-                    Helper::send_user_custom_notification($user, $template_text, $keyboard);
-                } else {
-                    $response = $this->chat
-                        ->message('Invalid value, please try again:')
-                        ->send();
-
-                    ChatOrderPivot::create([
-                        'telegraph_chat_id' => $this->chat->id,
-                        'order_id' => null,
-                        'message_id' => $response->telegraphMessageId(),
-                        'message_type_id' => 3
-                    ]);
                 }
             }
         }

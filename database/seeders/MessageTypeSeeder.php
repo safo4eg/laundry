@@ -40,6 +40,7 @@ class MessageTypeSeeder extends Seeder
             ['title' => 'admin_bonuses_info'], // баланс пользователя
             ['title' => 'admin_bonuses_plus'], // запрос добавления
             ['title' => 'admin_bonuses_minus'], // запрос списания
+            ['title' => 'admin_delete_order'], // запрос списания
         ]);
     }
 }
