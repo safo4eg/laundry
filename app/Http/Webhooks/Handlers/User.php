@@ -1240,8 +1240,29 @@ class User extends WebhookHandler
                         ->send();
                 }
             } else if ($choice == 2) { // завершенные заявки
-                $this->chat->message('пока неизвестно какой статус будет у завершенного заказа')->send();
-                return;
+                $orders = Order::where('status_id', 14)->get();
+                $template = $template_prefix_lang.'.orders.completed';
+                $buttons = [$back_button];
+
+                foreach ($orders as $order) {
+                    if(!isset($order->rating)) {
+                        $buttons[] = Button::make("#{$order->id}")
+                            ->action('request_rating')
+                            ->param('order_id', $order->id);
+                    }
+                }
+
+                $keyboard = Keyboard::make()->buttons($buttons);
+                $response = $this->chat
+                    ->edit($this->user->message_id)
+                    ->message(view($template, ['orders' => $orders]))
+                    ->keyboard($keyboard)
+                    ->send();
+
+                $this->user->update([
+                    'page' => 'completed_orders',
+                    'message_id' => $response->telegraphMessageId()
+                ]);
             }
 
         }
