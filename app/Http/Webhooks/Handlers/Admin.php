@@ -32,6 +32,8 @@ class Admin extends WebhookHandler
 
         if(isset($flag)) {
             $user = $this->data->get('user'); // запрос юзер_ид
+            $plus = $this->data->get('plus');
+            $minus = $this->data->get('minus');
 
             if(isset($user)) {
                 $this->delete_message_by_types([16]);
@@ -50,11 +52,37 @@ class Admin extends WebhookHandler
                     'message_id' => $response->telegraphMessageId(),
                     'message_type_id' => 21
                 ]);
+            } else if(isset($plus) OR isset($minus)) {
+                $user_id = $this->data->get('user_id');
+                $user = UserModel::where('id', $user_id)->first();
+
+                if(isset($plus)) { // запрос на количество бонусов
+                    $template = 'Enter the number of bonuses you want to award to the user';
+                    $keyboard = Keyboard::make()->buttons([
+                        Button::make('Cancel')
+                            ->action('delete_message_by_types')
+                            ->param('delete', 1)
+                            ->param('type_id', '23')
+                    ]);
+
+                    $response = $this->chat
+                        ->message($template)
+                        ->keyboard($keyboard)
+                        ->send();
+
+                    ChatOrderPivot::create([
+                        'telegraph_chat_id' => $this->chat->id,
+                        'order_id' => null,
+                        'user_id' => $user->id,
+                        'message_id' => $response->telegraphMessageId(),
+                        'message_type_id' => 23
+                    ]);
+                }
             }
         }
 
         if(!isset($flag)) {
-            $this->delete_message_by_types([3, 12, 21]);
+            $this->delete_message_by_types([3, 12, 21, 22, 23, 24]);
             $user_id = $this->data->get('user_id');
             $user = UserModel::where('id', $user_id)->first();
 
@@ -334,7 +362,7 @@ class Admin extends WebhookHandler
         }
 
         if(!isset($flag)) {
-            $this->delete_message_by_types([3, 12, 16, 17, 18, 19, 20, 21, 22]);
+            $this->delete_message_by_types([3, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24]);
             if(isset($this->message)) {
                 $this->chat->deleteMessage($this->messageId)->send();
             }
@@ -508,7 +536,7 @@ class Admin extends WebhookHandler
 
             $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('order_id', null)
-                ->whereIn('message_type_id', [18, 19, 21])
+                ->whereIn('message_type_id', [18, 19, 21, 23, 24])
                 ->first();
 
             if(in_array($chat_order->message_type_id, [18, 19])) {
@@ -552,6 +580,47 @@ class Admin extends WebhookHandler
                 } else {
                     $response = $this->chat
                         ->message('Invalid user ID entered, please try again:')
+                        ->send();
+
+                    ChatOrderPivot::create([
+                        'telegraph_chat_id' => $this->chat->id,
+                        'order_id' => null,
+                        'message_id' => $response->telegraphMessageId(),
+                        'message_type_id' => 3
+                    ]);
+                }
+            } else if($chat_order->message_type_id === 23 OR $chat_order->message_type_id === 24) { // добавление бонусов
+                if(preg_match('#^[0-9]+$#', $text)) {
+                    $user = $chat_order->user;
+                    $template_prefix = 'bot.user.'.$user->language_code.".notifications.";
+                    $start_text = ['ru' => 'Заказать стирку', 'en' => 'Order Laundry'];
+                    $template_text = null;
+                    $keyboard = Keyboard::make()->buttons([
+                        Button::make($start_text[$user->language_code])->action('start')
+                    ]);
+                    if($chat_order->message_type_id === 23) {
+                        $new_balance = (int)$user->balance + (int)$text;
+                        $user->update(['balance' => $new_balance]);
+                        // отправка уведомления клиенту
+                        $template = $template_prefix."balance_replenished";
+                        $template_text = view($template, ['plus' => $text, 'user' => $user]);
+                    } else if($chat_order->message_type_id === 24) {
+
+                    }
+                    // обновление у админа
+                    $fake_dataset = [
+                        'action' => 'bonuses',
+                        'params' =>  [
+                            'user_id' => $user->id
+                        ]
+                    ];
+                    $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
+                    (new self())->handle($fake_request, $this->bot);
+
+                    Helper::send_user_custom_notification($user, $template_text, $keyboard);
+                } else {
+                    $response = $this->chat
+                        ->message('Invalid value, please try again:')
                         ->send();
 
                     ChatOrderPivot::create([
