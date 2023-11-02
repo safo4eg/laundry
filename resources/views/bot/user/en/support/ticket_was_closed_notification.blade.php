@@ -1,0 +1,1 @@
+Dear customer, we inform you that your request has been closed by the support service. If you have a new question or want to ask a question regarding an old request, then write to us again, we will be happy to answer your questions!

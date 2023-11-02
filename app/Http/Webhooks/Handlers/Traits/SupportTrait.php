@@ -11,7 +11,6 @@ use App\Models\TicketItem;
 use App\Services\FakeRequest;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use Illuminate\Support\Facades\Log;
 
 
 trait SupportTrait

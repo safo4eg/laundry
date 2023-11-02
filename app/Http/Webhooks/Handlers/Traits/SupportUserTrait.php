@@ -438,14 +438,40 @@ trait SupportUserTrait
         $ticket_id = $this->data->get('ticket_id');
         if ($this->callbackQuery) {
             $user = $this->callbackQuery->from();
-            $user->storage()->set('current_ticket_id', $ticket_id);
-            $this->user->update([
-                'page' => 'add_ticket',
-                'step' => 1,
-            ]);
+            $ticket = Ticket::where('id', $ticket_id)->first();
 
-            $this->handle_ticket_request();
+            if ($ticket->status_id == 2 or $ticket->status_id == 3) {
+                $user->storage()->set('current_ticket_id', $ticket_id);
+                $this->user->update([
+                    'page' => 'add_ticket',
+                    'step' => 1,
+                ]);
+                $this->handle_ticket_request();
+            } elseif ($ticket->status_id == 4) {
+                $view = "{$this->template_prefix}{$this->user->language_code}.support.ticket_was_closed_notification";
+                $this->send_notification_about_closed_ticket($view);
+            } elseif ($ticket->status_id == 5) {
+                $view = "{$this->template_prefix}{$this->user->language_code}.support.ticket_was_rejected_notification";
+                $this->send_notification_about_closed_ticket($view);
+            }
         }
+    }
+
+
+    public function send_notification_about_closed_ticket(string $template_name): void
+    {
+        $buttons = config('buttons.user')['support']['close_buttons'];
+
+        $response = $this->chat->edit($this->user->message_id)
+            ->message(view($template_name))
+            ->keyboard(Keyboard::make()->buttons([
+                Button::make($buttons['new_order'][$this->user->language_code])->action('start'),
+                Button::make($buttons['new_request'][$this->user->language_code])->action('support')
+            ]))->send();
+
+        $this->user->update([
+            'message_id' => $response->telegraphMessageId()
+        ]);
     }
 
     public function check_incomplete_tickets($user = null): bool
