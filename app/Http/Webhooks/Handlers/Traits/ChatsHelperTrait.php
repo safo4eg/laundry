@@ -229,6 +229,12 @@ trait ChatsHelperTrait
         if (!isset($flag)) {
             $chat_orders = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
                 ->where('message_type_id', 1)
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('orders')
+                        ->whereColumn('orders.id', 'chat_order.order_id')
+                        ->whereIn('orders.status_id', [3, 5, 6, 7, 10, 12, 13]);#
+                })
                 ->get();
             $message_type_id = null;
             $response = null;
