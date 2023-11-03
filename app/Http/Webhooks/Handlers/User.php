@@ -300,8 +300,13 @@ class User extends WebhookHandler
                         $this->referrals();
                         break;
                     case 'support':
+                    case 'add_ticket':
+                    case 'check_user_tickets':
+                    case 'ticket_creation':
                         $this->support();
                         break;
+                    default:
+                        $this->start();
                 }
             }
 
