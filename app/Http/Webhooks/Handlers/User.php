@@ -441,7 +441,7 @@ class User extends WebhookHandler
                 if ($method_id === 2 or $method_id === 3) {
                     switch ($method_id) {
                         case 3:
-                            $template_data['payment']['ru_price'] = 'переведено в рублики';
+                            $template_data['payment']['ru_price'] = $order->price*0.0058;
                         case 2:
                             $buttons[] = Button::make($buttons_texts['request_photo'][$this->user->language_code])
                                 ->action('payment_photo')

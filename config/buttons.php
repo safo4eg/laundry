@@ -75,6 +75,8 @@ return [
             'back' => ['ru' => 'Вернуться назад', 'en' => 'Go to back']
         ],
 
+        'back' => ['ru' => 'Назад', 'en' => 'Back'],
+
         'support' => [
             'support' => ['ru' => 'Написать', 'en' => 'Write'],
             'confirm' => [
