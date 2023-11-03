@@ -585,18 +585,25 @@ class Admin extends WebhookHandler
                     ]);
 
                     $order->payment->update(['status_id' => 3]);
+                    /* Удаляем текущую карточку */
+                    $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
+                        ->where('order_id', $order->id)
+                        ->where('message_type_id', 1)
+                        ->first();
+                    $this->chat->deleteMessage($chat_order->message_id)->send();
+                    $chat_order->delete();
                     $order->update(['status_id' => 14]);
 
-                    $fake_dataset = [
-                        'action' => 'send_card',
-                        'params' => [
-                            'order_id' => $order->id,
-                            'edit' => 1
-                        ]
-                    ];
-
-                    $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
-                    (new Admin())->handle($fake_request, $this->bot);
+//                    $fake_dataset = [
+//                        'action' => 'send_card',
+//                        'params' => [
+//                            'order_id' => $order->id,
+//                            'edit' => 1
+//                        ]
+//                    ];
+//
+//                    $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
+//                    (new Admin())->handle($fake_request, $this->bot);
                 }
 
                 if ($choice === 'no') {
@@ -614,8 +621,6 @@ class Admin extends WebhookHandler
             $edit = $this->data->get('edit');
 
             $template = $this->template_prefix . 'order_info';
-            $buttons_texts = $this->buttons['send_card'];
-            $buttons = [];
             $photo_path = null;
             /* Если статус_ид = 13 => подтверждение оплаты 2 и 3 метода */
             if ($order->status_id === 13) {
@@ -624,20 +629,6 @@ class Admin extends WebhookHandler
                     ->where('order_status_id', null)
                     ->first();
                 $photo_path = $file->path;
-
-                $buttons[] = Button::make($buttons_texts['confirm'])
-                    ->action('send_card')
-                    ->param('send', 1)
-                    ->param('confirm', 1)
-                    ->param('choice', 'yes')
-                    ->param('order_id', $order->id);
-
-                $buttons[] = Button::make($buttons_texts['decline'])
-                    ->action('send_card')
-                    ->param('send', 1)
-                    ->param('confirm', 1)
-                    ->param('choice', 'no')
-                    ->param('order_id', $order->id);
             } // end if status_id === 13
 
             /* если равен 14 => значит заказ уже подтвержден */
@@ -647,12 +638,9 @@ class Admin extends WebhookHandler
                     ->orderBy('order_status_id', 'desc')
                     ->first();
                 $photo_path = $file->path;
-                $buttons[] = Button::make($this->general_buttons['report'])
-                    ->action('order_report')
-                    ->param('order_id', $order->id);
             }
 
-            $keyboard = Keyboard::make()->buttons($buttons);
+            $keyboard = $this->get_keyboard_order_card($order);
 
             if(isset($edit)) {
                 $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
@@ -681,6 +669,37 @@ class Admin extends WebhookHandler
                 ]);
             }
         }
+    }
+
+    public function get_keyboard_order_card(Order $order = null): Keyboard
+    {
+        $buttons_texts = $this->buttons['send_card'];
+        $keyboard = Keyboard::make();
+        $buttons = [];
+        if ($order->status_id === 13) {
+            $buttons[] = Button::make($buttons_texts['confirm'])
+                ->action('send_card')
+                ->param('send', 1)
+                ->param('confirm', 1)
+                ->param('choice', 'yes')
+                ->param('order_id', $order->id);
+
+            $buttons[] = Button::make($buttons_texts['decline'])
+                ->action('send_card')
+                ->param('send', 1)
+                ->param('confirm', 1)
+                ->param('choice', 'no')
+                ->param('order_id', $order->id);
+        } // end if status_id === 13
+
+        if($order->status_id === 14) {
+            $buttons[] = Button::make($this->general_buttons['report'])
+                ->action('order_report')
+                ->param('order_id', $order->id);
+        }
+
+        $keyboard->buttons($buttons);
+        return $keyboard;
     }
 
     public function handleChatMessage(Stringable $text): void
