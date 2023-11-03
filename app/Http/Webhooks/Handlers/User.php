@@ -1715,6 +1715,16 @@ class User extends WebhookHandler
         $template_prefix_lang = $this->template_prefix . $language_code;
 
         if ($flag) {
+            $order = $this->user->active_order;
+            if($order->status_id > 3) {
+                $messages = [
+                    'ru' => '❌Курьер забрал вещи, заказ отменить нельзя!',
+                    'en' => '❌The courier took the items, the order cannot be cancelled!'
+                ];
+                $message = $messages[$this->user->language_code];
+                $this->chat->message($message)->send();
+                return;
+            }
             if ($this->user->page !== 'cancel_order') {
                 $buttons = [
                     'check_bot' => $this->config['cancel_order']['check_bot'][$language_code],
