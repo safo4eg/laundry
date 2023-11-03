@@ -1022,35 +1022,35 @@ class User extends WebhookHandler
             $status_id = $order->status_id;
             $status_1 = $order->statuses->where('id', 1)->first();
 
-            $buttons = [
+            $buttons_texts = [
                 'recommend' => $this->config['order_info']['recommend'][$this->user->language_code],
                 'back' => $this->config['order_info']['back'][$this->user->language_code]
             ];
-            $recommend_button = Button::make($buttons['recommend'])->action('referrals');
-            $back_button = Button::make($buttons['back'])
+            $recommend_button = Button::make($buttons_texts['recommend'])->action('referrals');
+            $back_button = Button::make($buttons_texts['back'])
                 ->action('orders')
                 ->param('orders', 1); // нужно еще добавить choice чтобы знать с какого типа назад
             if ($status_id !== 4) {
-                $buttons = [
+                $buttons_texts = [
                     'wishes' => $this->config['order_info']['wishes'][$this->user->language_code],
                     'cancel' => $this->config['order_info']['cancel'][$this->user->language_code],
                 ];
                 $back_button = $back_button->param('choice', 1);
                 $buttons = [];
 
-                $buttons[] = Button::make($buttons['wishes'])
+                $buttons[] = Button::make($buttons_texts['wishes'])
                     ->action('write_order_wishes')
                     ->param('write_order_wishes', 1);
 
                 if($order->status_id < 5) {
-                    $buttons[] = Button::make($buttons['cancel'])
+                    $buttons[] = Button::make($buttons_texts['cancel'])
                         ->action('cancel_order')
                         ->param('cancel_order', 1);
                 }
 
                 $buttons[] = $recommend_button;
                 $buttons[] = $back_button;
-
+                $keyboard = Keyboard::make()->buttons($buttons);
                 if (isset($this->message)) {
                     $this->terminate_active_page(false);
                     $response = $this->chat
