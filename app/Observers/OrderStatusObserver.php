@@ -46,6 +46,7 @@ class OrderStatusObserver
 
         if(
             $attributes['status_id'] === 3 OR
+            $attributes['status_id'] === 4 OR
             $attributes['status_id'] === 9 OR
             $attributes['status_id'] === 10 OR
             $attributes['status_id'] === 12

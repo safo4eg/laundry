@@ -1036,17 +1036,20 @@ class User extends WebhookHandler
                     'cancel' => $this->config['order_info']['cancel'][$this->user->language_code],
                 ];
                 $back_button = $back_button->param('choice', 1);
+                $buttons = [];
 
-                $keyboard = Keyboard::make()->buttons([
-                    Button::make($buttons['wishes'])
-                        ->action('write_order_wishes')
-                        ->param('write_order_wishes', 1),
-                    Button::make($buttons['cancel'])
+                $buttons[] = Button::make($buttons['wishes'])
+                    ->action('write_order_wishes')
+                    ->param('write_order_wishes', 1);
+
+                if($order->status_id < 5) {
+                    $buttons[] = Button::make($buttons['cancel'])
                         ->action('cancel_order')
-                        ->param('cancel_order', 1),
-                    $recommend_button,
-                    $back_button
-                ]);
+                        ->param('cancel_order', 1);
+                }
+
+                $buttons[] = $recommend_button;
+                $buttons[] = $back_button;
 
                 if (isset($this->message)) {
                     $this->terminate_active_page(false);
