@@ -248,6 +248,7 @@ trait SupportUserTrait
                 File::create([
                     'path' => Storage::url("{$dir}/{$file_name}"),
                     'ticket_item_id' => $ticket_item->id,
+                    'file_type_id' => 1
                 ]);
                 $this->user->update([
                     'step' => null

@@ -1922,10 +1922,6 @@ class User extends WebhookHandler
                     case 'profile_change_whatsapp':
                         $this->profile_change_handler();
                         break;
-                    case 'add_ticket':
-                    case 'ticket_creation':
-                        $this->handle_ticket_response();
-                        break;
                 }
 
                 if ($page === 'request_order_message') {
@@ -1966,6 +1962,9 @@ class User extends WebhookHandler
                 $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
                 (new self($order->user))->handle($fake_request, $this->bot);
             }
+        }
+        if ($page == 'add_ticket' or $page == "ticket_creation"){
+            $this->handle_ticket_response();
         }
     }
 }
