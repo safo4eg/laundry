@@ -46,7 +46,7 @@ class OrderStatusObserver
 
         if (
             $attributes['status_id'] === 3 or
-            ($attributes['status_id'] === 4 and $order->reason_id !== 5 and isset($order->laundry)) or
+            ($attributes['status_id'] === 4 and $order->reason_id !== 5 and isset($order->laundry_id)) or
             $attributes['status_id'] === 9 or
             $attributes['status_id'] === 10 or
             $attributes['status_id'] === 12
