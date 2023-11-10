@@ -1401,8 +1401,6 @@ class User extends WebhookHandler
                     'username' => $username,
                 ]);
 
-                QR::generate_referrals_qr($this->user);
-
                 if ($ref_flag) {
                     $inviter_id = trim(str_replace('ref', '', $ref));
                     $invited_id = $this->user->id;
@@ -1412,6 +1410,8 @@ class User extends WebhookHandler
                         'invited_id' => $invited_id
                     ]);
                 }
+
+                QR::generate_referrals_qr($this->user);
 
                 $this->select_language();
             }

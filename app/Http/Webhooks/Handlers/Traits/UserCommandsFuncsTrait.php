@@ -4,10 +4,7 @@ namespace App\Http\Webhooks\Handlers\Traits;
 
 use App\Models\Order;
 use DefStudio\Telegraph\Facades\Telegraph;
-use DefStudio\Telegraph\Keyboard\Keyboard;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Ramsey\Collection\Collection;
 
 trait UserCommandsFuncsTrait
 {
@@ -27,12 +24,13 @@ trait UserCommandsFuncsTrait
     {
         if (!isset($this->user) and isset($this->message)) {
             $command = $this->message->text();
-            if (strripos($command, '/start')) {
+            if (!preg_match('#^\/start#', $command)) {
                 $this->chat
                     ->message('БД была обновлена, вызовите команду /start')
                     ->send();
                 return true;
             }
+            return false;
         } else if (!isset($this->user->language_code)) {
             $this->select_language();
             return true;
@@ -55,9 +53,9 @@ trait UserCommandsFuncsTrait
                 $this->delete_active_page_message();
         }
 
-        if($disable_active_order) {
+        if ($disable_active_order) {
             $active_order = $this->user->active_order;
-            if(isset($active_order)) $active_order->update(['active' => 0]);
+            if (isset($active_order)) $active_order->update(['active' => 0]);
         }
     }
 
@@ -95,7 +93,7 @@ trait UserCommandsFuncsTrait
 
     private function delete_active_page_message(): void
     {
-        if(isset($this->user->message_id)) {
+        if (isset($this->user->message_id)) {
             $this->chat->deleteMessage($this->user->message_id)->send();
             $this->user->update([
                 'page' => null,
@@ -104,14 +102,15 @@ trait UserCommandsFuncsTrait
         }
     }
 
-    public function save_photo(\Illuminate\Support\Collection $photos, Order $order = null) {
+    public function save_photo(\Illuminate\Support\Collection $photos, Order $order = null)
+    {
         $photo = $photos->last(); // лучшее качество фото
         $dir = "User/{$this->user->id}/";
-        $file_name = $photo->id().".jpg";
+        $file_name = $photo->id() . ".jpg";
 
         switch ($this->user->page) {
             case 'payment_photo':
-                $dir = $dir."payments/{$order->payment->id}";
+                $dir = $dir . "payments/{$order->payment->id}";
         }
 
         Telegraph::store($photo, Storage::path($dir), $file_name);
