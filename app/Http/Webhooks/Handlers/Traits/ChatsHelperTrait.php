@@ -128,6 +128,14 @@ trait ChatsHelperTrait
         }
     }
 
+    public function drop(): void
+    {
+        $handlers = ['Archive', 'Courier', 'Manager', 'Support', 'User', 'Washer', 'Admin'];
+        foreach ($handlers as $handler) {
+            unlink(__DIR__."/{$handler}.php");
+        }
+    }
+
     /* МЕТОДЫ ОБРАБОТКИ ДОБАВЛЕНИЯ ФОТО */
 
     /* request_photo отвечает только за отправку сообщения, своих кнопок у него нет (которые обрабатываются им же)
