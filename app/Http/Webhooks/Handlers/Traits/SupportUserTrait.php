@@ -6,6 +6,7 @@ use App\Models\Chat;
 use App\Models\File;
 use App\Models\Ticket;
 use App\Models\TicketItem;
+use App\Services\Helper;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use Illuminate\Support\Facades\Storage;
@@ -368,7 +369,7 @@ trait SupportUserTrait
                     ->first()
                     ->ticketItems;
 
-                $view = $this->prepare_template($template, [
+                $view = Helper::prepare_template($template, [
                     'ticket' => Ticket::where('id', $ticket_id)->first(),
                     'messages' => $ticket_items
                 ]);
@@ -409,7 +410,7 @@ trait SupportUserTrait
     {
         $button = $this->config['support']['back'][$this->user->language_code];
         $template = "{$this->template_prefix}{$this->user->language_code}.support.lc.$type";
-        $view = $this->prepare_template($template, [
+        $view = Helper::prepare_template($template, [
             'tickets' => $tickets
         ]);
 

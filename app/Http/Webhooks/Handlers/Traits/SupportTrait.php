@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Ticket;
 use App\Models\TicketItem;
 use App\Services\FakeRequest;
+use App\Services\Helper;
 use DefStudio\Telegraph\DTO\Photo;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Keyboard\Button;
@@ -96,7 +97,7 @@ trait SupportTrait
     {
         $this->delete_ticket_card($chat, $ticket);
         $last_order = Order::where('user_id', $ticket->user->id)->orderByDesc('id')->first();
-        $view = $this->prepare_template('bot.support.ticket_card', [
+        $view = Helper::prepare_template('bot.support.ticket_card', [
             'ticket' => $ticket,
             'baseUrl' => url(),
             'user' => $ticket->user,
@@ -185,16 +186,5 @@ trait SupportTrait
         return $photo;
     }
 
-    public function prepare_template(string $view, array $params = null): array|string|null
-    {
-        $template = str_replace("\t", " ", view($view, $params));
-        $lines = explode(PHP_EOL, $template);
-        $new_lines = [];
 
-        foreach ($lines as $line) {
-            $new_lines[] = preg_replace('/ {2,}/', ' ', $line);
-        }
-
-        return implode(PHP_EOL, $new_lines);
-    }
 }

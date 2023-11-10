@@ -119,7 +119,7 @@ class Admin extends WebhookHandler
                 Button::make($start_button_texts[$user->language_code])
                     ->action('start')
             ]);
-            $template_text = view($template, ['order_id' => $order_id]);
+            $template_text = Helper::prepare_template($template, ['order_id' => $order_id]);
             Helper::send_user_custom_notification($user, $template_text, $keyboard);
         }
 
@@ -264,7 +264,7 @@ class Admin extends WebhookHandler
             ]);
 
             $response = $this->chat
-                ->message(view($template, ['user' => $user]))
+                ->message(Helper::prepare_template($template, ['user' => $user]))
                 ->keyboard($keyboard)
                 ->send();
 
@@ -498,7 +498,7 @@ class Admin extends WebhookHandler
             ]);
 
             $response = $this->chat
-                ->message(view($template, ['notification' => $notification]))
+                ->message(Helper::prepare_template($template, ['notification' => $notification]))
                 ->keyboard($keyboard)
                 ->send();
 
@@ -651,13 +651,13 @@ class Admin extends WebhookHandler
                 $this->chat
                     ->editMedia($chat_order->message_id)
                     ->photo(Storage::path($photo_path))
-                    ->html(view($template, ['order' => $order]))
+                    ->html(Helper::prepare_template($template, ['order' => $order]))
                     ->keyboard($keyboard)
                     ->send();
             } {
                 $response = $this->chat
                     ->photo(Storage::path($photo_path))
-                    ->html(view($template, ['order' => $order]))
+                    ->html(Helper::prepare_template($template, ['order' => $order]))
                     ->keyboard($keyboard)
                     ->send();
 
@@ -785,13 +785,13 @@ class Admin extends WebhookHandler
                             $user->update(['balance' => $new_balance]);
                             // отправка уведомления клиенту
                             $template = $template_prefix."balance_replenished";
-                            $template_text = view($template, ['plus' => $text, 'user' => $user]);
+                            $template_text = Helper::prepare_template($template, ['plus' => $text, 'user' => $user]);
                         } else if($chat_order->message_type_id === 24) {
                             $new_balance = (int)$user->balance - (int) $text;
                             $user->update(['balance' => $new_balance]);
 
                             $template = $template_prefix."balance_updated";
-                            $template_text = view($template, ['minus' => $text, 'user' => $user]);
+                            $template_text = Helper::prepare_template($template, ['minus' => $text, 'user' => $user]);
                         }
                         // обновление у админа
                         $fake_dataset = [

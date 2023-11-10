@@ -5,6 +5,7 @@ use App\Http\Webhooks\Handlers\Traits\ChatsHelperTrait;
 use App\Models\ChatOrderPivot;
 use App\Models\File;
 use App\Models\Order;
+use App\Services\Helper;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
@@ -92,7 +93,7 @@ class Washer extends WebhookHandler
 
             $response = $this->chat
                 ->photo(Storage::path($photo->path))
-                ->message(view($template, ['order' => $order]))
+                ->message(Helper::prepare_template($template, ['order' => $order]))
                 ->keyboard($keyboard)
                 ->send();
 

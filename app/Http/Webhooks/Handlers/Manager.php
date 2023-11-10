@@ -9,6 +9,7 @@ use App\Models\File;
 use App\Models\Laundry;
 use App\Models\Order;
 use App\Services\FakeRequest;
+use App\Services\Helper;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
@@ -89,7 +90,7 @@ class Manager extends WebhookHandler
         if(!isset($flag)) {
             $template = $this->template_prefix.'order_info';
             $response = $this->chat
-                ->message(view($template, ['order' => $order]))
+                ->message(Helper::prepare_template($template, ['order' => $order]))
                 ->keyboard($keyboard)
                 ->send();
 
@@ -121,12 +122,12 @@ class Manager extends WebhookHandler
 
             if(!isset($photo)) {
                 $response = $this->chat
-                    ->message(view($template, ['order' => $order]))
+                    ->message(Helper::prepare_template($template, ['order' => $order]))
                     ->keyboard($keyboard)
                     ->send();
             } else {
                 $response = $this->chat->photo(Storage::path($photo->path))
-                    ->message(view($template, ['order' => $order]))
+                    ->message(Helper::prepare_template($template, ['order' => $order]))
                     ->keyboard($keyboard)
                     ->send();
             }

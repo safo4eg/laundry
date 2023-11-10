@@ -6,6 +6,7 @@ use App\Models\Chat;
 use App\Models\ChatOrderPivot;
 use App\Models\File;
 use App\Models\Order;
+use App\Services\Helper;
 use DefStudio\Telegraph\DTO\Photo;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Keyboard\Button;
@@ -113,7 +114,7 @@ trait ChatsHelperTrait
         } else {
             $template = 'bot.notifications.order_is_null';
             $response = $this->chat
-                ->message(view($template, ['order_id' => $order_id]))
+                ->message(Helper::prepare_template($template, ['order_id' => $order_id]))
                 ->send();
 
             DB::table('chat_order')->insert([
@@ -146,7 +147,7 @@ trait ChatsHelperTrait
         $buttons_texts = $this->general_buttons['request_photo'];
 
         $response = $this->chat
-            ->message(view($template, ['order' => $order]))
+            ->message(Helper::prepare_template($template, ['order' => $order]))
             ->keyboard(Keyboard::make()->buttons([
                 Button::make($buttons_texts['cancel'])
                     ->action('delete_message_by_types')
@@ -187,7 +188,7 @@ trait ChatsHelperTrait
             $template = $this->template_prefix . 'confirm_photo';
 
             $response = $this->chat->photo(Storage::path("{$dir}/{$file_name}"))
-                ->html(view($template, ['order' => $order]))
+                ->html(Helper::prepare_template($template, ['order' => $order]))
                 ->keyboard(Keyboard::make()->buttons([
                     Button::make($buttons_texts['yes'])
                         ->action('confirm_photo')
@@ -263,7 +264,7 @@ trait ChatsHelperTrait
                 $template = $this->template_prefix . "select_order";
                 $path = "{$this->chat->name}/order_undefined/{$photo->id()}.jpg";
                 $response = $this->chat->photo(Storage::path($path))
-                    ->html(view($template))
+                    ->html(Helper::prepare_template($template))
                     ->keyboard(Keyboard::make()
                         ->buttons($buttons)
                     )->send();

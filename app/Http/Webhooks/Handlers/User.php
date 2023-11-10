@@ -17,6 +17,7 @@ use App\Models\PaymentMethod;
 use App\Models\Referral;
 use App\Models\Ticket;
 use App\Models\User as UserModel;
+use App\Services\Helper;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
@@ -66,7 +67,7 @@ class User extends WebhookHandler
         $this->terminate_active_page();
 
         $response = $this->chat
-            ->message(view($template, $template_data))
+            ->message(Helper::prepare_template($template, $template_data))
             ->keyboard($keyboard)
             ->send();
 
@@ -98,12 +99,12 @@ class User extends WebhookHandler
             if (isset($photo)) {
                 $this->chat->deleteMessage($this->user->message_id)->send();
                 $response = $this->chat
-                    ->message(view($template, ['order' => $order]))
+                    ->message(Helper::prepare_template($template, ['order' => $order]))
                     ->keyboard($keyboard)
                     ->send();
             } else {
                 $response = $this->chat
-                    ->message(view($template, ['order' => $order]))
+                    ->message(Helper::prepare_template($template, ['order' => $order]))
                     ->edit($this->user->message_id)
                     ->keyboard($keyboard)
                     ->send();
@@ -182,7 +183,7 @@ class User extends WebhookHandler
                 ]);
                 $response = $this->chat
                     ->photo(Storage::path($photo_path))
-                    ->html(view($template))
+                    ->html(Helper::prepare_template($template))
                     ->keyboard($keyboard)
                     ->send();
 
@@ -217,7 +218,7 @@ class User extends WebhookHandler
                 $keyboard = Keyboard::make()->buttons([$recommend_button, $start_button]);
                 $order->update(['rating' => $choice]);
                 $this->chat
-                    ->message(view($template, ['order' => $order]))
+                    ->message(Helper::prepare_template($template, ['order' => $order]))
                     ->edit($this->messageId)
                     ->keyboard($keyboard)
                     ->send();
@@ -239,7 +240,7 @@ class User extends WebhookHandler
 
             $this->terminate_active_page();
             $response = $this->chat
-                ->message(view($template, ['order' => $order]))
+                ->message(Helper::prepare_template($template, ['order' => $order]))
                 ->keyboard($keyboard)
                 ->send();
             $this->user->update([
@@ -395,7 +396,7 @@ class User extends WebhookHandler
 
                 $keyboard = Keyboard::make()->buttons($buttons);
                 $response = $this->chat
-                    ->message(view($template, $template_dataset))
+                    ->message(Helper::prepare_template($template, $template_dataset))
                     ->keyboard($keyboard)
                     ->send();
 
@@ -475,13 +476,13 @@ class User extends WebhookHandler
         if (isset($back)) { // если с кнопки назад значит редактируем инлайн-пейдж с которого вызвано
             $response = $this->chat
                 ->edit($this->user->message_id)
-                ->message(view($template, $template_data))
+                ->message(Helper::prepare_template($template, $template_data))
                 ->keyboard($keyboard)
                 ->send();
         } else {
             $this->terminate_active_page();
             $response = $this->chat
-                ->message(view($template, $template_data))
+                ->message(Helper::prepare_template($template, $template_data))
                 ->keyboard($keyboard)
                 ->send();
             $order->update(['active' => true]);
@@ -563,7 +564,7 @@ class User extends WebhookHandler
             ]);
             $this->chat
                 ->edit($this->messageId)
-                ->message(view($template, $template_data))
+                ->message(Helper::prepare_template($template, $template_data))
                 ->keyboard($keyboard)
                 ->send();
 
@@ -690,7 +691,7 @@ class User extends WebhookHandler
 
                 $this->chat
                     ->edit($this->messageId)
-                    ->message(view($template, ['order' => $order]))
+                    ->message(Helper::prepare_template($template, ['order' => $order]))
                     ->keyboard($keyboard)
                     ->send();
 
@@ -738,7 +739,7 @@ class User extends WebhookHandler
                 $this->terminate_active_page();
 
                 $response = $this->chat
-                    ->message(view($template, [
+                    ->message(Helper::prepare_template($template, [
                         'order' => $order,
                         'order_message' => $new_order_message,
                     ]))
@@ -780,13 +781,13 @@ class User extends WebhookHandler
             if (isset($this->callbackQuery)) { // значит прилетело с кнопки => редактируем пред.инлайн-пейдж
                 $response = $this->chat
                     ->edit($this->messageId)
-                    ->message(view($template, $template_dataset))
+                    ->message(Helper::prepare_template($template, $template_dataset))
                     ->keyboard($keyboard)
                     ->send();
             } else { // значит зашел после ввода сообщения (при $this->message) нужно удалить активное окно
                 $this->terminate_active_page(false);
                 $response = $this->chat
-                    ->message(view($template, $template_dataset))
+                    ->message(Helper::prepare_template($template, $template_dataset))
                     ->keyboard($keyboard)
                     ->send();
             }
@@ -840,13 +841,13 @@ class User extends WebhookHandler
             if (isset($this->message)) {
                 $response = $this->chat
                     ->photo(Storage::path("User/{$this->user->id}/qr.png"))
-                    ->html(view($template, ['user' => $this->user]))
+                    ->html(Helper::prepare_template($template, ['user' => $this->user]))
                     ->keyboard($keyboard)
                     ->send();
             } else {
                 $response = $this->chat
                     ->photo(Storage::path("User/{$this->user->id}/qr.png"))
-                    ->html(view($template, ['user' => $this->user]))
+                    ->html(Helper::prepare_template($template, ['user' => $this->user]))
                     ->keyboard($keyboard)
                     ->send();
             }
@@ -871,7 +872,7 @@ class User extends WebhookHandler
                     ->send();
 
                 $response = $this->chat
-                    ->message(view($template,
+                    ->message(Helper::prepare_template($template,
                         [
                             'referrals_amount' => $referrals_amount,
                             'bonuses' => $this->user->balance
@@ -968,13 +969,13 @@ class User extends WebhookHandler
             if (isset($this->message)) {
                 $this->terminate_active_page();
                 $response = $this->chat
-                    ->message(view($template, ['user' => $this->user]))
+                    ->message(Helper::prepare_template($template, ['user' => $this->user]))
                     ->keyboard($keyboard)
                     ->send();
             } else {
                 $response = $this->chat
                     ->edit($this->user->message_id)
-                    ->message(view($template, ['user' => $this->user]))
+                    ->message(Helper::prepare_template($template, ['user' => $this->user]))
                     ->keyboard($keyboard)
                     ->send();
             }
@@ -1003,7 +1004,7 @@ class User extends WebhookHandler
 
                 $this->chat
                     ->edit($this->user->message_id)
-                    ->message(view($template))
+                    ->message(Helper::prepare_template($template))
                     ->keyboard($keyboard)
                     ->send();
 
@@ -1059,7 +1060,7 @@ class User extends WebhookHandler
                 if (isset($this->message)) {
                     $this->terminate_active_page(false);
                     $response = $this->chat
-                        ->message(view($template, [
+                        ->message(Helper::prepare_template($template, [
                             'order' => $order,
                             'status_1' => $status_1
                         ]))
@@ -1072,7 +1073,7 @@ class User extends WebhookHandler
                     ]);
                 } else {
                     $this->chat->edit($this->user->message_id)
-                        ->message(view($template, [
+                        ->message(Helper::prepare_template($template, [
                             'order' => $order,
                             'status_1' => $status_1
                         ]))
@@ -1087,7 +1088,7 @@ class User extends WebhookHandler
                 $back_button = $back_button->param('choice', 2);
 
                 $this->chat->edit($this->user->message_id)
-                    ->message(view($template, [
+                    ->message(Helper::prepare_template($template, [
                         'order' => $order,
                         'status_1' => $status_1
                     ]))
@@ -1149,7 +1150,7 @@ class User extends WebhookHandler
             if ($orders->isEmpty()) {
                 $no_orders_template = $template_prefix_lang . '.orders.no_orders';
                 $response = $this->chat
-                    ->message(view($no_orders_template))
+                    ->message(Helper::prepare_template($no_orders_template))
                     ->keyboard(Keyboard::make()->buttons([$start_order_button]))
                     ->send();
             } else {
@@ -1166,17 +1167,17 @@ class User extends WebhookHandler
                 ]);
 
                 $orders_template = $template_prefix_lang . '.orders.all';
-                $view = (string)view($orders_template, ['orders' => $orders]);
+                $view = Helper::prepare_template($orders_template, ['orders' => $orders]);
 
                 if (isset($this->message)) {
                     $response = $this->chat
-                        ->message(preg_replace('#^[^\n]\s+#m', '', $view))
+                        ->message($view)
                         ->keyboard($keyboard)
                         ->send();
                 } else if (isset($this->callbackQuery)) {
                     $this->chat
                         ->edit($this->user->message_id)
-                        ->message(preg_replace('#^[^\n]\s+#m', '', $view))
+                        ->message($view)
                         ->keyboard($keyboard)
                         ->send();
                     return;
@@ -1219,7 +1220,7 @@ class User extends WebhookHandler
                 if ($orders->isEmpty()) {
                     $no_active_orders_template = $template_prefix_lang . '.orders.no_active_orders';
                     $this->chat->edit($this->user->message_id)
-                        ->message(view($no_active_orders_template))
+                        ->message(Helper::prepare_template($no_active_orders_template))
                         ->keyboard(Keyboard::make()->row([$back_button]))->send();
                 } else {
                     $orders_buttons_line = [];
@@ -1246,9 +1247,9 @@ class User extends WebhookHandler
                     $keyboard->row([$back_button]);
 
                     $orders_template = $template_prefix_lang . '.orders.active';
-                    $view = (string)view($orders_template, ['orders' => $orders]);
+                    $view = Helper::prepare_template($orders_template, ['orders' => $orders]);
                     $this->chat->edit($this->user->message_id)
-                        ->message(preg_replace('#^[^\n]\s+#m', '', $view))
+                        ->message($view)
                         ->keyboard($keyboard)
                         ->send();
                 }
@@ -1268,7 +1269,7 @@ class User extends WebhookHandler
                 $keyboard = Keyboard::make()->buttons($buttons);
                 $response = $this->chat
                     ->edit($this->user->message_id)
-                    ->message(view($template, ['orders' => $orders]))
+                    ->message(Helper::prepare_template($template, ['orders' => $orders]))
                     ->keyboard($keyboard)
                     ->send();
 
@@ -1307,7 +1308,7 @@ class User extends WebhookHandler
 
         $template_about = $template_prefix_lang . '.about_us';
         $response = $this->chat
-            ->message((string)view($template_about))
+            ->message((string)Helper::prepare_template($template_about))
             ->keyboard(Keyboard::make()->buttons([
                 $start_order_button
             ]))
@@ -1364,7 +1365,7 @@ class User extends WebhookHandler
                     } else { // если не с команды попало, тогда редактируем, т.к ничего не писали
                         $this->chat
                             ->edit($this->user->message_id)
-                            ->message((string)view($template_start))
+                            ->message((string)Helper::prepare_template($template_start))
                             ->keyboard($keyboard)
                             ->send();
 
@@ -1376,7 +1377,7 @@ class User extends WebhookHandler
                 }
 
                 $response = $this->chat
-                    ->message((string)view($template_start))
+                    ->message((string)Helper::prepare_template($template_start))
                     ->keyboard($keyboard)
                     ->send();
 
@@ -1562,7 +1563,7 @@ class User extends WebhookHandler
 
                 $this->chat
                     ->edit($this->user->message_id)
-                    ->message((string)view($template))
+                    ->message((string)Helper::prepare_template($template))
                     ->keyboard($keyboard)
                     ->send();
 
@@ -1575,7 +1576,7 @@ class User extends WebhookHandler
                 $this->terminate_active_page();
 
                 $response = $this->chat
-                    ->message((string)view($template))
+                    ->message((string)Helper::prepare_template($template))
                     ->keyboard($keyboard)
                     ->send();
 
@@ -1589,7 +1590,7 @@ class User extends WebhookHandler
                 ]);
 
                 $response = $this->chat
-                    ->message((string)view($template))
+                    ->message((string)Helper::prepare_template($template))
                     ->keyboard($keyboard)
                     ->send();
 
@@ -1779,7 +1780,7 @@ class User extends WebhookHandler
 
                 $this->chat
                     ->edit($this->user->message_id)
-                    ->message(view($template))
+                    ->message(Helper::prepare_template($template))
                     ->keyboard($keyboard)
                     ->send();
 
@@ -1797,7 +1798,7 @@ class User extends WebhookHandler
                 $template = $template_prefix_lang . '.order.canceled';
                 $this->chat
                     ->edit($this->messageId)
-                    ->message((string)view($template))
+                    ->message((string)Helper::prepare_template($template))
                     ->keyboard(Keyboard::make()
                         ->button($buttons['start'])->action('start')
                         ->button($buttons['recommend'])->action('referrals')->param('choice', 2)
@@ -1845,7 +1846,7 @@ class User extends WebhookHandler
             }
 
             $response = $this->chat->edit($this->user->message_id)
-                ->message(view($template, ['order_id' => $order->id]))
+                ->message(Helper::prepare_template($template, ['order_id' => $order->id]))
                 ->keyboard($keyboard)
                 ->send();
 

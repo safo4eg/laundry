@@ -6,10 +6,10 @@ To contact the courier, use the "Contact the courier" button.
 <b>Total weight of washed items:</b>
 
 @foreach($order_services as $order_service)
-    {{$order_service->service->title}} <b>{{$order_service->amount}}</b> - <b>{{$order_service->amount*$order_service->service->price}}</b> рупий
+    {{$order_service->service->title}} <b>{{$order_service->amount}}</b> - <b>@price($order_service->amount*$order_service->service->price)</b> IDR
 @endforeach
 
-<b>Order price: {{$price}}</b>
+<b>Order price: @price($price)</b>
 
 @if(!is_null($payment['method_id']))
     @if($payment['status_id'] !== 3)

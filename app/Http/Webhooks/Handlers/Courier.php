@@ -115,7 +115,7 @@ class Courier extends WebhookHandler
                 ]);
 
                 $response = $this->chat
-                    ->message(view($template))
+                    ->message(Helper::prepare_template($template))
                     ->reply($main_chat_order->message_id)
                     ->keyboard($keyboard)
                     ->send();
@@ -175,7 +175,7 @@ class Courier extends WebhookHandler
 
                 $response = $this
                     ->chat
-                    ->message(view($template, $template_dataset))
+                    ->message(Helper::prepare_template($template, $template_dataset))
                     ->reply($main_chat_order->message_id)
                     ->keyboard($keyboard)
                     ->send();
@@ -217,7 +217,7 @@ class Courier extends WebhookHandler
                     ->first();
 
                 if(isset($dialogue_chat_order)) {
-                    $response = $this->chat->message(view($template, $template_dataset))
+                    $response = $this->chat->message(Helper::prepare_template($template, $template_dataset))
                         ->edit($dialogue_chat_order->message_id)
                         ->keyboard($keyboard)
                         ->send();
@@ -233,7 +233,7 @@ class Courier extends WebhookHandler
             } else { // очищаем и отправляем заново
                 $this->delete_order_card_messages($order);
                 $response = $this->chat
-                    ->message(view($template, $template_dataset))
+                    ->message(Helper::prepare_template($template, $template_dataset))
                     ->reply($main_chat_order->message_id)
                     ->keyboard($keyboard)
                     ->send();
@@ -309,7 +309,7 @@ class Courier extends WebhookHandler
                     $template = $this->template_prefix.'weighing';
                     $this->chat
                         ->edit($this->messageId)
-                        ->message(view($template))
+                        ->message(Helper::prepare_template($template))
                         ->keyboard($keyboard)
                         ->send();
                 }
@@ -322,7 +322,7 @@ class Courier extends WebhookHandler
                 $template = $this->template_prefix.'weighing';
                 $this->chat
                     ->edit($this->messageId)
-                    ->message(view($template))
+                    ->message(Helper::prepare_template($template))
                     ->keyboard($keyboard)
                     ->send();
             }
@@ -349,7 +349,7 @@ class Courier extends WebhookHandler
                 } else {
                     $template = 'bot.notifications.selected_services_is_null';
                     $response = $this->chat
-                        ->message(view($template))->reply($this->messageId)
+                        ->message(Helper::prepare_template($template))->reply($this->messageId)
                         ->send();
 
                     ChatOrderPivot::create([
@@ -376,7 +376,7 @@ class Courier extends WebhookHandler
 
             $keyboard = $this->get_weighing_keyboard($order->id);
 
-            $response = $this->chat->message(view($template))
+            $response = $this->chat->message(Helper::prepare_template($template))
                 ->reply($main_chat_order->message_id)
                 ->keyboard($keyboard)
                 ->send();
@@ -420,12 +420,12 @@ class Courier extends WebhookHandler
 
             if(!isset($photo)) {
                 $response = $this->chat
-                    ->message(view($template, ['order' => $order]))
+                    ->message(Helper::prepare_template($template, ['order' => $order]))
                     ->keyboard($keyboard)
                     ->send();
             } else {
                 $response = $this->chat->photo(Storage::path($photo->path))
-                    ->message(view($template, ['order' => $order]))
+                    ->message(Helper::prepare_template($template, ['order' => $order]))
                     ->keyboard($keyboard)
                     ->send();
             }
@@ -494,7 +494,7 @@ class Courier extends WebhookHandler
                         $template = $this->template_prefix.'weighing';
                         $this->chat
                             ->edit($chat_order->message_id)
-                            ->message(view($template, ['price' => $price]))
+                            ->message(Helper::prepare_template($template, ['price' => $price]))
                             ->keyboard($keyboard)
                             ->send();
                         $this->delete_message_by_types([3, 10, 12]);

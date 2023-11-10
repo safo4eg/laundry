@@ -22,11 +22,12 @@ trait UserCommandsFuncsTrait
         else return false;
     }
 
+
     public function check_for_language_code(): bool
     {
         if (!isset($this->user) and isset($this->message)) {
             $command = $this->message->text();
-            if ($command !== '/start') {
+            if (strripos($command, '/start')) {
                 $this->chat
                     ->message('БД была обновлена, вызовите команду /start')
                     ->send();

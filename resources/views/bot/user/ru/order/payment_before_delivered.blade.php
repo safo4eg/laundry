@@ -6,10 +6,10 @@
 <b>Общий вес постиранных вещей:</b>
 
 @foreach($order_services as $order_service)
-    {{$order_service->service->title}} <b>{{$order_service->amount}}</b> - <b>{{$order_service->amount*$order_service->service->price}}</b> рупий
+    {{$order_service->service->title}} <b>{{$order_service->amount}}</b> - <b>@price($order_service->amount*$order_service->service->price)</b> рупий
 @endforeach
 
-<b>Сумма заказа {{$price}}</b>
+<b>Сумма заказа - @price($price)</b>
 
 @if(!is_null($payment['method_id']))
     @if($payment['status_id'] !== 3)
