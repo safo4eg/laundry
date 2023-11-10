@@ -306,7 +306,12 @@ class Courier extends WebhookHandler
                     ]);
                 } else {
                     $keyboard = $this->get_weighing_keyboard($order->id);
-                    $this->chat->replaceKeyboard($this->messageId, $keyboard)->send();
+                    $template = $this->template_prefix.'weighing';
+                    $this->chat
+                        ->edit($this->messageId)
+                        ->message(view($template))
+                        ->keyboard($keyboard)
+                        ->send();
                 }
             }
 
