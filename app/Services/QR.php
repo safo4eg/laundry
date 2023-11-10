@@ -24,6 +24,6 @@ class QR
         $writer = new PngWriter();
 
         $result = $writer->write($qr_code);
-        $result->saveToFile(Storage::path("user/qr_code_{$user->id}.png"));
+        $result->saveToFile(Storage::path("User/{$user->id}/qrs/qr.png"));
     }
 }
