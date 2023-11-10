@@ -839,13 +839,13 @@ class User extends WebhookHandler
             $response = null;
             if (isset($this->message)) {
                 $response = $this->chat
-                    ->photo(Storage::path("User/{$this->user->id}/qrs/qr.png"))
+                    ->photo(Storage::path("User/{$this->user->id}/qr.png"))
                     ->html(view($template, ['user' => $this->user]))
                     ->keyboard($keyboard)
                     ->send();
             } else {
                 $response = $this->chat
-                    ->photo(Storage::path("User/{$this->user->id}/qrs/qr.png"))
+                    ->photo(Storage::path("User/{$this->user->id}/qr.png"))
                     ->html(view($template, ['user' => $this->user]))
                     ->keyboard($keyboard)
                     ->send();
