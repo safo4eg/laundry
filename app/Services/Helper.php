@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 
 class Helper
 {
-    public static function send_user_custom_notification($user, string $template, string $photo_path, Keyboard $keyboard): void
+    public static function send_user_custom_notification($user, string $template, string|null $photo_path, Keyboard $keyboard): void
     {
         $chat = Chat::factory()->make([
             'chat_id' => $user->chat_id,
