@@ -37,7 +37,7 @@ class OrderStatusObserver
                 ]
             ];
 
-            if ($attributes['status_id'] !== 3) {
+            if($attributes['status_id'] !== 3 AND ($attributes['status_id'] !== 4 AND $order->reason_id !== 5)) {
                 $manager_chat = Chat::where('name', 'Manager')->first();
                 $manager_chat_request = FakeRequest::callback_query($manager_chat, $bot, $update_order_dataset);
                 (new Manager())->handle($manager_chat_request, $bot);
