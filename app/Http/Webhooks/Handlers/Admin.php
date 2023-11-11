@@ -441,10 +441,13 @@ class Admin extends WebhookHandler
                             $buttons[] = Button::make($button_texts[$user_lang_code])
                                 ->url($ref_link);
                         }
-
-                        $keyboard = Keyboard::make()->buttons($buttons);
-                        Helper::send_user_custom_notification($user, $template, $keyboard);
                     }
+                    $photo_path = null;
+                    if(isset($notification['photo']) AND isset($notification['photo']['id'])) {
+                        $photo_path = "{$this->chat->name}/{$notification['photo']['id']}.jpg";
+                    }
+                    $keyboard = Keyboard::make()->buttons($buttons);
+                    Helper::send_user_custom_notification($user, $template, $photo_path, $keyboard);
                 }
 
                 $this->delete_message_by_types([16, 17, 18, 19, 20]);
