@@ -5,10 +5,11 @@ namespace App\Services;
 use App\Models\Chat;
 use App\Models\Service;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use Illuminate\Support\Facades\Storage;
 
 class Helper
 {
-    public static function send_user_custom_notification($user, string $template, Keyboard $keyboard): void
+    public static function send_user_custom_notification($user, string $template, string $photo_path, Keyboard $keyboard): void
     {
         $chat = Chat::factory()->make([
             'chat_id' => $user->chat_id,
@@ -20,10 +21,19 @@ class Helper
             $chat->deleteMessage($user->message_id)->send();
         }
 
-        $response = $chat
-            ->message($template)
-            ->keyboard($keyboard)
-            ->send();
+        $response = null;
+        if(isset($photo_path)) {
+            $response = $chat
+                ->photo(Storage::path($photo_path))
+                ->html($template)
+                ->keyboard($keyboard)
+                ->send();
+        } else {
+            $response = $chat
+                ->message($template)
+                ->keyboard($keyboard)
+                ->send();
+        }
 
         $user->update([
             'page' => 'notification',
