@@ -186,6 +186,7 @@ return [
         'create_notification' => [
             'text_ru' => 'Add text (RU)',
             'text_en' => 'Add text (EN)',
+            'photo' => 'Add photo',
             'start' => 'Start button',
             'recommend' => 'Recommend button',
             'preview' => '🎬Preview',

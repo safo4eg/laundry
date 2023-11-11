@@ -289,6 +289,7 @@ class Admin extends WebhookHandler
             $button = $this->data->get('button');
             $preview = $this->data->get('preview');
             $send = $this->data->get('send');
+            $photo = $this->data->get('photo');
 
             if(isset($text)) {
                 if(isset($notification["text_{$text}"])) {
@@ -438,21 +439,46 @@ class Admin extends WebhookHandler
 
                 $this->delete_message_by_types([16, 17, 18, 19, 20]);
             }
+
+            if(isset($photo)) {
+                if(isset($notification['photo'])) {
+                    /* Если инфа о фото уже есть, тогда убираем её */
+                    /* после отправляем на рен деринг заново */
+                    Storage::delete($this->chat->name.'/'.$notification['photo']['id'].'.jpg');
+                    unset($notification['photo']);
+                    $this->chat->storage()->set('notification', $notification);
+
+                    $fake_dataset = [
+                        'action' => 'notification',
+                        'params' => []
+                    ];
+                    $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
+                    (new self())->handle($fake_request, $this->bot);
+                } else {
+                    $this->request_photo();
+                }
+            }
         }
 
 //        будет харниться массив со значениями:
 //        $notification = [
 //            'text_ru' => 'text',
 //            'text_en' => 'text',
-//            'buttons' => ['start' => 1, 'recommend' => 1]
+//            'buttons' => ['start' => 1, 'recommend' => 1],
+//            'photo' => ['id' => photo_id, 'timestamp' => last_message_timestamp]
 //        ];
         if(!isset($flag)) {
-            $this->delete_message_by_types([16, 17, 18, 19, 20]);
+            $this->delete_message_by_types([5, 16, 17, 18, 19, 20]);
             $reset = $this->data->get('reset');
 
-            $notification = ['buttons' => []];
-            if(isset($reset)) $this->chat->storage()->set('notification', $notification);
-            else $notification = $this->chat->storage()->get('notification');
+            $notification = $this->chat->storage()->get('notification');
+            if(isset($reset)) {
+                if(isset($notification['photo']) AND isset($notification['photo']['id'])) {
+                    Storage::delete($this->chat->name.'/'.$notification['photo']['id'].'.jpg');
+                }
+                $notification = ['buttons' => []];
+                $this->chat->storage()->set('notification', $notification);
+            }
 
             $template = $this->template_prefix.'create_notification';
             $keyboard = Keyboard::make()->buttons([
@@ -465,6 +491,11 @@ class Admin extends WebhookHandler
                     ->action('notification')
                     ->param('notification', 1)
                     ->param('text', 'en'),
+
+                Button::make(isset($notification['photo'])? "✅".$buttons_texts['photo']: $buttons_texts['photo'])
+                    ->action('notification')
+                    ->param('notification', 1)
+                    ->param('photo', 1),
 
                 Button::make(isset($notification['buttons']['start'])? "✅".$buttons_texts['start']:$buttons_texts['start'])
                     ->action('notification')
@@ -706,6 +737,45 @@ class Admin extends WebhookHandler
     {
         $photos = $this->message->photos();
         $text = $this->message->text();
+
+        if(isset($photos) AND $photos->isNotEmpty()) { // прикрепление фото
+            $chat_order = ChatOrderPivot::where('telegraph_chat_id', $this->chat->id)
+                ->where('order_id', null)
+                ->whereIn('message_type_id', [5])
+                ->first();
+
+            if(isset($chat_order)) { // если был запрос на фото
+                $message_timestamp = $this->message->date()->timestamp; // время отправки прилетевшего фото
+                $notification = $this->chat->storage()->get('notification');
+                $updated_notification = $notification;
+                $save_photo_flag = false;
+                if(isset($notification['photo'])) { // если инфа о фото была установлена
+                    $last_photo_timestamp = $notification['photo']['timestamp'];
+                    if(isset($last_photo_timestamp) AND $message_timestamp !== $last_photo_timestamp) {
+                        /* установлена и не равна текущему => сохраняем фото */
+                        $save_photo_flag = true;
+                    }
+                } else {
+                    $save_photo_flag = true;
+                }
+
+                if($save_photo_flag) {
+                    $photo = $this->save_photo($photos, false);
+                    $updated_notification['photo']['id'] = $photo->id();
+                    $updated_notification['photo']['timestamp'] = $message_timestamp;
+                    $this->chat->storage()->set('notification', $updated_notification);
+
+                    $fake_dataset = [
+                        'action' => 'notification',
+                        'params' => []
+                    ];
+                    $fake_request = FakeRequest::callback_query($this->chat, $this->bot, $fake_dataset);
+                    (new self())->handle($fake_request, $this->bot);
+                }
+            }
+
+            $this->chat->deleteMessage($this->messageId)->send();
+        }
 
         if($photos->isEmpty() AND isset($text)) {
             ChatOrderPivot::create([
