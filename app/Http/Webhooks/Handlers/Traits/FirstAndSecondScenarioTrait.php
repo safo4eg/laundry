@@ -35,7 +35,7 @@ trait FirstAndSecondScenarioTrait
             $geo = new Geo($x, $y);
 
             $order->update([
-                'geo' => "$x,$y",
+                'geo' => "$y, $x",
                 'address' => $geo->address
             ]);
 
