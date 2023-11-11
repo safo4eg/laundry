@@ -103,7 +103,11 @@ return [
                 'new_order' => ['ru' => 'Сделать заказ', 'en' => 'Create order'],
                 'new_request' => ['ru' => 'Новое обращение', 'en' => 'New request']
             ]
+        ],
 
+        'order_pickup_notification' => [
+            'wishes' => ['ru' => 'Особые пожелания по стирке', 'en' => 'Special requests for washing'],
+            'recommend' => ['ru' => 'Рекомендовать друзьям', 'en' => 'Recommend to friends']
         ],
 
         'payment' => [

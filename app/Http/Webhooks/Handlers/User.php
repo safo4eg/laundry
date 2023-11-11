@@ -3,10 +3,7 @@
 namespace App\Http\Webhooks\Handlers;
 
 use App\Http\Webhooks\Handlers\Traits\FirstAndSecondScenarioTrait;
-use App\Http\Webhooks\Handlers\Traits\SupportTrait;
 use App\Http\Webhooks\Handlers\Traits\UserCommandsFuncsTrait;
-use App\Http\Webhooks\Handlers\Traits\UserMessageTrait;
-use App\Models\Chat;
 use App\Models\File;
 use App\Models\Order;
 use App\Models\OrderMessage;
@@ -15,19 +12,19 @@ use App\Models\OrderStatusPivot;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Referral;
-use App\Models\Ticket;
 use App\Models\User as UserModel;
+use App\Services\FakeRequest;
 use App\Services\Helper;
+use App\Services\QR;
+use Carbon\Carbon;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
-use DefStudio\Telegraph\Models\TelegraphChat;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Stringable;
-use Illuminate\Support\Facades\DB;
-use App\Services\QR;
-use App\Services\FakeRequest;
 
 
 class User extends WebhookHandler
@@ -447,7 +444,7 @@ class User extends WebhookHandler
                 if ($method_id === 2 or $method_id === 3) {
                     switch ($method_id) {
                         case 3:
-                            $template_data['payment']['ru_price'] = $order->price*0.0058;
+                            $template_data['payment']['ru_price'] = $order->price * 0.0058;
                         case 2:
                             $buttons[] = Button::make($buttons_texts['request_photo'][$this->user->language_code])
                                 ->action('payment_photo')
@@ -527,7 +524,7 @@ class User extends WebhookHandler
                 ]);
             }
 
-            if($price !== 0 OR $order->status_id === 12) {
+            if ($price !== 0 or $order->status_id === 12) {
                 $fake_dataset = [
                     'action' => 'payment_page',
                     'params' => [
@@ -620,7 +617,7 @@ class User extends WebhookHandler
             foreach ($payment_methods as $method) {
                 if ($order->payment->method_id !== $method->id) {
                     $desc_property = "{$this->user->language_code}_desc";
-                    if($method->id !== 4) {
+                    if ($method->id !== 4) {
                         $buttons[] = Button::make($method->$desc_property)
                             ->action('select_payment')
                             ->param('select', 1)
@@ -1048,7 +1045,7 @@ class User extends WebhookHandler
                     ->action('write_order_wishes')
                     ->param('write_order_wishes', 1);
 
-                if($order->status_id < 5) {
+                if ($order->status_id < 5) {
                     $buttons[] = Button::make($buttons_texts['cancel'])
                         ->action('cancel_order')
                         ->param('cancel_order', 1);
@@ -1255,11 +1252,11 @@ class User extends WebhookHandler
                 }
             } else if ($choice == 2) { // завершенные заявки
                 $orders = Order::where('status_id', 14)->get();
-                $template = $template_prefix_lang.'.orders.completed';
+                $template = $template_prefix_lang . '.orders.completed';
                 $buttons = [$back_button];
 
                 foreach ($orders as $order) {
-                    if(!isset($order->rating)) {
+                    if (!isset($order->rating)) {
                         $buttons[] = Button::make("#{$order->id}")
                             ->action('request_rating')
                             ->param('order_id', $order->id);
@@ -1722,7 +1719,7 @@ class User extends WebhookHandler
 
         if ($flag) {
             $order = $this->user->active_order;
-            if($order->status_id > 3) {
+            if ($order->status_id > 3) {
                 $messages = [
                     'ru' => '❌Курьер забрал вещи, заказ отменить нельзя!',
                     'en' => '❌The courier took the items, the order cannot be cancelled!'
@@ -1845,6 +1842,13 @@ class User extends WebhookHandler
                     ->param('order_accepted_handler', 1);
             }
 
+            if ($this->user->page === 'order_pickup_notification') {
+                $step = 1;
+                $keyboard = $keyboard->button($button)
+                    ->action('order_picked_up')
+                    ->param('order_id', $order->id);
+            }
+
             $response = $this->chat->edit($this->user->message_id)
                 ->message(Helper::prepare_template($template, ['order_id' => $order->id]))
                 ->keyboard($keyboard)
@@ -1884,7 +1888,7 @@ class User extends WebhookHandler
     public function support(): void
     {
         if ($this->check_for_language_code()) return;
-        if ($this->message){
+        if ($this->message) {
             $this->terminate_active_page();
         }
         $this->delete_active_page_message();
@@ -1916,6 +1920,42 @@ class User extends WebhookHandler
                 $this->ticket_add_photo_handler();
                 break;
         }
+    }
+
+    public function order_picked_up(): void
+    {
+        $this->terminate_active_page();
+        $order_id = $this->data->get('order_id');
+        $order = isset($order_id) ? Order::where('id', $order_id)->first() : $this->user->active_order;
+        Log::debug($this->user->active_order);
+        $order->update([
+            'active' => 1
+        ]);
+
+        $order_status = OrderStatusPivot::where('order_id', $order->id)
+            ->where('status_id', 5)
+            ->first();
+        $picked_time = (new Carbon($order_status->created_at))->format('Y-m-d H:i');
+        $view = view("$this->template_prefix.{$this->user->language_code}.notifications.order_pickuped", [
+            'order' => $order,
+            'picked_time' => $picked_time
+        ]);
+
+        $buttons = config('buttons.user')['order_pickup_notification'];
+        $keyboard = Keyboard::make()->buttons([
+            Button::make($buttons['wishes'][$this->user->language_code])
+                ->action('write_order_wishes')
+                ->param('write_order_wishes', 1)
+                ->param('order_id', $order_id),
+            Button::make($buttons['recommend'][$this->user->language_code])
+                ->action('referrals')
+        ]);
+
+        $response = $this->chat->message($view)->keyboard($keyboard)->send();
+        $this->user->update([
+            'page' => 'order_pickup_notification',
+            'message_id' => $response->telegraphMessageId()
+        ]);
     }
 
 
@@ -1982,7 +2022,7 @@ class User extends WebhookHandler
                 (new self($order->user))->handle($fake_request, $this->bot);
             }
         }
-        if ($page == 'add_ticket' or $page == "ticket_creation"){
+        if ($page == 'add_ticket' or $page == "ticket_creation") {
             $this->handle_ticket_response();
         }
     }

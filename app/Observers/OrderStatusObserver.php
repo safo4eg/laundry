@@ -79,7 +79,25 @@ class OrderStatusObserver
                     'order' => $order,
                     'picked_time' => $picked_time
                 ];
-                Helper::send_user_notification($order->user, 'order_pickuped', $user_chat_dataset);
+
+                $user = $order->user;
+                $chat = Chat::factory()->make([
+                    'chat_id' => $user->chat_id,
+                    'name' => 'Temp',
+                    'telegraph_bot_id' => 1
+                ]);
+
+                $fake_dataset = [
+                    'action' => 'order_picked_up',
+                    'params' => [
+                        'order_id' => $order->id
+                    ]
+                ];
+
+                $fake_request = FakeRequest::callback_query($chat, $bot, $fake_dataset);
+                (new User($order->user))->handle($fake_request, $bot);
+
+               // Helper::send_user_notification($order->user, 'order_pickuped', $user_chat_dataset);
             } else if ($attributes['status_id'] === 13) {
                 $fake_dataset = [
                     'action' => 'payment_page',
