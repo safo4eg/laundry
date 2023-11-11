@@ -392,10 +392,20 @@ class Admin extends WebhookHandler
 
                     $keyboard = Keyboard::make()->buttons($buttons);
                     $this->delete_message_by_types([16, 17, 18, 19]);
-                    $response = $this->chat
-                        ->message($template)
-                        ->keyboard($keyboard)
-                        ->send();
+                    $response = null;
+                    if(isset($notification['photo']) AND isset($notification['photo']['id'])) {
+                        $photo_path = Storage::path("{$this->chat->name}/{$notification['photo']['id']}.jpg");
+                        $response = $this->chat
+                            ->photo($photo_path)
+                            ->html($template)
+                            ->keyboard($keyboard)
+                            ->send();
+                    } else {
+                        $response = $this->chat
+                            ->html($template)
+                            ->keyboard($keyboard)
+                            ->send();
+                    }
 
                     ChatOrderPivot::create([
                         'telegraph_chat_id' => $this->chat->id,
