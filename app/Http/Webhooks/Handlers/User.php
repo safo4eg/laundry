@@ -1357,20 +1357,7 @@ class User extends WebhookHandler
                 ]);
 
                 if (isset($this->user->message_id)) {
-                    if (isset($this->message)) { // проверяем проинициализирована ли переменная, т.к сюда можно попасть и с кнопки
-                        $this->terminate_active_page();
-                    } else { // если не с команды попало, тогда редактируем, т.к ничего не писали
-                        $this->chat
-                            ->edit($this->user->message_id)
-                            ->message((string)Helper::prepare_template($template_start))
-                            ->keyboard($keyboard)
-                            ->send();
-
-                        $this->user->update([
-                            'page' => 'start'
-                        ]);
-                        return;
-                    }
+                    $this->terminate_active_page();
                 }
 
                 $response = $this->chat
