@@ -13,5 +13,5 @@
     {{$notification['text_en']}}
 @endif
 @if(isset($notification['photo']))
-    <a href="{{url('Admin/'.$notification['photo']['id'])}}">Notification cover</a>
+    <a href="{{url('storage/Admin/'.$notification['photo']['id'].".jpg")}}">Notification cover</a>
 @endif
