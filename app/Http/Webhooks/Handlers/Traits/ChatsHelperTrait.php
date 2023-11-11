@@ -140,13 +140,14 @@ trait ChatsHelperTrait
 
     /* request_photo отвечает только за отправку сообщения, своих кнопок у него нет (которые обрабатываются им же)
        есть одна кнопка "cancel", она обрабатывается delete_message_by_types */
-    public function request_photo(Order $order): void
+    public function request_photo(Order $order = null): void
     {
         $template = $this->template_prefix . 'photo_request';
+        $template_dataset = isset($order)? ['order' => $order]: [];
         $buttons_texts = $this->general_buttons['request_photo'];
 
         $response = $this->chat
-            ->message(view($template, ['order' => $order]))
+            ->message(view($template, $template_dataset))
             ->keyboard(Keyboard::make()->buttons([
                 Button::make($buttons_texts['cancel'])
                     ->action('delete_message_by_types')
@@ -156,7 +157,7 @@ trait ChatsHelperTrait
 
         ChatOrderPivot::create([
             'telegraph_chat_id' => $this->chat->id,
-            'order_id' => $order->id,
+            'order_id' => isset($order)? $order->id: null,
             'message_id' => $response->telegraphMessageId(),
             'message_type_id' => 5
         ]);
@@ -284,16 +285,18 @@ trait ChatsHelperTrait
         }
     }
 
-    public function save_photo(Collection $photos, Order $order = null): Photo
+    public function save_photo(Collection $photos, Order|bool $order = null): Photo
     {
         $photo = $photos->last(); // получение фото с лучшем качеством
         $dir = "{$this->chat->name}/";
         $file_name = $photo->id() . ".jpg";
 
-        if (isset($order)) { // если известен заказ
-            $dir = $dir . "order_{$order->id}";
-        } else { // если заказ неизвестен
-            $dir = $dir . "order_undefined";
+        if($order !== false) {
+            if (isset($order)) { // если известен заказ
+                $dir = $dir . "order_{$order->id}";
+            } else { // если заказ неизвестен
+                $dir = $dir . "order_undefined";
+            }
         }
 
         Telegraph::store($photo, Storage::path($dir), $file_name); // сохранение фото
