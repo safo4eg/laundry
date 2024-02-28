@@ -19,99 +19,99 @@ class OrderStatusSeeder extends Seeder
             [
                 'name' => 'created',
                 'signature_photo' => null,
-                'en_desc' => 'User created the order',
-                'ru_desc' => 'Пользователь создал заказ'
+                'en_desc' => '🤖Created',
+                'ru_desc' => '🤖Заказ создан'
             ],
 
             [
                 'name' => 'confirmed',
                 'signature_photo' => null,
-                'en_desc' => 'User confirmed an order',
-                'ru_desc' => 'Пользователь подтвердил заказ'
+                'en_desc' => '☑️Confirmed',
+                'ru_desc' => '☑️Заказ подтвержден'
             ],
 
             [
                 'name' => 'sent_to_courier',
                 'signature_photo' => null,
-                'en_desc' => 'Sent to courier',
-                'ru_desc' => 'Отправлен курьеру'
+                'en_desc' => '👌🏻Sent to courier',
+                'ru_desc' => '👌🏻Отправлен курьеру'
             ],
 
             [
                 'name' => 'canceled',
                 'signature_photo' => null,
-                'en_desc' => 'User canceled an order',
-                'ru_desc' => 'Пользователь отменил заказ'
+                'en_desc' => '❌User canceled an order',
+                'ru_desc' => '❌Пользователь отменил заказ'
             ],
 
             [
                 'name' => 'courier_picked_order',
                 'signature_photo' => 'Pickup photo',
-                'en_desc' => 'Courier collected the clients items',
-                'ru_desc' => 'Курьер забрал вещи у клиента'
+                'en_desc' => '📥Courier picked up',
+                'ru_desc' => '📥Курьер забрал вещи'
             ],
 
             [
                 'name' => 'deliver_in_laundry',
                 'signature_photo' => 'Photo in laundry',
-                'en_desc' => 'Courier delivered things to the laundry',
-                'ru_desc' => 'Курьер доставил вещи в прачечную'
+                'en_desc' => '🗺Courier delivered to laundry',
+                'ru_desc' => '🗺Курьер доставил вещи в прачечную'
             ],
 
             [
                 'name' => 'washer_picked_order',
                 'signature_photo' => 'Photo before washing',
-                'en_desc' => 'Washer picked the order',
-                'ru_desc' => 'Прачка получила вещи'
+                'en_desc' => '🧼Washing started',
+                'ru_desc' => '🧼Стирка началась'
             ],
 
             [
                 'name' => 'things_are_washed',
                 'signature_photo' => 'Photo after washing',
-                'en_desc' => 'Things are washes',
-                'ru_desc' => 'Вещи постираны'
+                'en_desc' => '💪Washed',
+                'ru_desc' => '💪Вещи постираны'
             ],
 
             [
                 'name' => 'send_for_weighing',
                 'signature_photo' => null,
-                'en_desc' => 'Sent to the courier for weighing',
-                'ru_desc' => 'Вещи отправлены курьеру на взвешивание'
+                'en_desc' => '💨Sent to the courier for weighing',
+                'ru_desc' => '💨Вещи отправлены курьеру на взвешивание'
             ],
 
             [
                 'name' => 'things_are_weighed',
                 'signature_photo' => null,
-                'en_desc' => 'The courier weighed the things',
-                'ru_desc' => 'Курьер взвешал вещи'
+                'en_desc' => '🛒Weighed',
+                'ru_desc' => '🛒Вещи взвешены'
             ],
 
             [
                 'name' => 'ready_to_delivering',
                 'signature_photo' => 'Photo on the scales',
-                'en_desc' => 'Things are ready for delivery',
-                'ru_desc' => 'Вещи готовы к отправке'
+                'en_desc' => '🔥Things are ready for delivery',
+                'ru_desc' => '🔥Вещи готовы к доставке'
             ],
 
             [
                 'name' => 'courier_on_the_way',
                 'signature_photo' => null,
-                'en_desc' => 'Courier on the way',
-                'ru_desc' => 'Курьер доставляет готовый заказ'
+                'en_desc' => '🏂Courier on the way',
+                'ru_desc' => '🏂Курьер доставляет заказ'
             ],
 
             [
                 'name' => 'delivered_to_client',
                 'signature_photo' => 'Photo after delivery',
-                'en_desc' => 'The courier delivered the items to the client',
-                'ru_desc' => 'Курьер доставил вещи клиенту'
+                'en_desc' => '🛵Courier delivered',
+                'ru_desc' => '🛵Заказ доставлен'
             ],
 
             [
                 'name' => 'payment',
                 'signature_photo' => "💵Payment",
-                'en_desc' => 'Order has been paid',
-                'ru_desc' => 'Заказ оплачен'
+                'en_desc' => '💵Order has been paid',
+                'ru_desc' => '💵Заказ оплачен'
             ],
         ]);
     }
