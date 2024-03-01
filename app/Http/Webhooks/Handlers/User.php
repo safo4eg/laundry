@@ -826,7 +826,7 @@ class User extends WebhookHandler
 
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons_texts['recommend'])
-                    ->url("https://t.me/share/url?url=https://t.me/rastan_telegraph_bot?start=ref{$this->user->id}"),
+                    ->url("https://t.me/share/url?url=https://t.me/LaundryPhuket_Bot?start=ref{$this->user->id}"),
                 Button::make($buttons_texts['info'])
                     ->action('referrals')
                     ->param('referrals', 1)
