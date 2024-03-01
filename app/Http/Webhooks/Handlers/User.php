@@ -204,7 +204,7 @@ class User extends WebhookHandler
         ];
 
         $recommend_button = Button::make($buttons_texts['recommend'])
-            ->url("https://t.me/share/url?url=https://t.me/LaundryPhuket_Bot?start=ref{$this->user->id}");
+            ->url("https://t.me/share/url?url=https://t.me/rastan_telegraph_bot?start=ref{$this->user->id}");
         $start_button = Button::make($buttons_texts['start'])
             ->action('start');
 
@@ -798,6 +798,7 @@ class User extends WebhookHandler
 
     public function referrals(): void
     {
+        if ($this->message) $this->chat->deleteMessage($this->message->id())->send();
         if ($this->check_for_language_code()) return;
         $flag = $this->data->get('referrals');
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
@@ -826,7 +827,7 @@ class User extends WebhookHandler
 
             $keyboard = Keyboard::make()->buttons([
                 Button::make($buttons_texts['recommend'])
-                    ->url("https://t.me/share/url?url=https://t.me/LaundryPhuket_Bot?start=ref{$this->user->id}"),
+                    ->url("https://t.me/share/url?url=https://t.me/?start=ref{$this->user->id}"),
                 Button::make($buttons_texts['info'])
                     ->action('referrals')
                     ->param('referrals', 1)
@@ -921,6 +922,7 @@ class User extends WebhookHandler
 
     public function profile(): void
     {
+        if ($this->message) $this->chat->deleteMessage($this->message->id())->send();
         if ($this->check_for_language_code()) return;
         $flag = $this->data->get('profile');
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
@@ -1101,6 +1103,7 @@ class User extends WebhookHandler
 
     public function orders(): void
     {
+        if ($this->message) $this->chat->deleteMessage($this->message->id())->send();
         if ($this->check_for_language_code()) return;
         $flag = $this->data->get('orders');
         $template_prefix_lang = $this->template_prefix . $this->user->language_code;
@@ -1282,6 +1285,7 @@ class User extends WebhookHandler
 
     public function about(): void // можно попасть только с команды /about
     {
+        if ($this->message) $this->chat->deleteMessage($this->message->id())->send();
         if ($this->check_for_language_code()) return;
         if (isset($this->message)) {
             if ($this->unpaid_orders()) return;
@@ -1319,6 +1323,7 @@ class User extends WebhookHandler
 
     public function start(string $ref = null): void
     {
+        if ($this->message) $this->chat->deleteMessage($this->message->id())->send();
         if ($this->check_for_language_code()) return;
         $flag = $this->data->get('start');
         $ref_flag = false;
@@ -1874,6 +1879,7 @@ class User extends WebhookHandler
 
     public function support(): void
     {
+        if ($this->message) $this->chat->deleteMessage($this->message->id())->send();
         if ($this->check_for_language_code()) return;
         if ($this->message) {
             $this->terminate_active_page();
@@ -2012,5 +2018,7 @@ class User extends WebhookHandler
         if ($page == 'add_ticket' or $page == "ticket_creation") {
             $this->handle_ticket_response();
         }
+
+        $this->chat->deleteMessage($this->message->id())->send();
     }
 }
