@@ -49,7 +49,7 @@ class User extends WebhookHandler
     {
         $bonus = $this->data->get('bonus');
 
-        $ref_link = "https://t.me/share/url?url=https://t.me/rastan_telegraph_bot?start=ref{$this->user->id}";
+        $ref_link = "https://t.me/share/url?url=https://t.me/LaundryPhuket_Bot?start=ref{$this->user->id}";
         $template = $this->template_prefix . $this->user->language_code . '.notifications.addition_bonuses';
         $template_data = [
             'ref_link' => $ref_link,
@@ -204,7 +204,7 @@ class User extends WebhookHandler
         ];
 
         $recommend_button = Button::make($buttons_texts['recommend'])
-            ->url("https://t.me/share/url?url=https://t.me/rastan_telegraph_bot?start=ref{$this->user->id}");
+            ->url("https://t.me/share/url?url=https://t.me/LaundryPhuket_Bot?start=ref{$this->user->id}");
         $start_button = Button::make($buttons_texts['start'])
             ->action('start');
 

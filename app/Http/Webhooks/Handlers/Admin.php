@@ -437,7 +437,7 @@ class Admin extends WebhookHandler
                                 'ru' => 'Рекомендовать друзьям',
                                 'en' => 'Recommend to friends'
                             ];
-                            $ref_link = "https://t.me/share/url?url=https://t.me/rastan_telegraph_bot?start=ref{$user->id}";
+                            $ref_link = "https://t.me/share/url?url=https://t.me/LaundryPhuket_Bot?start=ref{$user->id}";
                             $buttons[] = Button::make($button_texts[$user_lang_code])
                                 ->url($ref_link);
                         }

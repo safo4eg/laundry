@@ -13,7 +13,7 @@ class QR
 {
     public static function generate_referrals_qr(User $user)
     {
-        $link = "https://t.me/rastan_telegraph_bot?start=ref{$user->id}";
+        $link = "https://t.me/LaundryPhuket_Bot?start=ref{$user->id}";
         $qr_code = (QrCode::create($link))
             ->setSize(300)
             ->setForegroundColor(new Color(0, 101, 213));
